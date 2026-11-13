@@ -1,0 +1,40 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.musetab.app" android:versionCode="8" android:versionName="0.5.0">
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+  <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35"/>
+  <uses-feature android:glEsVersion="0x00030000" android:required="true"/>
+  <application android:label="MuseTab" android:icon="@mipmap/ic_launcher" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="false" android:largeHeap="true">
+    <provider android:name=".UpdateProvider" android:authorities="org.musetab.app.updates" android:exported="false" android:grantUriPermissions="true"/>
+    <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|density|uiMode" android:windowSoftInputMode="adjustResize">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <!-- 「用 MuseTab 打开」乐谱文件 -->
+      <intent-filter android:label="用 MuseTab 打开">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="content"/>
+        <data android:scheme="file"/>
+        <data android:mimeType="audio/midi"/>
+        <data android:mimeType="application/pdf"/>
+        <data android:mimeType="audio/x-midi"/>
+        <data android:mimeType="audio/mid"/>
+        <data android:mimeType="application/vnd.recordare.musicxml+xml"/>
+        <data android:mimeType="application/vnd.recordare.musicxml"/>
+        <data android:mimeType="application/x-musescore"/>
+        <data android:mimeType="application/x-musescore+xml"/>
+        <data android:mimeType="application/octet-stream"/>
+        <data android:mimeType="application/zip"/>
+        <data android:mimeType="text/xml"/>
+        <data android:mimeType="application/xml"/>
+      </intent-filter>
+      <intent-filter android:label="用 MuseTab 打开">
+        <action android:name="android.intent.action.SEND"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <data android:mimeType="*/*"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

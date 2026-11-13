@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="color-scheme" content="light dark" />
+    <title>MuseTab</title>
+    <link rel="preload" href="/fonts/NewCM10-Book.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/NotoSerifSC-subset-VF.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // 首帧前定好主题，避免闪烁。偏好：auto | light | dark
+      (function () {
+        var pref = 'auto';
+        try {
+          pref = localStorage.getItem('musetab.theme') || 'auto';
+        } catch (e) {}
+        var m = /[?&]theme=(light|dark|auto)/.exec(location.hash);
+        if (m) pref = m[1];
+        var dark = pref === 'dark' || (pref === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

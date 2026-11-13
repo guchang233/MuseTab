@@ -1,0 +1,73 @@
+/* 内置字体。来源与许可见 app/THIRD_PARTY_FONTS.md */
+
+@font-face {
+  font-family: 'NewCM';
+  src: url('/fonts/NewCM10-Book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NewCM';
+  src: url('/fonts/NewCM10-BookItalic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NewCM';
+  src: url('/fonts/NewCM10-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/cormorant-garamond-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/cormorant-garamond-latin-500-italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/cormorant-garamond-latin-600-italic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/cormorant-garamond-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 思源宋体（Noto Serif SC）可变字重 400–700，GB2312 一级字子集 */
+@font-face {
+  font-family: 'Songti';
+  src: url('/fonts/NotoSerifSC-subset-VF.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SMuFL 音乐字体 */
+@font-face {
+  font-family: 'Leland';
+  src: url('/fonts/Leland.woff2') format('woff2');
+  font-display: block;
+}
+@font-face {
+  font-family: 'Leland Text';
+  src: url('/fonts/LelandText.woff2') format('woff2');
+  font-display: block;
+}

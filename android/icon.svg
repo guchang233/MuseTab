@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- MuseTab 启动图标：羊皮纸底上一枚赭红的「火漆印」，印中是一个八分音符 -->
+  <rect x="0" y="0" width="432" height="432" rx="96" fill="#f3ecdd"/>
+  <rect x="10" y="10" width="412" height="412" rx="88" fill="none" stroke="#3a3127" stroke-opacity="0.12" stroke-width="2"/>
+  <circle cx="216" cy="216" r="138" fill="#b4573c"/>
+  <circle cx="216" cy="216" r="122" fill="none" stroke="#fbf3e4" stroke-opacity="0.35" stroke-width="3"/>
+  <g fill="#fbf3e4">
+    <ellipse cx="190" cy="270" rx="42" ry="30" transform="rotate(-22 190 270)"/>
+    <rect x="221" y="128" width="11" height="144" rx="3"/>
+    <path d="M226 128 C 246 160, 300 172, 288 238 C 284 214, 262 190, 226 186 Z"/>
+  </g>
+</svg>

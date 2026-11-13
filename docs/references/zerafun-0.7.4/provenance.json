@@ -1,0 +1,37 @@
+{
+  "project": "ZeraFun",
+  "version": "0.7.4",
+  "scope": "PhoneChrome / CatalogueHeader / SearchBar / shared catalogue CSS",
+  "files": [
+    {
+      "file": "style.css",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\style.css",
+      "sha256": "4c551a800af046e76f8763dd9f2c064f0b11c7c4528831469af62a574fe8f24e"
+    },
+    {
+      "file": "main.tsx",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\main.tsx",
+      "sha256": "0b67c4669d731701c6ea80b2494a6c061c051e4afe8e9411b5b9f7738dc9c36f"
+    },
+    {
+      "file": "components/CatalogueHeader.tsx",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\components\\CatalogueHeader.tsx",
+      "sha256": "4d452d41b9b13e06ed25816fdfcdd057c32fa071b0e0e12cf6dc36623ccf1302"
+    },
+    {
+      "file": "components/SearchBar.tsx",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\components\\SearchBar.tsx",
+      "sha256": "1a715d26e5f9434baa0ba90905f34492adfa2ab21d98396b246d9184c28d6805"
+    },
+    {
+      "file": "pages/Personal.tsx",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\pages\\Personal.tsx",
+      "sha256": "2877650372d55730a220924c9260f395782462b89863733c2f4d30dac42c1787"
+    },
+    {
+      "file": "components/AppSettings.tsx",
+      "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\components\\AppSettings.tsx",
+      "sha256": "397545288da313f88092f5c8072fd88033211d0c58e047485fa306600ee69b8e"
+    }
+  ]
+}

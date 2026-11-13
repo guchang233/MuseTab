@@ -1,0 +1,80 @@
+/* 「手抄本」设计系统 —— 色板、排版、尺度
+ *
+ * 主题由 <html data-theme="light|dark"> 决定；theme.svelte.ts 负责把
+ * 用户偏好（随系统 / 明 / 暗）解析成这两个值之一。
+ */
+
+:root {
+  /* —— 羊皮纸（明） —— */
+  --parchment: #f3ecdd; /* 页面底 */
+  --parchment-deep: #e9e0cc; /* 下沉区：谱面四周 */
+  --paper: #faf6ea; /* 抬起的纸：卡片 */
+  --sheet: #fbf8ef; /* 谱面纸张 */
+  --ink: #3a3127; /* 墨：略淡，不刺眼 */
+  --ink-soft: #6a5f50; /* 次级文字 */
+  --ink-mute: #8d826f; /* 小标签、注记 */
+  --hairline: rgb(58 49 39 / 0.16); /* 发丝线 */
+  --hairline-soft: rgb(58 49 39 / 0.08);
+  --rubric: #b4573c; /* 赭红：偏暖偏柔，唯一强调色 */
+  --rubric-wash: rgb(180 87 60 / 0.1);
+  --on-rubric: #fbf3e4;
+  --gilt: #a9853a; /* 鎏金：仅用于当前曲目标记、进度细线 */
+  --slip: rgb(251 247 237 / 0.94); /* 纸条浮层 */
+  --lift: 0 1px 2px rgb(58 49 39 / 0.05), 0 8px 28px rgb(58 49 39 / 0.09); /* 浮层的一层柔影 */
+  --veil: rgb(58 49 39 / 0.055); /* 按下 / 悬停 */
+  --shade: rgb(43 36 27 / 0.3);
+
+  /* —— 字体 —— */
+  --font-text: 'NewCM', 'Songti', 'Source Han Serif SC', 'Noto Serif SC', serif;
+  --font-display: 'Cormorant Garamond', 'Songti', 'Source Han Serif SC', serif;
+  --font-music: 'Leland', 'Bravura', serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.5rem;
+
+  /* —— 形 —— */
+  --radius: 10px;
+  --radius-lg: 16px;
+  --tap: 48px; /* 触控目标：比 44 再宽裕一点 */
+
+  /* —— 动效：慢而轻 —— */
+  --ease: cubic-bezier(0.25, 0.8, 0.3, 1);
+  --dur: 300ms;
+  --dur-slow: 480ms;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  /* —— 胡桃墨（暗） —— */
+  --parchment: #201a14;
+  --parchment-deep: #18130e;
+  --paper: #2a231b;
+  --sheet: #261f18;
+  --ink: #e2d8c3; /* 暖象牙 */
+  --ink-soft: #b9ad96;
+  --ink-mute: #8f846f;
+  --hairline: rgb(232 222 200 / 0.18);
+  --hairline-soft: rgb(232 222 200 / 0.09);
+  --rubric: #d98063;
+  --rubric-wash: rgb(217 128 99 / 0.14);
+  --on-rubric: #1f1711;
+  --gilt: #c8a358;
+  --slip: rgb(46 38 30 / 0.94);
+  --lift: 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 30px rgb(0 0 0 / 0.28);
+  --veil: rgb(232 222 200 / 0.07);
+  --shade: rgb(0 0 0 / 0.55);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
+}

@@ -1,0 +1,276 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     MuseTab engine host: lives next to the engine files and is embedded by the
+     app in an iframe. It shows nothing but the score canvas. The parent page
+     talks to it through window.musetabEngine (same origin). -->
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0" />
+    <title>MuseTab engine</title>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: transparent; }
+      #screen { width: 100%; height: 100%; touch-action: none; }
+    </style>
+  </head>
+  <body>
+    <div id="screen"></div>
+
+    <script type="module">
+      import createMuApi from './distr/muapi.js';
+      import {readerGestures} from './reader-gestures.js';
+
+      // Bound the interactive Qt backing surface on dense mobile screens.
+      // Native PNG page rendering and exported scores keep their full quality.
+      const displayRatio=window.devicePixelRatio||1;
+      const canvasRatio=Math.min(displayRatio,2,Math.sqrt(2500000/Math.max(1,innerWidth*innerHeight)));
+      Object.defineProperty(window,'devicePixelRatio',{get:()=>canvasRatio,configurable:true});
+
+      const listeners = new Set();
+      const emit = (name, data) => listeners.forEach((fn) => { try { fn(name, data); } catch (e) { console.error(e); } });
+      const pendingExports = new Map(); // ext -> [resolve, reject]
+      let pendingOpen = null;
+      let exportQueue = Promise.resolve();
+      let viewOnly = false;
+      let readerFlags = null;
+      let pageLocked = false;
+      let galleryZoom=1, galleryIndex=0, pageRect=null;
+      let bypassPointer = false;
+      const pointers = new Set();
+      let gesture = null;
+
+      function updateReaderFlags(reading){
+        const flags=['show-invisible','show-unprintable','show-frames','show-pageborders'];
+        if(reading&&!readerFlags){
+          readerFlags={};
+          for(const code of flags){
+            const state=engine.actionState(code);
+            if(state.known){readerFlags[code]=state.checked;if(state.checked)engine.dispatch(code);}
+          }
+        }else if(!reading&&readerFlags){
+          const restore=readerFlags;readerFlags=null;
+          for(const [code,checked] of Object.entries(restore))if(engine.actionState(code).checked!==checked)engine.dispatch(code);
+        }
+      }
+
+      function findCanvas(root=document){
+        const canvas=root.querySelector('canvas.qt-window-content');
+        if(canvas)return canvas;
+        for(const el of root.querySelectorAll('*'))if(el.shadowRoot){const found=findCanvas(el.shadowRoot);if(found)return found;}
+        return null;
+      }
+
+      const engine = {
+        ready: false,
+        audioStarted: false,
+        on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+
+        async open(bytes, ext) {
+          if(pendingOpen)throw Error('另一份乐谱正在打开');
+          await engine.startAudio();
+          return new Promise((resolve,reject)=>{
+            const timer=setTimeout(()=>{pendingOpen=null;reject(Error('打开乐谱超时'));},90000);
+            pendingOpen={resolve:()=>{clearTimeout(timer);resolve();},reject:e=>{clearTimeout(timer);reject(e);}};
+            const M = engine.Module;
+            const ptr = M._malloc(bytes.length);
+            try{
+              M.HEAPU8.set(bytes, ptr);
+              M.ccall('mtOpen', null, ['number', 'number', 'string'], [ptr, bytes.length, ext]);
+            }catch(e){
+              pendingOpen?.reject(e);pendingOpen=null;
+              if(e instanceof WebAssembly.RuntimeError){
+                engine.ready=false;
+                emit('error',{message:'谱面核心发生异常，请重新打开应用以恢复已保存的乐谱'});
+              }
+            }
+            finally{M._free(ptr);}
+          });
+        },
+        dispatch(code) {
+          if(['play','stop','rewind'].includes(code.split('/').pop()))engine.Module.flushPlaybackUpdates?.();
+          const kind=code.split('/').pop();
+          if(['page-settings','edit-style','transpose','toggle-mixer','toggle-instruments'].includes(kind)){emit('mobile-dialog',{kind});return;}
+          engine.Module.ccall('mtDispatch', null, ['string'], [code]);
+        },
+        setPageLock(v) {
+          if(typeof engine.Module._mtSetPageLock!=='function')throw Error('排谱核心需要更新，请重新启动应用');
+          pageLocked=!!v;pointers.clear();gesture=null;
+          engine.Module.ccall('mtSetPageLock',null,['number'],[pageLocked?1:0]);
+        },
+        pageView(index,width,height){galleryZoom=1;const result=JSON.parse(engine.Module.ccall('mtPageView','string',['number','number','number'],[index,width,height]));galleryIndex=result.index;pageRect=result.rect;return result;},
+        gestureView(factor,dx,dy,cx,cy){
+          if(pageLocked){const z=Math.max(1,Math.min(4,galleryZoom*factor));factor=z/galleryZoom;galleryZoom=z;
+            if(z===1){const result=engine.pageView(galleryIndex,innerWidth,innerHeight);emit('reader-viewport',{...result,zoom:1});return result;}
+            if(factor===1&&pageRect){dx=pageRect.w>innerWidth?Math.max(innerWidth-pageRect.x-pageRect.w,Math.min(-pageRect.x,dx)):0;dy=pageRect.h>innerHeight?Math.max(innerHeight-pageRect.y-pageRect.h,Math.min(-pageRect.y,dy)):0;}
+          }
+          const result=JSON.parse(engine.Module.ccall('mtGestureView','string',['number','number','number','number','number'],[factor,dx,dy,cx,cy]));
+          if(result.rect)pageRect=result.rect;emit('reader-viewport',{...result,zoom:galleryZoom});return result;
+        },
+        renderPage(index,pixels){return 'data:image/png;base64,'+engine.Module.ccall('mtRenderPage','string',['number','number'],[index,pixels]);},
+        readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;},
+        tapAt(x,y){tapQt({clientX:x,clientY:y,pointerId:1});},
+        scorePanels(){const state=JSON.parse(engine.Module.ccall('mtScorePanels','string',[],[]));for(const channel of state.channels||[])if(channel.name==='节拍器'){channel.muted=!engine.actionState('metronome').checked;channel.solo=false;}return state;},
+        changeMixer(data){return JSON.parse(engine.Module.ccall('mtChangeMixer','string',['string'],[JSON.stringify(data)]));},
+        changeParts(data){return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
+        scoreStyle(){return JSON.parse(engine.Module.ccall('mtScoreStyle','string',[],[]));},
+        applyScoreStyle(values){return JSON.parse(engine.Module.ccall('mtApplyScoreStyle','string',['string'],[JSON.stringify(values)]));},
+        transposeScore(key,direction,whole){
+          if(whole)engine.dispatch('notation-select-all');
+          return JSON.parse(engine.Module.ccall('mtTransposeScore','string',['number','number','number'],[key,direction,0]));
+        },
+        actionState(code) {
+          const s = engine.Module.ccall('mtActionState', 'number', ['string'], [code]);
+          return { known: s >= 0, enabled: s >= 0 && (s & 1) !== 0, checked: s >= 0 && (s & 2) !== 0 };
+        },
+        setTempoMultiplier(m) { engine.Module.ccall('mtSetTempoMultiplier', null, ['number'], [m]); },
+        setCanvasTheme(dark, paper, canvas) { engine.Module.ccall('mtSetCanvasTheme', null, ['number', 'string', 'string'], [dark ? 1 : 0, paper, canvas]); },
+        setViewOnly(v) {
+          viewOnly=!!v;
+          engine.Module.ccall('mtSetViewOnly', null, ['number'], [v ? 1 : 0]);
+          updateReaderFlags(viewOnly);
+        },
+        focus(){window.focus();findCanvas()?.focus();},
+        palettes() { return JSON.parse(engine.Module.ccall('mtPalettes', 'string', [], [])); },
+        palette(i) { return JSON.parse(engine.Module.ccall('mtPalette', 'string', ['number'], [i])); },
+        applyPaletteCell(p, c) { return engine.Module.ccall('mtPaletteApply', 'number', ['number', 'number'], [p, c]) === 1; },
+        sync() { engine.Module.ccall('mtSync', null, [], []); },
+        exportTo(ext) {
+          const next=exportQueue.then(()=>new Promise((resolve, reject) => {
+            const timer=setTimeout(()=>{pendingExports.delete(ext);reject(Error('导出超时'));},45000);
+            pendingExports.set(ext, [v=>{clearTimeout(timer);resolve(v);},e=>{clearTimeout(timer);reject(e);}]);
+            try{engine.Module.ccall('mtExport', null, ['string'], [ext]);}
+            catch(e){pendingExports.get(ext)?.[1](e);pendingExports.delete(ext);}
+          }));
+          exportQueue=next.catch(()=>{});
+          return next;
+        },
+        async startAudio() {
+          if (engine.audioStarted) return;
+          engine.Module.driver.resume();
+          await engine.api.startAudioProcessing();
+          const begin=Date.now();
+          while(!engine.Module.driver.inited||!engine.Module.driver.soundFontReady||!engine.Module.audioResourcesReady){
+            if(engine.Module.driver.soundFontFailed)throw Error('本地音色未能载入');
+            if(Date.now()-begin>25000)throw Error('本地音频引擎或音色初始化超时');
+            await new Promise(r=>setTimeout(r,60));
+          }
+          await new Promise(requestAnimationFrame);
+          engine.audioStarted = true;
+        },
+      };
+      window.musetabEngine = engine;
+
+      try {
+        engine.api = await createMuApi({
+          screen: document.querySelector('#screen'),
+          // Qt invokes onLoaded before createMuApi resolves its Module. Publish
+          // ready only after the bridge and native callbacks are installed.
+          onLoaded: () => {},
+          onExit: (d) => {
+            engine.ready=false;
+            const error=Error('谱面核心已停止，请重新打开应用');
+            pendingOpen?.reject(error);pendingOpen=null;
+            for(const p of pendingExports.values())p[1](error);
+            pendingExports.clear();
+            emit('error',{message:error.message});
+          },
+        });
+        const M = (engine.Module = engine.api.Module);
+
+        M.onEngineEvent = (name, json) => {
+          const data=JSON.parse(json);
+          if(name==='opened'){
+            if(viewOnly){readerFlags=null;updateReaderFlags(true);}
+            const opening=pendingOpen,start=Date.now();
+            const finish=()=>{
+              if(!opening||pendingOpen!==opening)return;
+              const ready=engine.actionState('play');
+              if(!ready.known||ready.enabled||!engine.scorePanels().parts?.some(part=>part.visible)){opening.resolve();pendingOpen=null;}
+              else if(Date.now()-start>45000){opening.reject(Error('播放音色尚未准备完成，请重新打开乐谱'));pendingOpen=null;}
+              else setTimeout(finish,50);
+            };setTimeout(finish,0);
+          }
+          else if(name==='error'&&data.operation==='open'){pendingOpen?.reject(Error(data.message));pendingOpen=null;}
+          emit(name,data);
+        };
+        M.onEngineExport = (ext, bytes, ok) => {
+          const p = pendingExports.get(ext);
+          pendingExports.delete(ext);
+          // the view points into wasm memory: copy before handing it out
+          const copy = bytes ? new Uint8Array(bytes) : new Uint8Array(0);
+          if (p) (ok ? p[0](copy) : p[1](new Error('export failed: ' + ext)));
+          else emit('saved', { ext, bytes: copy });
+        };
+        const windowDeadline=Date.now()+20000;
+        while(!findCanvas()){
+          if(Date.now()>windowDeadline)throw Error('谱面窗口未能启动，请重新打开应用');
+          await new Promise(r=>setTimeout(r,80));
+        }
+        engine.ready = true;
+        emit('ready', {});
+      } catch (e) {
+        console.error(e);
+        emit('error', { message: String(e && e.message ? e.message : e) });
+      }
+
+      // Page-locked reading keeps real taps for note selection, while all drags,
+      // pinches and wheel movement are consumed before reaching Qt.
+      // Delay Qt's press until a gesture is known to be a tap. Qt 6.7's
+      // pointercancel handler dereferences an empty event; never send it a
+      // partial drag sequence. Real taps still use Qt's native hit testing.
+      const tapQt=e=>{
+        const canvas=findCanvas();if(!canvas)return;
+        const area=canvas.closest('.qt-window-contents'),capture=area?.setPointerCapture,release=area?.releasePointerCapture;
+        if(area){area.setPointerCapture=()=>{};area.releasePointerCapture=()=>{};}
+        bypassPointer=true;
+        try{
+          for(const type of ['pointerdown','pointerup']){
+            const event=new PointerEvent(type,{bubbles:true,composed:true,cancelable:true,view:window,pointerId:e.pointerId,pointerType:'mouse',isPrimary:true,clientX:e.clientX,clientY:e.clientY,button:0,buttons:type==='pointerdown'?1:0,pressure:type==='pointerdown'?.5:0});
+            const rect=canvas.getBoundingClientRect();Object.defineProperties(event,{offsetX:{get:()=>e.clientX-rect.x},offsetY:{get:()=>e.clientY-rect.y}});
+            canvas.dispatchEvent(event);
+          }
+        }
+        finally{bypassPointer=false;if(area){area.setPointerCapture=capture;area.releasePointerCapture=release;}}
+      };
+      readerGestures(document,{
+        enabled:()=>viewOnly&&!bypassPointer,gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
+        tap:e=>{
+          if(pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
+          tapQt(e);
+        },
+        pan:(dx,dy)=>engine.gestureView(1,dx,dy,0,0),
+        zoom:(factor,cx,cy,dx,dy)=>engine.gestureView(factor,dx,dy,cx,cy),
+        turn:delta=>emit('reader-control',{key:delta>0?'next':'previous'}),
+        cancel:()=>emit('reader-control',{key:'gesture'}),
+      });
+      for(const type of ['contextmenu','dblclick'])document.addEventListener(type,e=>{if(viewOnly){e.preventDefault();e.stopImmediatePropagation();}},{capture:true,passive:false});
+      document.addEventListener('keydown',e=>{
+        if(!engine.ready)return;
+        const mod=e.ctrlKey||e.metaKey;
+        const key=e.key.toLowerCase();
+        if(mod&&key==='s'){e.preventDefault();e.stopImmediatePropagation();emit('save-request',{});return;}
+        if(viewOnly){
+          e.preventDefault();e.stopImmediatePropagation();
+          if(pageLocked&&['ArrowRight','PageDown','ArrowLeft','PageUp','Escape','Home','End'].includes(e.key)){
+            emit('reader-control',{key:({ArrowRight:'next',PageDown:'next',ArrowLeft:'previous',PageUp:'previous',Escape:'exit',Home:'first',End:'last'})[e.key]});return;
+          }
+          if(e.code==='Space')engine.startAudio().then(()=>engine.dispatch('play')).catch(error=>emit('error',{message:error.message}));
+          else if(e.key==='ArrowRight'||e.key==='PageDown')engine.dispatch('scr-next');
+          else if(e.key==='ArrowLeft'||e.key==='PageUp')engine.dispatch('scr-prev');
+          else if(e.key==='Home')engine.dispatch('page-top');
+          else if(e.key==='End')engine.dispatch('page-end');
+          else if(e.key==='Escape')engine.dispatch('action://notation/cancel');
+          else if(!pageLocked&&mod&&(e.key==='+'||e.key==='='))engine.dispatch('zoomin');
+          else if(!pageLocked&&mod&&e.key==='-')engine.dispatch('zoomout');
+        }else if((mod&&['z','y','c','x','v'].includes(key))||e.key==='Delete'||e.key==='Escape'){
+          e.preventDefault();e.stopImmediatePropagation();
+          const action=e.key==='Delete'?'delete':e.key==='Escape'?'cancel':
+            ({c:'copy',x:'cut',v:'paste'})[key]||(key==='y'||e.shiftKey?'redo':'undo');
+          engine.dispatch('action://notation/'+action);
+        }
+      },true);
+      addEventListener('pagehide',()=>{try{engine.Module?.driver?.suspend();}catch{}});
+    </script>
+    <script src="MuseScoreStudio.js"></script>
+  </body>
+</html>

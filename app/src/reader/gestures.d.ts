@@ -1,0 +1,1 @@
+export function readerGestures(target:EventTarget,options:{enabled:(e:PointerEvent|WheelEvent)=>boolean;inking?:()=>boolean;gallery:()=>boolean;zoomed:()=>boolean;tap:(e:PointerEvent)=>void;turn:(delta:number)=>void;pan:(dx:number,dy:number)=>void;zoom:(factor:number,cx:number,cy:number,dx:number,dy:number)=>void;cancel?:()=>void;end?:()=>void}):()=>void;
