@@ -70,7 +70,7 @@ try{
   await page.setViewportSize({width:1280,height:800});await page.waitForTimeout(600);await snap('landscape-gallery');
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(600);await snap('phone-gallery');
   await swipe(320,420,80,420);assert.match(await pageNumber(),/^2 \/ /);pass('phone gallery swipe and rotation');
-  await page.getByRole('button',{name:'退出全屏',exact:true}).click();await page.getByRole('button',{name:'编辑',exact:true}).first().click();await page.locator('.editor').waitFor();
+  await page.getByRole('button',{name:'退出全屏',exact:true}).click();await page.getByRole('button',{name:'编辑',exact:true}).first().click();await page.locator('.editor').waitFor();await page.getByRole('button',{name:'解锁编辑',exact:true}).click();
   const baseline=await style(),original=await pitches();assert.equal(original.length,7687);
   await more('页面设置…');await snap('phone-page-settings');await page.getByRole('button',{name:'横向',exact:true}).click();await apply();
   assert(Math.abs((await style()).width-baseline.height)<.001);assert.deepEqual(await pitches(),original);

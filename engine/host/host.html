@@ -32,12 +32,34 @@
       let pendingOpen = null;
       let exportQueue = Promise.resolve();
       let viewOnly = false;
+      let editLocked = false;
+      let lastLockedTap=null;
+      let selectedStart=false;
+      let canvasTheme={dark:false,paper:'#fbf8ef',canvas:'#e9e0cc'};
       let readerFlags = null;
       let pageLocked = false;
       let galleryZoom=1, galleryIndex=0, pageRect=null;
       let bypassPointer = false;
       const pointers = new Set();
       let gesture = null;
+      let preview=null,previewFrame=0,wheelTimer;
+      function previewMove(factor,dx,dy,cx,cy){
+        if(pageLocked)return engine.gestureView(factor,dx,dy,cx,cy);
+        const canvas=findCanvas();if(!canvas)return;
+        if(previewFrame){cancelAnimationFrame(previewFrame);previewFrame=0;canvas.style.transform='';}
+        preview??={scale:1,x:0,y:0,canvas};
+        preview.x=(preview.x-cx)*factor+cx+dx;preview.y=(preview.y-cy)*factor+cy+dy;preview.scale*=factor;
+        canvas.style.transformOrigin='0 0';canvas.style.willChange='transform';
+        canvas.style.transform=`matrix(${preview.scale},0,0,${preview.scale},${preview.x},${preview.y})`;
+        clearTimeout(wheelTimer);wheelTimer=setTimeout(commitPreview,140);
+      }
+      function commitPreview(){
+        clearTimeout(wheelTimer);if(!preview)return;const pose=preview;preview=null;
+        engine.gestureView(pose.scale,pose.x,pose.y,0,0);
+        previewFrame=requestAnimationFrame(()=>{pose.canvas.style.transform='';pose.canvas.style.willChange='';previewFrame=0;});
+      }
+      const unlockRequest=()=>{emit('edit-unlock-request',{});return false;};
+      const safeAction=code=>/^(play|play-from-selection|stop|rewind|metronome|loop|loop-in|loop-out|repeat|cancel|copy|select-all|notation-select-all|page-settings|edit-style|transpose|toggle-mixer|toggle-instruments|up-chord|down-chord|show-.*|zoom.*|scr-.*|page-.*|first-.*|last-.*|next-.*|prev-.*|previous-.*|select-.*)$/.test(code.split('/').pop());
 
       function updateReaderFlags(reading){
         const flags=['show-invisible','show-unprintable','show-frames','show-pageborders'];
@@ -87,7 +109,10 @@
           });
         },
         dispatch(code) {
-          if(['play','stop','rewind'].includes(code.split('/').pop()))engine.Module.flushPlaybackUpdates?.();
+          if(editLocked&&!safeAction(code))return unlockRequest();
+          if(code.split('/').pop()==='play'&&!engine.isPlaying){if(!engine.actionState('play').enabled)return;if(selectedStart){code='play-from-selection';selectedStart=false;}}
+          if(['stop','rewind'].includes(code.split('/').pop()))selectedStart=false;
+          if(['play','play-from-selection','stop','rewind'].includes(code.split('/').pop()))engine.Module.flushPlaybackUpdates?.();
           const kind=code.split('/').pop();
           if(['page-settings','edit-style','transpose','toggle-mixer','toggle-instruments'].includes(kind)){emit('mobile-dialog',{kind});return;}
           engine.Module.ccall('mtDispatch', null, ['string'], [code]);
@@ -106,33 +131,53 @@
           const result=JSON.parse(engine.Module.ccall('mtGestureView','string',['number','number','number','number','number'],[factor,dx,dy,cx,cy]));
           if(result.rect)pageRect=result.rect;emit('reader-viewport',{...result,zoom:galleryZoom});return result;
         },
-        renderPage(index,pixels){return 'data:image/png;base64,'+engine.Module.ccall('mtRenderPage','string',['number','number'],[index,pixels]);},
+        renderPage(index,pixels){
+          // Print/export painting always emits dark ink. Cache a light master
+          // image and apply the reading theme in CSS, rather than dark-on-dark.
+          const t=canvasTheme;
+          if(t.dark)engine.Module.ccall('mtSetCanvasTheme',null,['number','string','string'],[0,t.paper,t.canvas]);
+          try{return 'data:image/png;base64,'+engine.Module.ccall('mtRenderPage','string',['number','number'],[index,pixels]);}
+          finally{if(t.dark)engine.Module.ccall('mtSetCanvasTheme',null,['number','string','string'],[1,t.paper,t.canvas]);}
+        },
         readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;},
-        tapAt(x,y){tapQt({clientX:x,clientY:y,pointerId:1});},
+        tapAt(x,y){
+          commitPreview();
+          if(editLocked){const now=performance.now();if(lastLockedTap&&now-lastLockedTap.time<350&&Math.hypot(x-lastLockedTap.x,y-lastLockedTap.y)<14)unlockRequest();lastLockedTap={time:now,x,y};}
+          if(engine.Module._mtSelectAt){engine.Module.ccall('mtSelectAt',null,['number','number'],[x,y]);selectedStart=!engine.isPlaying&&!engine.lastSelection?.none;emit('reader-tap',{});}
+          else{tapQt({clientX:x,clientY:y,pointerId:1});setTimeout(()=>emit('reader-tap',{}),100);}
+        },
         scorePanels(){const state=JSON.parse(engine.Module.ccall('mtScorePanels','string',[],[]));for(const channel of state.channels||[])if(channel.name==='节拍器'){channel.muted=!engine.actionState('metronome').checked;channel.solo=false;}return state;},
         changeMixer(data){return JSON.parse(engine.Module.ccall('mtChangeMixer','string',['string'],[JSON.stringify(data)]));},
-        changeParts(data){return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
+        changeParts(data){if(editLocked&&!['part-visible','staff-visible'].includes(data.op)){unlockRequest();return {ok:false};}return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
         scoreStyle(){return JSON.parse(engine.Module.ccall('mtScoreStyle','string',[],[]));},
         applyScoreStyle(values){return JSON.parse(engine.Module.ccall('mtApplyScoreStyle','string',['string'],[JSON.stringify(values)]));},
         transposeScore(key,direction,whole){
+          if(editLocked){unlockRequest();return {ok:false,message:'请解锁后重新应用'};}
           if(whole)engine.dispatch('notation-select-all');
           return JSON.parse(engine.Module.ccall('mtTransposeScore','string',['number','number','number'],[key,direction,0]));
         },
         actionState(code) {
           const s = engine.Module.ccall('mtActionState', 'number', ['string'], [code]);
+          if(code.split('/').pop()==='play'&&s>=0&&!engine.scorePanels().parts?.some(p=>p.visible&&p.staves?.some(staff=>staff.visible)))return {known:true,enabled:false,checked:false};
           return { known: s >= 0, enabled: s >= 0 && (s & 1) !== 0, checked: s >= 0 && (s & 2) !== 0 };
         },
         setTempoMultiplier(m) { engine.Module.ccall('mtSetTempoMultiplier', null, ['number'], [m]); },
-        setCanvasTheme(dark, paper, canvas) { engine.Module.ccall('mtSetCanvasTheme', null, ['number', 'string', 'string'], [dark ? 1 : 0, paper, canvas]); },
+        setCanvasTheme(dark, paper, canvas) {canvasTheme={dark,paper,canvas};engine.Module.ccall('mtSetCanvasTheme', null, ['number', 'string', 'string'], [dark ? 1 : 0, paper, canvas]); },
         setViewOnly(v) {
+          commitPreview();
           viewOnly=!!v;
-          engine.Module.ccall('mtSetViewOnly', null, ['number'], [v ? 1 : 0]);
+          engine.Module.ccall('mtSetViewOnly', null, ['number'], [viewOnly||editLocked ? 1 : 0]);
           updateReaderFlags(viewOnly);
+        },
+        setEditLocked(v){
+          commitPreview();
+          if(v&&engine.actionState('note-input').checked)engine.dispatch('note-input');
+          editLocked=!!v;engine.Module.ccall('mtSetViewOnly',null,['number'],[viewOnly||editLocked?1:0]);
         },
         focus(){window.focus();findCanvas()?.focus();},
         palettes() { return JSON.parse(engine.Module.ccall('mtPalettes', 'string', [], [])); },
         palette(i) { return JSON.parse(engine.Module.ccall('mtPalette', 'string', ['number'], [i])); },
-        applyPaletteCell(p, c) { return engine.Module.ccall('mtPaletteApply', 'number', ['number', 'number'], [p, c]) === 1; },
+        applyPaletteCell(p, c) { if(editLocked){unlockRequest();return true;}return engine.Module.ccall('mtPaletteApply', 'number', ['number', 'number'], [p, c]) === 1; },
         sync() { engine.Module.ccall('mtSync', null, [], []); },
         exportTo(ext) {
           const next=exportQueue.then(()=>new Promise((resolve, reject) => {
@@ -179,13 +224,15 @@
 
         M.onEngineEvent = (name, json) => {
           const data=JSON.parse(json);
+          if(name==='playing')engine.isPlaying=!!data.playing;
+          if(name==='selection')engine.lastSelection=data;
           if(name==='opened'){
             if(viewOnly){readerFlags=null;updateReaderFlags(true);}
             const opening=pendingOpen,start=Date.now();
             const finish=()=>{
               if(!opening||pendingOpen!==opening)return;
               const ready=engine.actionState('play');
-              if(!ready.known||ready.enabled||!engine.scorePanels().parts?.some(part=>part.visible)){opening.resolve();pendingOpen=null;}
+              if(!ready.known||ready.enabled||!engine.scorePanels().parts?.some(part=>part.visible&&part.staves?.some(staff=>staff.visible))){opening.resolve();pendingOpen=null;}
               else if(Date.now()-start>45000){opening.reject(Error('播放音色尚未准备完成，请重新打开乐谱'));pendingOpen=null;}
               else setTimeout(finish,50);
             };setTimeout(finish,0);
@@ -233,23 +280,24 @@
         finally{bypassPointer=false;if(area){area.setPointerCapture=capture;area.releasePointerCapture=release;}}
       };
       readerGestures(document,{
-        enabled:()=>viewOnly&&!bypassPointer,gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
+        enabled:()=> (viewOnly||editLocked)&&!bypassPointer,gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
         tap:e=>{
           if(pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
-          tapQt(e);
+          engine.tapAt(e.clientX,e.clientY);
         },
-        pan:(dx,dy)=>engine.gestureView(1,dx,dy,0,0),
-        zoom:(factor,cx,cy,dx,dy)=>engine.gestureView(factor,dx,dy,cx,cy),
+        pan:(dx,dy)=>previewMove(1,dx,dy,0,0),
+        zoom:(factor,cx,cy,dx,dy)=>previewMove(factor,dx,dy,cx,cy),
         turn:delta=>emit('reader-control',{key:delta>0?'next':'previous'}),
         cancel:()=>emit('reader-control',{key:'gesture'}),
+        end:commitPreview,
       });
-      for(const type of ['contextmenu','dblclick'])document.addEventListener(type,e=>{if(viewOnly){e.preventDefault();e.stopImmediatePropagation();}},{capture:true,passive:false});
+      for(const type of ['contextmenu','dblclick'])document.addEventListener(type,e=>{if(viewOnly||editLocked){e.preventDefault();e.stopImmediatePropagation();if(editLocked)unlockRequest();}},{capture:true,passive:false});
       document.addEventListener('keydown',e=>{
         if(!engine.ready)return;
         const mod=e.ctrlKey||e.metaKey;
         const key=e.key.toLowerCase();
         if(mod&&key==='s'){e.preventDefault();e.stopImmediatePropagation();emit('save-request',{});return;}
-        if(viewOnly){
+        if(viewOnly||editLocked){
           e.preventDefault();e.stopImmediatePropagation();
           if(pageLocked&&['ArrowRight','PageDown','ArrowLeft','PageUp','Escape','Home','End'].includes(e.key)){
             emit('reader-control',{key:({ArrowRight:'next',PageDown:'next',ArrowLeft:'previous',PageUp:'previous',Escape:'exit',Home:'first',End:'last'})[e.key]});return;
@@ -262,6 +310,7 @@
           else if(e.key==='Escape')engine.dispatch('action://notation/cancel');
           else if(!pageLocked&&mod&&(e.key==='+'||e.key==='='))engine.dispatch('zoomin');
           else if(!pageLocked&&mod&&e.key==='-')engine.dispatch('zoomout');
+          else if(editLocked&&(e.key.length===1||['ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)))unlockRequest();
         }else if((mod&&['z','y','c','x','v'].includes(key))||e.key==='Delete'||e.key==='Escape'){
           e.preventDefault();e.stopImmediatePropagation();
           const action=e.key==='Delete'?'delete':e.key==='Escape'?'cancel':

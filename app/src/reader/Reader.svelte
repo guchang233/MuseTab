@@ -37,10 +37,14 @@
   let pageRect = $state<{x:number;y:number;w:number;h:number}>();
   let root:HTMLDivElement, pageImage=$state(''), galleryZoom=$state(1), imageGeneration=0;
   const pageImages=new Map<number,Promise<string>>();
+  const decodedPages=new Map<number,HTMLImageElement>();
   let prefetch:ReturnType<typeof setTimeout>;
   function imageFor(index:number){
     if(!pageImages.has(index))pageImages.set(index,(async()=>{
-      const src=engine.renderPage(index,1600);const img=new Image();img.src=src;await img.decode();return src;
+      // A child effect can run before the parent's theme effect. Set native ink
+      // and paper together before rasterisation, including prefetched pages.
+      engine.setCanvasTheme(theme.resolved==='dark','#fbf8ef',theme.resolved==='dark'?'#18130e':'#e9e0cc');
+      const src=engine.renderPage(index,1600);const img=new Image();img.src=src;await img.decode();decodedPages.set(index,img);return src;
     })());
     return pageImages.get(index)!;
   }
@@ -53,10 +57,10 @@
     void imageFor(state.index).then(src=>{if(generation===imageGeneration)pageImage=src;}).catch(e=>pageError=String(e));
     clearTimeout(prefetch);prefetch=setTimeout(()=>{
       for(const i of [state.index-1,state.index+1])if(i>=0&&i<state.count)void imageFor(i).catch(()=>{});
-      for(const i of pageImages.keys())if(Math.abs(i-state.index)>2)pageImages.delete(i);
+      for(const i of pageImages.keys())if(Math.abs(i-state.index)>2){pageImages.delete(i);decodedPages.delete(i);}
     },80);
   }
-  $effect(()=>{theme.resolved;engine.changeSeq;pageImages.clear();pageImage='';imageGeneration++;untrack(()=>{if(reading.fullscreen)fitPage(pageIndex);});});
+  $effect(()=>{engine.changeSeq;pageImages.clear();decodedPages.clear();pageImage='';imageGeneration++;untrack(()=>{if(reading.fullscreen)fitPage(pageIndex);});});
   let seenViewport=engine.readerViewport.seq;
   $effect(()=>{const pose=engine.readerViewport;if(pose.seq===seenViewport)return;seenViewport=pose.seq;if(reading.fullscreen){pageRect=pose.rect;galleryZoom=pose.zoom;compassOpen=false;showBar(false);}});
   $effect(() => {
@@ -118,50 +122,11 @@
     else tempoOpen = false;
   }
 
-  // —— 分辨「点到了音符」还是「点到了空白」 ——
-  // 手指落在引擎画布上；引擎若因此选中了东西，会发来一次选择事件。
-  let downSeq = 0;
-  let downAt = 0;
-  let downX = 0;
-  let downY = 0;
-
-  function onDown(e: PointerEvent) {
-    downSeq = engine.selectionSeq;
-    downAt = performance.now();
-    downX = e.clientX;
-    downY = e.clientY;
-  }
-  function onUp(e: PointerEvent) {
-    const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
-    const held = performance.now() - downAt;
-    if (moved > 10 || held > 450) {
-      // 是拖动或长按，不是点按：谱面挪动后罗盘的位置就不对了，先收起
-      if (moved > 10) compassOpen = false;
-      return;
-    }
-    // 给引擎一点时间把选择事件送过来
-    setTimeout(() => {
-      const hit = engine.selectionSeq !== downSeq && !engine.selection.none;
-      if (hit) {
-        compassOpen = true;
-        showBar(false);
-      } else {
-        compassOpen = false;
-        showBar(!barOpen);
-      }
-    }, 90);
-  }
-
-  $effect(() => {
-    const doc = engine.frame?.contentDocument;
-    if (!doc || engine.status !== 'ready') return;
-    doc.addEventListener('pointerdown', onDown, true);
-    doc.addEventListener('pointerup', onUp, true);
-    return () => {
-      doc.removeEventListener('pointerdown', onDown, true);
-      doc.removeEventListener('pointerup', onUp, true);
-    };
-  });
+  let seenTap=engine.readerTapSeq;
+  $effect(()=>{const seq=engine.readerTapSeq;if(seq===seenTap)return;seenTap=seq;untrack(()=>{if(!engine.selection.none){compassOpen=true;showBar(false);}else{compassOpen=false;showBar(!barOpen);}});});
+  let autoTurn=$state(localStorage.getItem('musetab.autoTurn')!=='false');
+  function toggleAutoTurn(){autoTurn=!autoTurn;localStorage.setItem('musetab.autoTurn',String(autoTurn));}
+  $effect(()=>{const cursor=engine.position.cursor;if(reading.fullscreen&&engine.playing&&autoTurn&&cursor&&cursor.page!==pageIndex)untrack(()=>fitPage(cursor.page));});
 
   // 进入看谱即只读；离开时交还
   $effect(() => {
@@ -297,7 +262,10 @@
   {#if reading.fullscreen}<div class="gallery-backdrop"></div>{/if}
   {#if reading.fullscreen && pageRect && pageImage}
     <img class="gallery-page" src={pageImage} alt="当前乐谱整页" draggable="false" style:left={pageRect.x+'px'} style:top={pageRect.y+'px'} style:width={pageRect.w+'px'} style:height={pageRect.h+'px'}/>
-    {#if !engine.selection.none && engine.selection.type==='Note' && engine.selection.rect}
+    {#if engine.playing&&engine.position.cursor&&engine.position.cursor.page===pageIndex}
+      {@const c=engine.position.cursor}<span class="playback-line" aria-label="播放进度" style:left={pageRect.x+c.x*pageRect.w+'px'} style:top={pageRect.y+c.y*pageRect.h+'px'} style:width={Math.max(2,c.w*pageRect.w)+'px'} style:height={c.h*pageRect.h+'px'}></span>
+    {/if}
+    {#if !engine.playing && !engine.selection.none && engine.selection.type==='Note' && engine.selection.rect}
       {@const r=engine.selection.rect}<span class="note-highlight" style:left={r.x-2+'px'} style:top={r.y-2+'px'} style:width={r.w+4+'px'} style:height={r.h+4+'px'}></span>
     {/if}
   {/if}
@@ -353,6 +321,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="ribbon-col" onpointerdown={linger}>
         <Slip class="ribbon" role="toolbar" aria-label="看谱工具条">
+          {#if reading.fullscreen}<button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={toggleAutoTurn}>自动翻页{autoTurn?'：开':'：关'}</button>{/if}
           <IconButton label="返回谱匣" icon="back" onclick={() => leave('library')} />
           <span class="sep"></span>
           <IconButton
@@ -401,7 +370,11 @@
 
 <style>
   .gallery-backdrop{position:absolute;inset:0;background:var(--parchment-deep);pointer-events:auto;touch-action:none;}
+  .playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}
+  .auto-turn{min-height:44px;padding:0 12px;font-size:12px;white-space:nowrap;border-radius:8px;}
+  .auto-turn[aria-pressed=true]{background:var(--hairline-soft);}
   .gallery-page{position:absolute;pointer-events:none;max-width:none;user-select:none;}
+  :global([data-theme=dark]) .gallery-page{filter:invert(1);}
   .note-highlight{position:absolute;border:2px solid #448ed8;border-radius:4px;pointer-events:none;}
   .page-number.raised{bottom:max(96px,calc(env(safe-area-inset-bottom) + 96px));}
   .page-matte{position:absolute;background:var(--parchment-deep);pointer-events:auto;touch-action:none;}

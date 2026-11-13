@@ -73,7 +73,7 @@ final class AppUpdater {
         if(!busy.compareAndSet(false,true))return;
         cancelled=false; verified=false;
         new Thread(()->{
-            File file=apk(), partial=new File(file.getParentFile(),"update.part");
+            File file=apk(), partial=new File(file.getParentFile(),"update.part.apk");
             try {
                 JSONObject j=metadata(); release=j;
                 if(j.getLong("versionCode")<=info().getLong("versionCode"))throw new IOException("当前已是最新版本");

@@ -60,6 +60,7 @@
 #include "notation/inotationelements.h"
 #include "notation/inotationstyle.h"
 #include "notation/inotationpainting.h"
+#include "notationscene/qml/MuseScore/NotationScene/playbackcursor.h"
 #include "global/async/notifylist.h"
 #include "project/iprojectaudiosettings.h"
 #include "audio/main/iplayback.h"
@@ -170,7 +171,19 @@ void WebApi::init(const muse::modularity::ContextPtr& ctx)
                 return;
             }
             m_lastPositionSent = s;
-            sendEvent("position", QJsonObject { { "secs", s }, { "tick", static_cast<int>(tick) } });
+            QJsonObject position { { "secs", s }, { "tick", static_cast<int>(tick) } };
+            if(m_currentNotation){
+                notation::PlaybackCursor cursor(m_ctx);cursor.setNotation(m_currentNotation);cursor.move(tick);
+                const auto r=cursor.rect();const auto& pages=m_currentNotation->elements()->pages();
+                for(size_t i=0;i<pages.size();++i){
+                    const auto p=pages[i]->canvasBoundingRect();
+                    if(!r.isNull()&&p.contains(r.center())){
+                        position["cursor"]=QJsonObject{{"page",int(i)},{"x",(r.x()-p.x())/p.width()},{"y",(r.y()-p.y())/p.height()},{"w",r.width()/p.width()},{"h",r.height()/p.height()}};
+                        break;
+                    }
+                }
+            }
+            sendEvent("position", position);
         });
     }
 
@@ -427,6 +440,23 @@ void WebApi::setPageLock(bool enabled)
     m_pageLocked = enabled;
 }
 
+void WebApi::selectAt(double x, double y)
+{
+    if(!m_currentNotation || !std::isfinite(x) || !std::isfinite(y))return;
+    const auto view=m_currentNotation->viewState();const auto matrix=view->matrix();
+    const auto interaction=m_currentNotation->interaction();
+    const auto point=matrix.inverted().map(PointF(x,y));
+    auto* item=interaction->hitElement(point,float(8.0/std::max(.02,matrix.m11())));
+    if(item){
+        interaction->select({item},notation::SelectType::REPLACE);
+        const auto playback=webResolve<playback::IPlaybackController>();
+        if(playback&&playback->isPlaying())playback->seekElement(item);
+    }else interaction->clearSelection();
+    // Selecting a note must never trigger the mouse controller's canvas drag or recentering.
+    view->setMatrix(matrix,nullptr);
+    sendSelection();
+}
+
 std::string WebApi::pageView(int page, double width, double height)
 {
     QJsonObject result { { "index", 0 }, { "count", 0 } };
@@ -492,7 +522,7 @@ std::string WebApi::renderPage(int page, int pixels)
     QImage image(std::ceil(size.width()*dpi),std::ceil(size.height()*dpi),QImage::Format_ARGB32_Premultiplied);
     image.setDotsPerMeterX(std::lround(dpi*1000/25.4));image.setDotsPerMeterY(std::lround(dpi*1000/25.4));
     auto config=webResolve<notation::INotationConfiguration>();
-    image.fill(config?config->foregroundColor():QColor(Qt::white));
+    image.fill(config&&config->shouldInvertScore()?QColor(32,26,20):(config?config->foregroundColor():QColor(Qt::white)));
     {
         muse::draw::Painter painter(&image,"MuseTab reader page");
         notation::INotationPainting::Options opt;opt.fromPage=page;opt.toPage=page;opt.deviceDpi=dpi;opt.printPageBackground=false;

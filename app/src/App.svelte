@@ -74,7 +74,7 @@
 <EngineView visible={nav.screen !== 'library' && !isPdf} inset={nav.screen === 'editor' ? editorInset.value : nav.screen === 'reader' ? { ...NONE, top: reading.top } : NONE} />
 
 {#key nav.screen}
-  <div class="screen" class:over={nav.screen !== 'library'} in:fade={{ duration: ms(360) }}>
+  <div class="screen" class:over={nav.screen !== 'library'}>
     {#if nav.screen !== 'library' && isPdf}
       <PdfReader />
     {:else if nav.screen === 'reader'}

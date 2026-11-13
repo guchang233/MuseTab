@@ -24,7 +24,7 @@
   {#if !selected}
     <nav class="settings-menu" aria-label={group?group.title+'选项':'设置分类'}>
       {#each section?entries[section]:sections as row}
-        <button class="settings-menu-row" onclick={()=>{if(section)item=row.id;else section=row.id;}}><span><span class="settings-menu-title">{row.title}</span>{#if row.detail}<span class="settings-menu-detail">{row.detail}</span>{/if}</span><Icon name="forward" size={16}/></button>
+        <button class="settings-menu-row" onclick={()=>{if(section)item=row.id;else section=row.id;}}><span><span class="settings-menu-title">{row.title}</span>{#if (row.id==='app'||row.id==='version')&&updates.available}<span class="settings-menu-detail">发现新版本 {updates.release?.version}</span>{:else if row.detail}<span class="settings-menu-detail">{row.detail}</span>{/if}</span><Icon name="forward" size={16}/></button>
       {/each}
     </nav>
   {:else}

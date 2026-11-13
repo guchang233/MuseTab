@@ -1,6 +1,6 @@
 {
   "url": "https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v1/engine-runtime-v1.zip",
-  "sha256": "c1d1e95a6bea826afd2e51f0f8a22ff48c03069f3e4157e1ea1943f1174a2e41",
+  "sha256": "11ceb4b56a32f32462b91c60808ee97dd46b691d07ced64650ea75ed4f57ffd8",
   "source": "https://github.com/musescore/MuseScore",
   "commit": "7688c005ad963ba09ee715aae53dbc7e8c9d5ef8",
   "qt": "6.7.3",

@@ -4,14 +4,16 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 const root=path.resolve(import.meta.dirname,'..'),dest=path.join(root,'app/public/engine');
+const runtimeTag=process.argv.find(a=>a.startsWith('--tag='))?.slice(6)||'engine-runtime-v1';
+if(!/^engine-runtime-v\d+$/.test(runtimeTag))throw Error('Invalid runtime tag');
 if(process.argv.includes('--pack')){
   const files=['MuseScoreStudio.js','MuseScoreStudio.wasm','MuseAudio.js','MuseAudio-simd.js','distr','sound','LICENSE.txt','MUSETAB_NOTICE.md','UPSTREAM_NOTICE.txt','host.html','reader-gestures.js'];
   await fs.mkdir(path.join(root,'release'),{recursive:true});
-  const zip=path.join(root,'release/engine-runtime-v1.zip');
+  const zip=path.join(root,'release/'+runtimeTag+'.zip');
   // tar is available on Windows developer/CI hosts. bsdtar emits zip with -a.
   execFileSync('tar',['-a','-cf',zip,...files],{cwd:dest,stdio:'inherit'});
   const bytes=await fs.readFile(zip),sha256=createHash('sha256').update(bytes).digest('hex');
-  const lock={url:'https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v1/engine-runtime-v1.zip',sha256,source:'https://github.com/musescore/MuseScore',commit:'7688c005ad963ba09ee715aae53dbc7e8c9d5ef8',qt:'6.7.3',emscripten:'3.1.50',patches:'engine/',sourceArchive:'https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v1/musescore-corresponding-source.tar.gz'};
+  const lock={url:'https://github.com/guchang233/MuseTab/releases/download/'+runtimeTag+'/'+runtimeTag+'.zip',sha256,source:'https://github.com/musescore/MuseScore',commit:'7688c005ad963ba09ee715aae53dbc7e8c9d5ef8',qt:'6.7.3',emscripten:'3.1.50',patches:'engine/',sourceArchive:'https://github.com/guchang233/MuseTab/releases/download/'+runtimeTag+'/musescore-corresponding-source.tar.gz'};
   await fs.writeFile(path.join(root,'engine/runtime.lock.json'),JSON.stringify(lock,null,2)+'\n');
   console.log('Runtime packed, SHA-256 '+sha256);
 }else{

@@ -64,6 +64,8 @@ void mtSetViewOnly(int viewOnly) { WebApi::instance()->setViewOnly(viewOnly != 0
 EMSCRIPTEN_KEEPALIVE
 void mtSetPageLock(int locked) { WebApi::instance()->setPageLock(locked != 0); }
 EMSCRIPTEN_KEEPALIVE
+void mtSelectAt(double x,double y) { WebApi::instance()->selectAt(x,y); }
+EMSCRIPTEN_KEEPALIVE
 const char* mtPageView(int page, double width, double height) { static std::string s; s=WebApi::instance()->pageView(page,width,height); return s.c_str(); }
 EMSCRIPTEN_KEEPALIVE
 const char* mtGestureView(double factor,double dx,double dy,double cx,double cy) { static std::string s;s=WebApi::instance()->gestureView(factor,dx,dy,cx,cy);return s.c_str(); }

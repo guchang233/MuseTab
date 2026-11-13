@@ -40,6 +40,7 @@ type HostEngine = {
   setTempoMultiplier(m: number): void;
   setCanvasTheme?(dark: boolean, paper: string, canvas: string): void;
   setViewOnly(v: boolean): void;
+  setEditLocked(v:boolean):void;
   palettes(): PaletteInfo[];
   palette(i: number): PaletteData;
   applyPaletteCell(p: number, c: number): boolean;
@@ -66,7 +67,8 @@ let selection = $state<Selection>({ none: true, range: false, count: 0 });
 /** 每收到一次选择事件加一：同一个音符被再次点中时也能触发界面反应 */
 let selectionSeq = $state(0);
 let playing = $state(false);
-let position = $state({ secs: 0, tick: 0 });
+let position = $state<{secs:number;tick:number;cursor?:{page:number;x:number;y:number;w:number;h:number}}>({ secs: 0, tick: 0 });
+let editLocked=$state(true),unlockRequestSeq=$state(0),readerTapSeq=$state(0);
 let noteInput = $state(false);
 let actionStates = $state<Record<string, ActionState>>({});
 let opening = $state(false);
@@ -91,6 +93,8 @@ function refreshActions(codes: string[]) {
 
 function onEvent(name: string, data: any) {
   switch (name) {
+    case 'edit-unlock-request':unlockRequestSeq++;break;
+    case 'reader-tap':readerTapSeq++;break;
     case 'reader-control': readerControl={seq:readerControl.seq+1,key:data.key};break;
     case 'reader-viewport': readerViewport={...data,seq:readerViewport.seq+1};break;
     case 'mobile-dialog': dialogRequest={seq:dialogRequest.seq+1,kind:data.kind};break;
@@ -152,6 +156,12 @@ function poll(win: Window, tries = 0) {
 }
 
 export const engine = {
+  get editLocked(){return editLocked;},
+  get unlockRequestSeq(){return unlockRequestSeq;},
+  get readerTapSeq(){return readerTapSeq;},
+  setEditLocked(v:boolean){editLocked=v;untrack(()=>host?.setEditLocked(v));},
+  enterEditor(){editLocked=true;untrack(()=>host?.setEditLocked(true));},
+  leaveEditor(){editLocked=true;untrack(()=>host?.setEditLocked(false));},
   get readerControl(){return readerControl;},
   get readerViewport(){return readerViewport;},
   gestureView(factor:number,dx:number,dy:number,cx:number,cy:number){return untrack(()=>host?.gestureView(factor,dx,dy,cx,cy));},

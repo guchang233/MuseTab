@@ -8,6 +8,7 @@
 -->
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
+  import {untrack} from 'svelte';
   import { nav } from '../ui/nav.svelte';
   import { theme } from '../ui/theme.svelte';
   import { ms, easeOut } from '../ui/motion';
@@ -27,6 +28,10 @@
   import ScorePanels from './ScorePanels.svelte';
 
   let paletteOpen = $state(false);
+  let unlockOpen=$state(false),seenUnlock=engine.unlockRequestSeq;
+  $effect(()=>{if(engine.status!=='ready')return;untrack(()=>engine.enterEditor());return()=>untrack(()=>engine.leaveEditor());});
+  $effect(()=>{const seq=engine.unlockRequestSeq;if(seq!==seenUnlock){seenUnlock=seq;unlockOpen=true;}});
+  $effect(()=>{if(!unlockOpen)return;const back=(e:Event)=>{e.preventDefault();e.stopImmediatePropagation();unlockOpen=false;};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
   let propsOpen = $state(false);
   let moreOpen = $state(false);
   let panel=$state<'mixer'|'parts'|null>(null);
@@ -208,6 +213,7 @@
     <div class="side end">
       <span class="display piece">{title}</span>
       <IconButton label={engine.playing ? '暂停' : '播放'} icon={engine.playing ? 'pause' : 'play'} onclick={() => engine.togglePlay()} />
+      <IconButton label={engine.editLocked?'解锁编辑':'锁定编辑'} icon={engine.editLocked?'lock':'unlock'} active={engine.editLocked} onclick={()=>engine.setEditLocked(!engine.editLocked)} />
       <IconButton label="保存" icon="save" disabled={saving} onclick={save} />
       <IconButton label="更多" icon="more" active={moreOpen} onclick={() => (moreOpen = !moreOpen)} />
     </div>
@@ -369,7 +375,16 @@
 </div>
 {#if settings}<ScoreSettings kind={settings} onclose={()=>{settings=null;engine.focus();}}/>{/if}
 
+{#if unlockOpen}
+  <div class="unlock-overlay">
+    <div class="unlock-dialog" role="alertdialog" tabindex="-1" aria-modal="true" aria-labelledby="unlock-title" aria-describedby="unlock-detail">
+      <h2 id="unlock-title">解锁编辑？</h2><p id="unlock-detail">乐谱当前已锁定，这次修改未执行。解锁后可以修改音符、音高和记号。</p>
+      <div><button onclick={()=>unlockOpen=false}>保持锁定</button><button class="confirm-unlock" onclick={()=>{engine.setEditLocked(false);unlockOpen=false;}}>解锁</button></div>
+    </div>
+  </div>
+{/if}
 <style>
+  .unlock-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:#0006;pointer-events:auto;}.unlock-dialog{width:min(420px,100%);padding:24px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:16px;box-shadow:var(--lift);}.unlock-dialog h2{font-size:21px;margin:0 0 14px;}.unlock-dialog p{font-size:14px;line-height:1.8;margin:0 0 20px;}.unlock-dialog>div{display:flex;justify-content:flex-end;gap:12px;}.unlock-dialog button{min-height:44px;padding:8px 20px;border:1px solid var(--hairline);border-radius:8px;}.confirm-unlock{background:var(--rubric);color:var(--on-rubric);}
   /* —— 接引擎后新增 —— */
   /* 本层盖在引擎画布上：整体不拦手势，只有控件可点 */
   .editor {

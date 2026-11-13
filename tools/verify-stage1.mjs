@@ -78,7 +78,7 @@ try{
   if(process.env.SKIP_AUDIO==='1')console.log('SKIPPED audio assertion for UI diagnosis');
   else{assert(peak>0.00001,'synthesizer must produce a nonzero audio signal');pass('synthesized audio',peak);}
   await frame.evaluate(()=>musetabEngine.dispatch('stop'));
-  await page.getByRole('button',{name:'编辑',exact:true}).first().click();await page.locator('.editor').waitFor();
+  await page.getByRole('button',{name:'编辑',exact:true}).first().click();await page.locator('.editor').waitFor();await page.getByRole('button',{name:'解锁编辑',exact:true}).click();
   const first=await selectNote();assert.equal(first.pitch,77);
   await page.getByRole('button',{name:'选中',exact:true}).click();await page.getByRole('button',{name:'升半音',exact:true}).click();
   const edited=await waitStoredPitch(78);const ps=pitches(xml(Buffer.from(edited.b64,'base64')));assert.equal(ps.length,7687);pass('UI pitch edit and autosave',{notes:ps.length,first:ps[0]});

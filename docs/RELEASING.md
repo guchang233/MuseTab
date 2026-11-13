@@ -16,7 +16,7 @@
 
 `engine/runtime.lock.json` 锁定 MuseScore 主 WASM、标量/SIMD 音频模块、音色和对应源码附件。APK CI 每次编译应用与 Java 容器，原生核心作为固定构建依赖复用；**不是每次 tag 都重新编译 MuseScore/Qt**。
 
-当 C++ 桥接或排谱/音频代码改变时，先按 BUILDING.md 构建主引擎和两个音频模块，跑对应验证，执行 `node tools/runtime.mjs --pack`。发布新的、不可复用名称的 runtime tag/附件，再更新锁文件 URL/校验值并提交。不能覆盖已锁定的原生附件；CI 校验失败应先排查来源。
+当 C++ 桥接或排谱/音频代码改变时，先按 BUILDING.md 构建主引擎和两个音频模块，跑对应验证，执行 `node tools/runtime.mjs --pack --tag=engine-runtime-v2`（选择未发布的新编号）。发布新的、不可复用名称的 runtime tag/附件，再更新锁文件 URL/校验值并提交。不能覆盖已锁定的原生附件；CI 校验失败应先排查来源。
 
 runtime 附件的对应 MuseScore 源码包含固定上游版本和本地修改，源码仓库中的 engine/ 保存额外脚本/覆盖文件。Qt 6.7.3 对应源码入口：https://download.qt.io/archive/qt/6.7/6.7.3/single/ 。工具链版本与复现步骤见 BUILDING.md 和 THIRD_PARTY.md。
 
