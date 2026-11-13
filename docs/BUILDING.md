@@ -76,7 +76,7 @@ node android/build.mjs
 ```
 
 This builds the frontend, packages offline assets, compiles the Java WebView
-container, aligns and signs `release/MuseTab-0.5.0.apk`. Intermediates are confined
+container, aligns and signs `release/MuseTab-0.5.1.apk`. Intermediates are confined
 to `D:/MuseTabBuild/android`. It uses a development signing key, package
 `org.musetab.app`, Android 9+ and target SDK 35. Gradle is not required.
 
