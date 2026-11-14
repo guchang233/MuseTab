@@ -56,7 +56,7 @@
   $effect(() => {
     if (engine.status !== 'ready') return;
     const dark = theme.resolved === 'dark';
-    engine.setCanvasTheme(dark, dark ? '#fbf8ef' : '#fbf8ef', dark ? '#18130e' : '#e9e0cc');
+    engine.setCanvasTheme(dark, theme.paper ? '#fbf8ef':'none', dark ? '#18130e' : '#e9e0cc');
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };

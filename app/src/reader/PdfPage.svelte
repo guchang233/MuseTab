@@ -2,9 +2,16 @@
   import {untrack} from 'svelte';
   import type {PDFDocumentProxy,RenderTask} from 'pdfjs-dist/legacy/build/pdf.mjs';
   import type {InkStroke} from '../library/store.svelte';
+  import {theme} from '../ui/theme.svelte';
   let {pdf,index,width,height,active,warm,strokes,draft,inking,oninkdown,oninkmove,oninkup}:{pdf:PDFDocumentProxy;index:number;width:number;height:number;active:boolean;warm:boolean;strokes:InkStroke[];draft:InkStroke|null;inking:boolean;oninkdown:(e:PointerEvent,index:number)=>void;oninkmove:(e:PointerEvent)=>void;oninkup:(e:PointerEvent)=>void}=$props();
   let canvas:HTMLCanvasElement,surface:HTMLDivElement,near=$state(false),loaded=$state(false),error=$state('');
   const path=(stroke:InkStroke)=>stroke.points.map((p,i)=>(i?'L':'M')+p.join(',')).join(' ');
+  // Keep stored ink unchanged; make dark pen strokes readable on transparent dark paper.
+  function ink(color:string){
+    if(theme.paper||theme.resolved!=='dark'||!/^#[0-9a-f]{6}$/i.test(color))return color;
+    const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+    return Math.max(...rgb)<70&&Math.max(...rgb)-Math.min(...rgb)<25?'#eee8dc':color;
+  }
   $effect(()=>{const observer=new IntersectionObserver(entries=>{near=entries[0].isIntersecting;},{root:surface.closest('.pdf-viewport'),rootMargin:'900px'});observer.observe(surface);return()=>observer.disconnect();});
   $effect(()=>{
     const doc=pdf,page=index,w=width,h=height,needed=near||warm;
@@ -31,8 +38,8 @@
   {#if error}<span class="placeholder error" role="alert">{error}</span>{/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg class:inking viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="第 {index} 页本地手写批注" onpointerdown={e=>oninkdown(e,index)} onpointermove={oninkmove} onpointerup={oninkup} onpointercancel={oninkup}>
-    {#each strokes as stroke}<path d={path(stroke)} stroke={stroke.color} stroke-width={stroke.width} vector-effect="non-scaling-stroke"/>{/each}
-    {#if draft}<path d={path(draft)} stroke={draft.color} stroke-width={draft.width} vector-effect="non-scaling-stroke"/>{/if}
+    {#each strokes as stroke}<path d={path(stroke)} stroke={ink(stroke.color)} stroke-width={stroke.width} vector-effect="non-scaling-stroke"/>{/each}
+    {#if draft}<path d={path(draft)} stroke={ink(draft.color)} stroke-width={draft.width} vector-effect="non-scaling-stroke"/>{/if}
   </svg>
 </div>
 <style>

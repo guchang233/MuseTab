@@ -49,7 +49,7 @@
 </script>
 <svelte:window onkeydown={onkey}/>
 <div class="pdf-reader" class:gallery={reading.fullscreen} class:quiet={reading.fullscreen&&!annotating&&!controls}>
-  <ReaderHeader title={current?.name||'PDF'} editLabel="批注" active={annotating} onedit={()=>annotating=!annotating}/>
+  <ReaderHeader title={current?.displayName||current?.name||'PDF'} editLabel="批注" active={annotating} onedit={()=>annotating=!annotating}/>
   <div class="pdf-viewport" bind:this={viewport} bind:clientWidth={width} bind:clientHeight={height} style:top={reading.top+'px'} style:bottom={(reading.fullscreen?0:toolHeight)+'px'} onscroll={onScroll}>
     {#if loading}<p class="status" role="status">正在打开本地 PDF…</p>{/if}{#if error}<p class="error" role="alert">{error}</p>{/if}
     <div class="page-space" class:horizontal={mode==='horizontal'} class:continuous={mode==='continuous'} style:width={contentWidth+'px'}>

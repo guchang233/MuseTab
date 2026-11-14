@@ -1,11 +1,11 @@
 // Synthesise ahead on a dedicated worker. The real-time AudioWorklet only
 // copies ready PCM; engraving, RPC and sample loading never run on its deadline.
-let MuseAudio,driverPort,mainPort,pointer=0,capacity=0,frames=0,maxMs=0,lastReport=0;
+let MuseAudio,driverPort,mainPort,pointer=0,capacity=0,frames=0,maxMs=0,lastReport=0,renderPositions=null;
 globalThis.debugLog=()=>{};
 function render(samples){
   const count=samples*2,size=count*4;if(size>capacity){if(pointer)MuseAudio._free(pointer);pointer=MuseAudio._malloc(size);capacity=size;}
-  const start=performance.now();MuseAudio._process(pointer,samples);maxMs=Math.max(maxMs,performance.now()-start);frames+=samples;
-  const data=new Float32Array(MuseAudio.HEAPU8.buffer,pointer,count).slice();driverPort.postMessage({type:'response_audio',data},[data.buffer]);
+  const start=performance.now();renderPositions=[];MuseAudio._process(pointer,samples);const positions=renderPositions;renderPositions=null;maxMs=Math.max(maxMs,performance.now()-start);frames+=samples;
+  const data=new Float32Array(MuseAudio.HEAPU8.buffer,pointer,count).slice();driverPort.postMessage({type:'response_audio',data,positions},[data.buffer,...positions.map(p=>p.buffer)]);
   if(performance.now()-lastReport>1000){lastReport=performance.now();postMessage({type:'WORKER_STATS',frames,maxMs,heap:MuseAudio.HEAPU8.length});maxMs=0;}
 }
 onmessage=async event=>{
@@ -13,7 +13,12 @@ onmessage=async event=>{
     const data=event.data;
     if(data.type==='INITIALIZE_WORKER'){
       mainPort=data.mainPort;driverPort=data.driverPort;
-      MuseAudio={noInitialRun:true,main_worker_rpcSend:bytes=>mainPort.postMessage(bytes),main_worker_rpcListen:()=>{},
+      MuseAudio={noInitialRun:true,main_worker_rpcSend:bytes=>{
+        // Stream 106 is PlaybackPositionStream. Its time describes this PCM
+        // block, not the already audible block ~6,000 frames behind it.
+        if(renderPositions&&bytes[0]===2&&bytes[1]===106)renderPositions.push(new Uint8Array(bytes));
+        else mainPort.postMessage(bytes);
+      },main_worker_rpcListen:()=>{},
         onRuntimeInitialized:()=>{MuseAudio._Init(42);postMessage({type:'WORKER_INITED'});},
         onSoundFontReady:ok=>{if(ok)driverPort.postMessage({type:'channel_inited'});postMessage({type:'SOUNDFONT_READY',ok});},
         print:()=>{},printErr:message=>postMessage({type:'WORKER_LOG',message}),

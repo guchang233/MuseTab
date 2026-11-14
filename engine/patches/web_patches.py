@@ -175,7 +175,7 @@ patch("src/app/CMakeLists.txt",
       '    target_link_options(MuseScoreStudio PRIVATE ${EXPORTED_FUNCTIONS})\n'
       '    target_link_options(MuseScoreStudio PRIVATE --emit-symbol-map)',
       "retain native symbol map for WebAssembly error diagnosis")
-BRIDGE_EXPORTS = ["_mtOpen", "_mtExport", "_mtDispatch", "_mtActionState", "_mtSetTempoMultiplier",
+BRIDGE_EXPORTS = ["_mtPageMetrics", "_mtSelectPageAt", "_mtSelectionImage", "_mtOpen", "_mtExport", "_mtDispatch", "_mtActionState", "_mtSetTempoMultiplier",
                   "_mtSetViewOnly", "_mtSetCanvasTheme", "_mtPalettes", "_mtPalette", "_mtPaletteApply", "_mtSync",
                   "_mtSetPageLock", "_mtSelectAt", "_mtPageView", "_mtGestureView", "_mtRenderPage", "_mtReaderLayout", "_mtScorePanels", "_mtChangeMixer", "_mtChangeParts", "_mtScoreStyle", "_mtApplyScoreStyle", "_mtTransposeScore"]
 set_line("src/app/exported_functions.cmake",
@@ -401,6 +401,24 @@ patch("src/notation/internal/notation.cpp",
       "        if (part->show()) {\n            return true;\n        }",
       "        if (part->show()) {\n            for (const Staff* staff : part->staves()) {\n                if (staff->show()) return true;\n            }\n        }",
       "MuseTab: all staves hidden disables playback cleanly")
+
+patch("src/notation/internal/notationconfiguration.cpp",
+      '#include "notationconfiguration.h"',
+      '#include "notationconfiguration.h"\n#include <QCoreApplication>\n#include <QVariant>',
+      "MuseTab transparent score paper preference")
+patch("src/notation/internal/notationconfiguration.cpp",
+      'QColor NotationConfiguration::foregroundColor() const\n{\n',
+      'QColor NotationConfiguration::foregroundColor() const\n{\n    if(qApp && qApp->property("musetabTransparentPaper").toBool()) return Qt::transparent;\n',
+      "MuseTab: omit page fill in both reading themes")
+
+patch("src/notationscene/qml/MuseScore/NotationScene/abstractnotationpaintview.cpp",
+      '#include "abstractnotationpaintview.h"',
+      '#include "abstractnotationpaintview.h"\n#include <QCoreApplication>\n#include <QVariant>',
+      "MuseTab bitmap reader visibility")
+patch("src/notationscene/qml/MuseScore/NotationScene/abstractnotationpaintview.cpp",
+      'void AbstractNotationPaintView::movePlaybackCursor(muse::midi::tick_t tick)\n{\n    TRACEFUNC;',
+      'void AbstractNotationPaintView::movePlaybackCursor(muse::midi::tick_t tick)\n{\n    TRACEFUNC;\n    if(qApp && qApp->property("musetabBitmapReader").toBool()) return;',
+      "MuseTab: bitmap reader draws its cursor; skip hidden full-canvas playback repaints")
 
 if failed:
     print("\nFAILED:", failed)

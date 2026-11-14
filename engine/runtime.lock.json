@@ -1,10 +1,10 @@
 {
-  "url": "https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v1/engine-runtime-v1.zip",
-  "sha256": "11ceb4b56a32f32462b91c60808ee97dd46b691d07ced64650ea75ed4f57ffd8",
+  "url": "https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v2/engine-runtime-v2.zip",
+  "sha256": "5a578c40eb029c3266787dbf75944eaf908680fbe580ab6b8a137b2b648b85b3",
   "source": "https://github.com/musescore/MuseScore",
   "commit": "7688c005ad963ba09ee715aae53dbc7e8c9d5ef8",
   "qt": "6.7.3",
   "emscripten": "3.1.50",
   "patches": "engine/",
-  "sourceArchive": "https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v1/musescore-corresponding-source.tar.gz"
+  "sourceArchive": "https://github.com/guchang233/MuseTab/releases/download/engine-runtime-v2/musescore-corresponding-source.tar.gz"
 }

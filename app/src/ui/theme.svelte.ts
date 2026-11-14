@@ -17,6 +17,7 @@ function initial(): ThemePref {
 }
 
 let pref = $state<ThemePref>(initial());
+let paper=$state(localStorage.getItem('musetab.paperVisible')!=='false');
 let systemDark = $state(media.matches);
 
 function resolved(): 'light' | 'dark' {
@@ -25,6 +26,7 @@ function resolved(): 'light' | 'dark' {
 
 function apply() {
   document.documentElement.dataset.theme = resolved();
+  document.documentElement.dataset.scorePaper=paper?'on':'off';
 }
 
 media.addEventListener('change', (e) => {
@@ -33,6 +35,8 @@ media.addEventListener('change', (e) => {
 });
 
 export const theme = {
+  get paper(){return paper;},
+  setPaper(on:boolean){paper=on;localStorage.setItem('musetab.paperVisible',String(on));apply();},
   get pref() {
     return pref;
   },

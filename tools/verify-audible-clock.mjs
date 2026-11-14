@@ -1,0 +1,13 @@
+import {chromium} from '../app/node_modules/@playwright/test/index.mjs';import fs from 'node:fs/promises';import assert from 'node:assert/strict';
+const out='tests/results/audible-clock';await fs.mkdir(out,{recursive:true});const b=await chromium.launch({channel:'chrome',args:['--autoplay-policy=no-user-gesture-required','--use-angle=swiftshader','--enable-unsafe-swiftshader']}),p=await b.newPage();let report={};
+try{
+ await p.goto('http://127.0.0.1:5183');const f=p.frames().find(x=>x.url().includes('/engine/host.html'));await f.waitForFunction(()=>musetabEngine?.ready,{},{timeout:60000});
+ const dir='D:/music/Context/2025/2025 7',file=(await fs.readdir(dir)).find(n=>n.includes('Frieren_ Beyond Journey')&&n.endsWith('.mscz'));const fc=p.waitForEvent('filechooser');await p.getByRole('button',{name:'导入乐谱',exact:true}).click();await(await fc).setFiles(dir+'/'+file);await p.locator('.reader').waitFor();
+ await f.evaluate(()=>{window.heardUpdates=[];window.directPositions=0;const d=musetabEngine.Module.driver,fn=d.onPlaybackPosition;d.onPlaybackPosition=bytes=>{heardUpdates.push({wall:performance.now(),...d.clockDiagnostics});fn(bytes);};musetabEngine.Module.main_worker_rpcChannel.port1.addEventListener('message',e=>{if(e.data[0]===2&&e.data[1]===106)directPositions++;});});
+ await f.evaluate(async()=>{await musetabEngine.startAudio();musetabEngine.dispatch('play');});await p.waitForTimeout(2000);const before=await f.evaluate(()=>musetabEngine.Module.driver.diagnostics);
+ // A stalled notation thread must not replay old clock notifications on recovery.
+ await f.evaluate(()=>{const end=performance.now()+450;while(performance.now()<end){};});await p.waitForTimeout(2200);
+ report=await f.evaluate(()=>({updates:heardUpdates,directPositions,audio:musetabEngine.Module.driver.diagnostics}));await f.evaluate(()=>musetabEngine.dispatch('stop'));
+ const active=report.updates.filter(x=>x.lastTime!=null),lags=active.map(x=>x.heard-x.lastTime);assert(active.length>60);assert(lags.every(x=>x>=-.001&&x<.075));assert.equal(report.directPositions,0,'synth-ahead positions must not bypass the output clock');assert.equal(report.audio.underruns-before.underruns,0);
+ const bursts=active.filter((x,i)=>i&&x.wall-active[i-1].wall<2);assert(bursts.length<3,'recovery must coalesce, not replay stale cursor positions');console.log('PASS PCM-aligned native clock, output timestamp, stalled-main-thread recovery and no underruns',JSON.stringify({samples:active.length,maxLagMs:Math.max(...lags)*1000,underruns:0}));
+}finally{await fs.writeFile(out+'/report.json',JSON.stringify(report,null,2));await b.close();}

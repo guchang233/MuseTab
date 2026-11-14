@@ -1,12 +1,15 @@
 # MuseTab
 
-当前版本 **0.5.1**。面向 Android 平板的离线看谱、记号、播放和编辑。
+当前版本 **0.6.0**。面向 Android 平板的离线看谱、记号、播放和编辑。
 
 - 支持 MSCZ、MusicXML、MIDI 导入，以及 PDF 看谱和手写批注。
 - 看谱提供整页全屏、左右滑动、双指缩放和自由拖动；PDF 有横向、竖向、连续三种排版。
 - 编辑界面包含触摸版面与混音器面板；播放只包含显示的谱表。
 - 直接移植 ZeraFun 0.7.4 手机 App 的首页与“我的”设置结构、主题和样式。
 - 云端曲库只读，保存到本地后打开；切换标签保留分类和滚动位置。
+- 本地乐谱长按管理、重命名、导出和删除；云端乐谱点开详情后下载。
+- 全屏支持自动/单页/双页，保留相邻页和本地页面缓存；播放竖线对齐音频输出时钟。
+- 外观可关闭曲谱背景，采用统一圆角控件。
 - “我的 → 应用设置 → 版本与更新”可检查、下载并安装 GitHub Release。
 
 下载：[最新正式版](https://github.com/guchang233/MuseTab/releases/latest)。
@@ -67,7 +70,7 @@ pnpm --dir app dev --host 127.0.0.1 --port 5183
 node android/build.mjs
 ```
 
-Android 输出：`release/MuseTab-0.5.1.apk`，包名 `org.musetab.app`。
+Android 输出：`release/MuseTab-0.6.0.apk`，包名 `org.musetab.app`。
 本地开发签名；支持 Android 9 及以上、WebGL 2 的设备。
 
 ## 数据与范围

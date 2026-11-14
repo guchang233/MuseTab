@@ -150,7 +150,7 @@ class MuseDriverProcessor extends AudioWorkletProcessor {
     }
 
     onResponseAudio(msg) {
-        this.workerBuffer.push(msg.data);
+        this.workerBuffer.push({data:msg.data,positions:msg.positions||[]});
         this.buffered+=msg.data.length/2;this.started=true;
         this.audio_requested = false;
         this.requestAudio();
@@ -203,10 +203,15 @@ class MuseDriverProcessor extends AudioWorkletProcessor {
             const output = outputs[0];
             let written=0;
             for(let i=0;i<output[0].length;i++){
-                const chunk=this.workerBuffer[0];if(!chunk)break;
+                const entry=this.workerBuffer[0];if(!entry)break;const chunk=entry.data;
                 for(let channel=0;channel<output.length;channel++)output[channel][i]=chunk[this.offset+channel]||0;
                 this.offset+=2;this.buffered--;written++;this.consumed++;
-                if(this.offset>=chunk.length){this.workerBuffer.shift();this.offset=0;}
+                if(this.offset>=chunk.length){
+                    // Forward the clock only when this block has actually
+                    // reached the output, never when the worker renders ahead.
+                    if(entry.positions.length)this.sendToMain({type:'AUDIBLE_POSITION',packets:entry.positions,time:currentTime+(i+1)/sampleRate});
+                    this.workerBuffer.shift();this.offset=0;
+                }
             }
             if(this.started&&written<output[0].length)this.underruns++;
             this.requestAudio();

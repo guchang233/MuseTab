@@ -15,6 +15,24 @@ let AudioDriver = (function () {
 
     let audioContext = null;
     let processor = null;
+    let clocks=[],clockFrame=0;
+    const streamId=bytes=>{let p=2,tag=bytes[p++],id=tag;if(tag>=128){const n=({204:1,205:2,206:4,207:8})[tag];id=0;for(let i=0;i<n;i++)id=id*256+bytes[p++];}return id;};
+    function deliverClocks(){
+        clockFrame=0;
+        const stamp=audioContext.getOutputTimestamp?.();
+        const heard=stamp?.contextTime>0?stamp.contextTime:audioContext.currentTime-(audioContext.outputLatency||audioContext.baseLatency||0);
+        const latest=new Map();
+        while(clocks.length&&clocks[0].time<=heard){
+            const item=clocks.shift();
+            // MessagePort tasks can themselves be backed up while notation is
+            // busy. Drop stale running-clock packets instead of replaying them.
+            if(heard-item.time>.075&&api.playbackRunning?.()!==false)continue;
+            for(const bytes of item.packets)latest.set(streamId(bytes),{bytes,time:item.time});
+        }
+        api.clockDiagnostics={heard,pending:clocks.length,delivered:latest.size,lastTime:latest.size?[...latest.values()].at(-1).time:api.clockDiagnostics?.lastTime};
+        for(const {bytes} of latest.values())api.onPlaybackPosition?.(bytes);
+        if(clocks.length)clockFrame=requestAnimationFrame(deliverClocks);
+    }
 
     var api = {
 
@@ -52,6 +70,9 @@ let AudioDriver = (function () {
 
             // driver (processor) -> main
             processor.port.onmessage = function(event) {
+                if(event.data.type==='AUDIBLE_POSITION'){
+                    clocks.push(event.data);if(!clockFrame)clockFrame=requestAnimationFrame(deliverClocks);return;
+                }
                 if(event.data.type==='AUDIO_STATS'){api.diagnostics=event.data;return;}
 
                 if (event.data.type == "DRIVER_INITED") {

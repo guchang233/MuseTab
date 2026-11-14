@@ -37,8 +37,8 @@
   --text-2xl: 2.5rem;
 
   /* —— 形 —— */
-  --radius: 10px;
-  --radius-lg: 16px;
+  --radius: 999px;
+  --radius-lg: 28px;
   --tap: 48px; /* 触控目标：比 44 再宽裕一点 */
 
   /* —— 动效：慢而轻 —— */
@@ -78,3 +78,13 @@
     --dur-slow: 0ms;
   }
 }
+
+/* Shared interaction geometry. Document pages retain their actual paper shape. */
+button:not(.local-score):not(.cloud-score-main),select,input:not([type=range]):not([type=checkbox]):not([type=radio]),.ib,.seg {
+  border-radius:999px!important;
+}
+.local-score,.cloud-score-main,.poster {border-radius:24px!important;}
+.slip,.score-panel,.drawer,.unlock-dialog,.score-settings {border-radius:28px!important;}
+[data-score-paper=off] .pdf-surface {background:transparent!important;box-shadow:none!important;}
+[data-score-paper=off] .pdf-surface canvas {mix-blend-mode:multiply;}
+[data-theme=dark][data-score-paper=off] .pdf-surface canvas {filter:invert(1);mix-blend-mode:screen;}

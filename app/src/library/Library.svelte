@@ -5,18 +5,28 @@
   import SearchBar from './zerafun/SearchBar.svelte';
   import PhoneNavigation from './zerafun/PhoneNavigation.svelte';
   import Personal from './zerafun/Personal.svelte';
+  import ManageScore from './ManageScore.svelte';
+  import CloudDetail from './CloudDetail.svelte';
   import IconButton from '../ui/IconButton.svelte';
   import Icon, { type IconName } from '../ui/Icon.svelte';
   import { library, SUPPORTED, type ScoreRecord } from './store.svelte';
   import { engine } from '../bridge/engine.svelte';
   import { openLocal, documents } from './open.svelte';
   import { cloud } from './cloud.svelte';
-  import { REPOSITORY } from './github';
+  import { REPOSITORY,type CloudScore } from './github';
 
   type Tab = 'local' | 'cloud' | 'recent' | 'settings';
   let tab = $state<Tab>('local');
   let query = $state(''), filter = $state('all'), notice = $state(''), dragging = $state(false);
   let picker: HTMLInputElement;
+  let managed=$state<ScoreRecord|null>(null),detail=$state<CloudScore|null>(null);
+  let pressTimer:ReturnType<typeof setTimeout>,pressStart:{x:number;y:number}|null=null,heldId:string|null=null;
+  const label=(rec:ScoreRecord)=>rec.displayName||rec.title||rec.name;
+  function press(e:PointerEvent,rec:ScoreRecord){if(e.button!==0)return;heldId=null;pressStart={x:e.clientX,y:e.clientY};clearTimeout(pressTimer);pressTimer=setTimeout(()=>{heldId=rec.id;managed=rec;pressStart=null;},500);}
+  function movePress(e:PointerEvent){if(pressStart&&Math.hypot(e.clientX-pressStart.x,e.clientY-pressStart.y)>8)endPress();}
+  function endPress(){clearTimeout(pressTimer);pressStart=null;}
+  function clickScore(e:MouseEvent,rec:ScoreRecord){if(heldId===rec.id){heldId=null;e.preventDefault();return;}void openScore(rec);}
+  $effect(()=>()=>clearTimeout(pressTimer));
   let scroller: HTMLDivElement;
   const positions:Record<Tab,{query:string;filter:string;scroll:number}>={local:{query:'',filter:'all',scroll:0},cloud:{query:'',filter:'all',scroll:0},recent:{query:'',filter:'all',scroll:0},settings:{query:'',filter:'all',scroll:0}};
   const accept = SUPPORTED.map(e => '.' + e).join(',');
@@ -29,7 +39,7 @@
   ]);
   const latest = $derived(library.records.find(r => r.openedAt > 0));
   const group = (ext: string) => ['mid', 'midi'].includes(ext) ? 'mid' : ['mscz', 'mscx'].includes(ext) ? 'mscz' : ext === 'pdf' ? 'pdf' : 'xml';
-  const matches = (r: { name: string; title?: string; ext: string }) => (filter === 'all' || group(r.ext) === filter) && ((r.title || '') + ' ' + r.name).toLowerCase().includes(query.trim().toLowerCase());
+  const matches = (r: { name: string; title?: string;displayName?:string; ext: string }) => (filter === 'all' || group(r.ext) === filter) && ((r.displayName||'')+' '+(r.title || '') + ' ' + r.name).toLowerCase().includes(query.trim().toLowerCase());
   const localScores = $derived(library.records.filter(r => (tab !== 'recent' || r.openedAt > 0) && matches(r)));
   const cloudScores = $derived((cloud.catalog?.scores || []).filter(matches));
   const size = (n: number) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
@@ -93,7 +103,7 @@
       </div>
 
       {#if tab === 'local' && latest && !query && filter === 'all'}
-        <div class="resume-row"><span>继续看谱</span><button class="continue" disabled={documents.opening} onclick={() => openScore(latest)}>{#if latest.cover}<img src={latest.cover} alt="" />{:else}<Icon name="book" size={20} />{/if}<span>{latest.title || latest.name}</span><small>{latest.ext.toUpperCase()}</small></button><button class="all-recent" onclick={() => switchTab('recent')}>全部</button></div>
+        <div class="resume-row"><span>继续看谱</span><button class="continue" disabled={documents.opening} onclick={() => openScore(latest)}>{#if latest.cover}<img src={latest.cover} alt="" />{:else}<Icon name="book" size={20} />{/if}<span>{label(latest)}</span><small>{latest.ext.toUpperCase()}</small></button><button class="all-recent" onclick={() => switchTab('recent')}>全部</button></div>
       {/if}
       {#if notice}<p class="message" role="status">{notice}</p>{/if}
       {#if tab === 'cloud' && cloud.error}<p class="message" role="alert">{cloud.error}</p>{/if}
@@ -105,15 +115,10 @@
               {#each cloudScores as rec (rec.path)}
                 {@const saved = cloud.saved(rec)}
                 <article class="score cloud-score media-card">
-                  <div class="cover poster poster-fallback placeholder"><Icon name={rec.ext === 'pdf' ? 'view-single' : 'book'} size={30} /><span class="format">{rec.ext.toUpperCase()} · {size(rec.size)}</span></div>
-                  <h2 title={rec.name}>{rec.name}</h2>
-                  {#if cloud.saving === rec.path}
-                    <button class="download" onclick={() => cloud.cancel()} aria-label="取消下载 {rec.name}">{Math.min(100, Math.round(cloud.received / Math.max(1, rec.size) * 100))}% · 取消</button>
-                  {:else if saved}
-                    <button class="download saved" onclick={() => switchTab('local')}><Icon name="check" size={14} />已保存</button>
-                  {:else}
-                    <button class="download" disabled={!!cloud.saving} onclick={() => cloud.save(rec)} aria-label="保存到本地 {rec.name}"><Icon name="download" size={14} />保存到本地</button>
-                  {/if}
+                  <button class="cloud-score-main" onclick={()=>detail=rec} aria-label={'查看详情 '+rec.name}>
+                    <div class="cover poster poster-fallback placeholder"><Icon name={rec.ext==='pdf'?'view-single':'book'} size={30}/><span class="format">{rec.ext.toUpperCase()} · {size(rec.size)}</span></div>
+                    <h2 title={rec.name}>{rec.name}</h2><p>{saved?'已下载到本地':'查看详情'}</p>
+                  </button>
                 </article>
               {/each}
             </div>
@@ -125,9 +130,9 @@
         {:else if localScores.length}
           <div class="scores local-grid media-grid">
             {#each localScores as rec (rec.id)}
-              <button class="score local-score media-card" disabled={documents.opening} onclick={() => openScore(rec)} aria-label={'打开 ' + (rec.title || rec.name)}>
+              <button class="score local-score media-card" disabled={documents.opening} onpointerdown={e=>press(e,rec)} onpointermove={movePress} onpointerup={endPress} onpointercancel={endPress} oncontextmenu={e=>{e.preventDefault();endPress();heldId=rec.id;managed=rec;}} onclick={e=>clickScore(e,rec)} aria-label={'打开 ' + label(rec)}>
                 <div class="cover poster poster-fallback" class:placeholder={!rec.cover}>{#if rec.cover}<img src={rec.cover} alt="" loading="lazy" />{:else}<Icon name={rec.ext === 'pdf' ? 'view-single' : 'book'} size={30} />{/if}<span class="format">{rec.ext.toUpperCase()}{rec.editedAt ? ' · 已编辑' : ''}</span></div>
-                <h2 title={rec.title || rec.name}>{rec.title || rec.name}</h2>
+                <h2 title={label(rec)}>{label(rec)}</h2>
                 <p>{tab === 'recent' ? date(rec.openedAt) : rec.source ? '已下载到本地' : '本地导入'} · {size(rec.size)}</p>
               </button>
             {/each}
@@ -142,9 +147,12 @@
   </div>
 
   <PhoneNavigation items={destinations} value={tab} onchange={switchTab} />
+  {#if managed}<ManageScore record={managed} onclose={()=>managed=null}/>{/if}
+  {#if detail}<CloudDetail score={detail} onclose={()=>detail=null}/>{/if}
 </div>
 
 <style>
+  .cloud-score-main{display:block;width:100%;text-align:left;color:inherit;background:transparent;}
   /* Music-specific layout only. Catalogue/search/phone chrome use source.css. */
   .library {
     --parchment:var(--c-paper); --sheet:var(--c-card); --parchment-deep:var(--c-raised);
@@ -179,8 +187,6 @@
   .score p{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--c-muted);}
   .local-score:active .cover{opacity:.8;}
   .score:focus-visible{outline-offset:4px;}
-  .download{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-height:44px;font-size:11px;border:1px solid var(--c-line);border-radius:999px;margin-top:8px;padding:0 3px;white-space:nowrap;}
-  .download.saved{border-color:transparent;color:var(--c-muted);background:var(--c-soft);}
   .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;min-height:240px;padding:50px 20px;color:var(--c-muted);}
   .empty h2{font-size:16px;color:var(--c-ink);font-weight:400;}
   .empty p{font-size:13px;}

@@ -75,6 +75,9 @@ public:
     void setViewOnly(bool viewOnly);
     void setPageLock(bool enabled);
     void selectAt(double x, double y);
+    void selectPageAt(int page, double x, double y);
+    std::string pageMetrics() const;
+    std::string selectionImage(int pixels);
     std::string pageView(int page, double width, double height);
     std::string gestureView(double factor, double dx, double dy, double cx, double cy);
     std::string renderPage(int page, int pixels);

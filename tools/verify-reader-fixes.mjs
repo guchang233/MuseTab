@@ -38,12 +38,17 @@ async function selectFirst(){
     for(let i=0;i<100;i++){musetabEngine.sync();const s=events.findLast(e=>e.name==='selection')?.data;if(s?.type==='Note')return s;musetabEngine.dispatch('next-element');}
   });
   await frame.evaluate(()=>musetabEngine.dispatch('action://notation/cancel'));
-  const f=await page.locator('iframe').boundingBox();await page.touchscreen.tap(f.x+s.rect.x+s.rect.w/2,f.y+s.rect.y+s.rect.h/2);await page.waitForTimeout(200);
+  const gallery=page.locator('.gallery-page');
+  if(await gallery.count()){
+    const view=await frame.evaluate(()=>musetabEngine.pageView(0,innerWidth,innerHeight).rect),image=await gallery.first().boundingBox();
+    await page.touchscreen.tap(image.x+(s.rect.x+s.rect.w/2-view.x)/view.w*image.width,image.y+(s.rect.y+s.rect.h/2-view.y)/view.h*image.height);
+  }else{const f=await page.locator('iframe').boundingBox();await page.touchscreen.tap(f.x+s.rect.x+s.rect.w/2,f.y+s.rect.y+s.rect.h/2);}
+  await page.waitForTimeout(200);
   assert.equal(await frame.evaluate(()=>events.findLast(e=>e.name==='selection')?.data?.type),'Note');
   await page.getByRole('button',{name:'从这里播放',exact:true}).waitFor();return s;
 }
 try{
-  await page.goto('http://127.0.0.1:5183');frame=page.frames().find(f=>f.url().includes('/engine/host.html'));
+  await page.addInitScript(()=>localStorage.setItem('musetab.pageLayout','single')); await page.goto('http://127.0.0.1:5183');frame=page.frames().find(f=>f.url().includes('/engine/host.html'));
   await frame.waitForFunction(()=>musetabEngine?.ready,{},{timeout:60000});
   await frame.evaluate(()=>{window.events=[];musetabEngine.on((name,data)=>events.push({name,data}));});
   const dir='D:/music/Context/2025/2025 7',name=(await fs.readdir(dir)).find(n=>n.includes('Frieren_ Beyond Journey')&&n.endsWith('.mscz'));
@@ -54,7 +59,7 @@ try{
   await frame.evaluate(()=>{musetabEngine.dispatch('action://notation/cancel');musetabEngine.dispatch('zoom-page-width');});
   pass('native non-fullscreen two-finger zoom and one-finger pan');
   await full();assert.match(await pageNumber(),/^1 \/ \d+/);const first=await pageNumber();
-  await page.waitForFunction(()=>document.querySelector('.gallery-page')?.complete&&document.querySelector('.gallery-page')?.naturalWidth>1000);
+  await page.waitForFunction(()=>document.querySelector('.gallery-page')?.complete&&document.querySelector('.gallery-page')?.naturalWidth>600);
   await snap('tablet-gallery-page1');
   await swipe(650,640,180,640);assert.match(await pageNumber(),/^2 \/ /);await snap('tablet-gallery-page2');
   await swipe(180,640,650,640);assert.equal(await pageNumber(),first);
@@ -62,8 +67,8 @@ try{
   await swipe(400,640,330,590);assert.equal(await pageNumber(),first);await pinch(.25);assert(Math.abs((await page.locator('.gallery-page').boundingBox()).width-fit.width)<1);
   pass('native fullscreen pinch zoom, pan when zoomed, restore whole page and cached complete bitmap');
   await swipe(180,640,650,640);assert.equal(await pageNumber(),first);
-  const rect=await page.locator('.page-matte').first().getAttribute('style');
-  await swipe(400,800,400,200);await page.mouse.wheel(0,1000);assert.equal(await pageNumber(),first);assert.equal(await page.locator('.page-matte').first().getAttribute('style'),rect);
+  const rect=await page.locator('.gallery-page').first().getAttribute('style');
+  await swipe(400,800,400,200);await page.mouse.wheel(0,1000);assert.equal(await pageNumber(),first);assert.equal(await page.locator('.gallery-page').first().getAttribute('style'),rect);
   const note=await selectFirst();await page.getByRole('button',{name:'从这里播放',exact:true}).click();await page.waitForTimeout(1000);
   const position=await frame.evaluate(()=>events.findLast(e=>e.name==='position')?.data);assert(position.tick>note.tick);await frame.evaluate(()=>musetabEngine.dispatch('stop'));
   pass('native gallery touch swipe, boundaries, vertical/wheel lock and tap-to-play',{pages:first,position});

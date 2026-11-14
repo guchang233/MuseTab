@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { readerGestures } from './gestures.js';
+  import ScoreGallery from './ScoreGallery.svelte';
   import { theme } from '../ui/theme.svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { nav } from '../ui/nav.svelte';
@@ -33,79 +33,28 @@
   let tempoOpen = $state(false);
   let compassOpen = $state(false);
   let tempo = $state(100);
-  let pageIndex = $state(0), pageCount = $state(0), pageError = $state('');
-  let pageRect = $state<{x:number;y:number;w:number;h:number}>();
-  let root:HTMLDivElement, pageImage=$state(''), galleryZoom=$state(1), imageGeneration=0;
-  const pageImages=new Map<number,Promise<string>>();
-  const decodedPages=new Map<number,HTMLImageElement>();
-  let prefetch:ReturnType<typeof setTimeout>;
-  function imageFor(index:number){
-    if(!pageImages.has(index))pageImages.set(index,(async()=>{
-      // A child effect can run before the parent's theme effect. Set native ink
-      // and paper together before rasterisation, including prefetched pages.
-      engine.setCanvasTheme(theme.resolved==='dark','#fbf8ef',theme.resolved==='dark'?'#18130e':'#e9e0cc');
-      const src=engine.renderPage(index,1600);const img=new Image();img.src=src;await img.decode();decodedPages.set(index,img);return src;
-    })());
-    return pageImages.get(index)!;
-  }
-  function fitPage(index: number) {
-    const frame = engine.frame;
-    if (!frame) return;
-    const state = engine.pageView(index, frame.clientWidth, frame.clientHeight);
-    pageIndex = state.index; pageCount = state.count; pageRect=state.rect;
-    galleryZoom=1;const generation=++imageGeneration;
-    void imageFor(state.index).then(src=>{if(generation===imageGeneration)pageImage=src;}).catch(e=>pageError=String(e));
-    clearTimeout(prefetch);prefetch=setTimeout(()=>{
-      for(const i of [state.index-1,state.index+1])if(i>=0&&i<state.count)void imageFor(i).catch(()=>{});
-      for(const i of pageImages.keys())if(Math.abs(i-state.index)>2){pageImages.delete(i);decodedPages.delete(i);}
-    },80);
-  }
-  $effect(()=>{engine.changeSeq;pageImages.clear();decodedPages.clear();pageImage='';imageGeneration++;untrack(()=>{if(reading.fullscreen)fitPage(pageIndex);});});
-  let seenViewport=engine.readerViewport.seq;
-  $effect(()=>{const pose=engine.readerViewport;if(pose.seq===seenViewport)return;seenViewport=pose.seq;if(reading.fullscreen){pageRect=pose.rect;galleryZoom=pose.zoom;compassOpen=false;showBar(false);}});
-  $effect(() => {
-    const full = reading.fullscreen, ready = engine.status === 'ready', open = engine.project.open, frame = engine.frame;
-    if (!full || !ready || !open || !frame) return;
-    let resizeTimer: ReturnType<typeof setTimeout>;
-    let settleTimer: ReturnType<typeof setTimeout>;
-    pageError = ''; compassOpen = false; showBar(false);
-    const resize = new ResizeObserver(() => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { try { fitPage(pageIndex); } catch (e) { pageError = String(e); } }, 40);
-    });
-    try {
-      untrack(() => { engine.setPageLock(true); fitPage(-1); });
-      settleTimer=setTimeout(()=>fitPage(pageIndex),180);
-      resize.observe(frame);
-    } catch (e) { pageError = e instanceof Error ? e.message : '整页视图暂时无法打开'; }
-    return () => {
-      resize.disconnect(); clearTimeout(resizeTimer); clearTimeout(settleTimer);
-      untrack(() => {
-        try { engine.setPageLock(false); } catch { /* Old development engine. */ }
-        clearTimeout(prefetch);imageGeneration++;
-        if (nav.screen === 'reader') { engine.readerLayout(VIEW_MODE[view]); engine.dispatch('zoom-page-width'); }
-      });
-    };
+  let pageIndex=$state(0),pageCount=$state(0),lastIndex=$state(0),pageError=$state('');
+  let root:HTMLDivElement,selectionRect=$state<{x:number;y:number;w:number;h:number}>();
+  let gallery=$state<{showPage:(page:number)=>Promise<void>;turn:(delta:number)=>void}>();
+  let pageLayout=$state<'auto'|'single'|'double'>((localStorage.getItem('musetab.pageLayout') as 'auto'|'single'|'double')||'auto'),layoutOpen=$state(false);
+  function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);linger();}
+  function fitPage(index:number){void gallery?.showPage(index);}
+  $effect(()=>{
+    if(!reading.fullscreen||engine.status!=='ready')return;
+    untrack(()=>engine.setPageLock(true));
+    return()=>untrack(()=>{engine.setPageLock(false);if(nav.screen==='reader'){engine.readerLayout(VIEW_MODE[view]);engine.dispatch('zoom-page-width');}});
   });
-  let seenControl = engine.readerControl.seq;
-  $effect(()=>readerGestures(root,{enabled:e=>reading.fullscreen&&e.target instanceof Element&&(e.target.classList.contains('page-matte')||e.target.classList.contains('gallery-backdrop')),gallery:()=>true,zoomed:()=>galleryZoom>1.01,
-    tap:e=>{if(pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w))turn(e.clientX<pageRect.x?-1:1);else if(pageRect&&e.clientY>=pageRect.y&&e.clientY<=pageRect.y+pageRect.h)engine.tapAt(e.clientX,e.clientY);else{compassOpen=false;showBar(!barOpen);}},turn,
-    pan:(dx,dy)=>engine.gestureView(1,dx,dy,0,0),zoom:(f,cx,cy,dx,dy)=>engine.gestureView(f,dx,dy,cx,cy),cancel:()=>compassOpen=false}));
-  $effect(() => {
-    const command = engine.readerControl;
-    if (command.seq === seenControl) return;
-    seenControl = command.seq;
-    untrack(() => {
-      if(command.key==='gesture'){compassOpen=false;showBar(false);return;}
-      if(!reading.fullscreen){if(command.key==='next'||command.key==='previous')turn(command.key==='next'?1:-1);return;}
-      if (command.key === 'exit') void reading.setFullscreen(false);
-      else if (command.key === 'first') { fitPage(0); compassOpen=false; }
-      else if (command.key === 'last') { fitPage(pageCount-1); compassOpen=false; }
-      else turn(command.key === 'next' ? 1 : -1);
-    });
-  });
+  let seenControl=engine.readerControl.seq;
+  $effect(()=>{const command=engine.readerControl;if(command.seq===seenControl)return;seenControl=command.seq;untrack(()=>{
+    if(command.key==='gesture'){compassOpen=false;showBar(false);return;}
+    if(!reading.fullscreen){if(command.key==='next'||command.key==='previous')turn(command.key==='next'?1:-1);return;}
+    if(command.key==='exit')void reading.setFullscreen(false);
+    else if(command.key==='first')fitPage(0);
+    else if(command.key==='last')fitPage(pageCount-1);
+    else turn(command.key==='next'?1:-1);
+  });});
 
-  const title = $derived(engine.project.title || library.current?.title || library.current?.name || '');
+  const title = $derived(library.current?.displayName || engine.project.title || library.current?.title || library.current?.name || '');
 
   // —— 工具条的停留与淡出 ——
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -119,14 +68,14 @@
   function showBar(open: boolean) {
     barOpen = open;
     if (open) linger();
-    else tempoOpen = false;
+    else {tempoOpen = false;layoutOpen=false;}
   }
 
   let seenTap=engine.readerTapSeq;
   $effect(()=>{const seq=engine.readerTapSeq;if(seq===seenTap)return;seenTap=seq;untrack(()=>{if(!engine.selection.none){compassOpen=true;showBar(false);}else{compassOpen=false;showBar(!barOpen);}});});
   let autoTurn=$state(localStorage.getItem('musetab.autoTurn')!=='false');
   function toggleAutoTurn(){autoTurn=!autoTurn;localStorage.setItem('musetab.autoTurn',String(autoTurn));}
-  $effect(()=>{const cursor=engine.position.cursor;if(reading.fullscreen&&engine.playing&&autoTurn&&cursor&&cursor.page!==pageIndex)untrack(()=>fitPage(cursor.page));});
+
 
   // 进入看谱即只读；离开时交还
   $effect(() => {
@@ -161,7 +110,7 @@
   const COMPASS_W = 196;
   const COMPASS_H = 174;
   const compass = $derived.by(() => {
-    const r = engine.selection.rect;
+    const r = reading.fullscreen?selectionRect:engine.selection.rect;
     if (!r) return null;
     const offset = engine.frame?.getBoundingClientRect();
     const cx = r.x + r.w / 2 + (offset?.left || 0);
@@ -228,7 +177,7 @@
     linger();
   }
   function turn(delta: number) {
-    if (reading.fullscreen) fitPage(Math.max(0, Math.min(pageCount - 1, pageIndex + delta)));
+    if (reading.fullscreen) gallery?.turn(delta);
     else engine.dispatch(delta > 0 ? 'scr-next' : 'scr-prev');
     compassOpen = false;
     if (barOpen) linger();
@@ -259,30 +208,10 @@
 <svelte:window onkeydown={onkey} />
 
 <div class="reader" bind:this={root}>
-  {#if reading.fullscreen}<div class="gallery-backdrop"></div>{/if}
-  {#if reading.fullscreen && pageRect && pageImage}
-    <img class="gallery-page" src={pageImage} alt="当前乐谱整页" draggable="false" style:left={pageRect.x+'px'} style:top={pageRect.y+'px'} style:width={pageRect.w+'px'} style:height={pageRect.h+'px'}/>
-    {#if engine.playing&&engine.position.cursor&&engine.position.cursor.page===pageIndex}
-      {@const c=engine.position.cursor}<span class="playback-line" aria-label="播放进度" style:left={pageRect.x+c.x*pageRect.w+'px'} style:top={pageRect.y+c.y*pageRect.h+'px'} style:width={Math.max(2,c.w*pageRect.w)+'px'} style:height={c.h*pageRect.h+'px'}></span>
-    {/if}
-    {#if !engine.playing && !engine.selection.none && engine.selection.type==='Note' && engine.selection.rect}
-      {@const r=engine.selection.rect}<span class="note-highlight" style:left={r.x-2+'px'} style:top={r.y-2+'px'} style:width={r.w+4+'px'} style:height={r.h+4+'px'}></span>
-    {/if}
-  {/if}
-  {#if reading.fullscreen && pageRect}
-    {#each [
-      {left:0,top:0,width:Math.max(0,pageRect.x),height:'100%'},
-      {left:pageRect.x+pageRect.w,top:0,width:'100%',height:'100%'},
-      {left:pageRect.x,top:0,width:pageRect.w,height:Math.max(0,pageRect.y)},
-      {left:pageRect.x,top:pageRect.y+pageRect.h,width:pageRect.w,height:'100%'},
-    ] as mask}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="page-matte" style:left={mask.left+'px'} style:top={mask.top+'px'} style:width={typeof mask.width==='number'?mask.width+'px':mask.width} style:height={typeof mask.height==='number'?mask.height+'px':mask.height}></div>
-    {/each}
-  {/if}
+  {#if reading.fullscreen}<ScoreGallery bind:this={gallery} mode={pageLayout} {autoTurn} bind:index={pageIndex} bind:count={pageCount} bind:last={lastIndex} bind:selectionRect onerror={message=>pageError=message} ongesture={()=>{compassOpen=false;showBar(false);}}/>{/if}
   <ReaderHeader {title} />
   {#if reading.fullscreen}
-    <div class="page-number" class:raised={barOpen} role="status" aria-live="polite">{pageIndex + 1} / {pageCount || '…'}</div>
+    <div class="page-number" class:raised={barOpen} role="status" aria-live="polite">{pageIndex + 1}{lastIndex>pageIndex?'–'+(lastIndex+1):''} / {pageCount || '…'}</div>
     {#if pageError}<p class="page-error" role="alert">{pageError}</p>{/if}
   {/if}
   <!-- 小罗盘：点中音符时出现 -->
@@ -313,7 +242,7 @@
     <button class="edge prev" aria-label={reading.fullscreen ? '上一页' : '上一屏'} disabled={reading.fullscreen && pageIndex === 0} onclick={() => turn(-1)} transition:fade={{ duration: ms(300) }}>
       <Icon name="back" size={20} />
     </button>
-    <button class="edge next" aria-label={reading.fullscreen ? '下一页' : '下一屏'} disabled={reading.fullscreen && pageIndex >= pageCount - 1} onclick={() => turn(1)} transition:fade={{ duration: ms(300) }}>
+    <button class="edge next" aria-label={reading.fullscreen ? '下一页' : '下一屏'} disabled={reading.fullscreen && lastIndex >= pageCount - 1} onclick={() => turn(1)} transition:fade={{ duration: ms(300) }}>
       <Icon name="forward" size={20} />
     </button>
 
@@ -321,7 +250,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="ribbon-col" onpointerdown={linger}>
         <Slip class="ribbon" role="toolbar" aria-label="看谱工具条">
-          {#if reading.fullscreen}<button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={toggleAutoTurn}>自动翻页{autoTurn?'：开':'：关'}</button>{/if}
+          {#if reading.fullscreen}<IconButton label="页面排版" icon="view-spread" active={layoutOpen} onclick={()=>{layoutOpen=!layoutOpen;tempoOpen=false;linger();}}/>{/if}
           <IconButton label="返回谱匣" icon="back" onclick={() => leave('library')} />
           <span class="sep"></span>
           <IconButton
@@ -351,6 +280,7 @@
           </button>
         </Slip>
 
+        {#if layoutOpen}<div class="layout-slip"><Slip><div class="layout-body"><span class="label">页面排版</span><div class="layout-options">{#each [{value:'auto',label:'自动'},{value:'single',label:'单页'},{value:'double',label:'双页'}] as option}<button aria-pressed={pageLayout===option.value} onclick={()=>setLayout(option.value as 'auto'|'single'|'double')}>{option.label}</button>{/each}</div><p>自动：竖屏单页，横屏平板并排双页。</p><button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={()=>{toggleAutoTurn();linger();}}>播放时自动翻页 · {autoTurn?'开':'关'}</button></div></Slip></div>{/if}
         {#if tempoOpen}
           <div class="tempo-slip" transition:fly={{ y: 6, duration: ms(260), easing: easeOut }}>
             <Slip>
@@ -369,15 +299,12 @@
 </div>
 
 <style>
-  .gallery-backdrop{position:absolute;inset:0;background:var(--parchment-deep);pointer-events:auto;touch-action:none;}
-  .playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}
-  .auto-turn{min-height:44px;padding:0 12px;font-size:12px;white-space:nowrap;border-radius:8px;}
-  .auto-turn[aria-pressed=true]{background:var(--hairline-soft);}
-  .gallery-page{position:absolute;pointer-events:none;max-width:none;user-select:none;}
-  :global([data-theme=dark]) .gallery-page{filter:invert(1);}
-  .note-highlight{position:absolute;border:2px solid #448ed8;border-radius:4px;pointer-events:none;}
+  .auto-turn{min-height:44px;padding:0 16px;font-size:13px;width:100%;border:1px solid var(--hairline);}
+  .auto-turn[aria-pressed=true]{background:var(--rubric-wash);}
+  .ribbon-col{position:relative;}
+  .layout-slip{position:absolute;bottom:calc(100% + 12px);left:0;width:min(340px,calc(100vw - 24px));pointer-events:auto;}
+  .layout-body{padding:20px;display:flex;flex-direction:column;gap:14px;}.layout-options{display:flex;gap:8px;}.layout-options button{min-height:44px;flex:1;padding:8px 16px;border:1px solid var(--hairline);}.layout-options button[aria-pressed=true]{background:var(--rubric);color:var(--on-rubric);}.layout-body p{font-size:12px;line-height:1.7;color:var(--ink-soft);}
   .page-number.raised{bottom:max(96px,calc(env(safe-area-inset-bottom) + 96px));}
-  .page-matte{position:absolute;background:var(--parchment-deep);pointer-events:auto;touch-action:none;}
   .reader{overflow:hidden;}
   .page-number{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:4px 12px;background:var(--slip);color:var(--ink-soft);border-radius:999px;font-size:12px;pointer-events:none;font-variant-numeric:tabular-nums;}
   .page-error{position:absolute;top:70px;left:16px;right:16px;padding:12px;background:var(--sheet);color:var(--rubric);font-size:14px;pointer-events:auto;}

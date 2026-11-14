@@ -89,6 +89,8 @@ function setupRpc(Module)
 async function setupDriver(Module) 
 {
     Module.driver = AudioDriver;
+    AudioDriver.playbackRunning=()=>Module.playbackRunning?.()??true;
+    AudioDriver.onPlaybackPosition=bytes=>Module.main_worker_rpcListen(bytes);
 
     AudioDriver.onInited = function() {
         console.log("driver on inited add sound font")

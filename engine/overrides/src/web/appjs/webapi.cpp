@@ -77,6 +77,12 @@
 
 #include "engraving/dom/engravingitem.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/chord.h"
+#include "engraving/dom/stem.h"
+#include "engraving/dom/hook.h"
+#include "engraving/dom/accidental.h"
+#include "engraving/dom/notedot.h"
+#include "engraving/rendering/iscorerenderer.h"
 
 #include "log.h"
 
@@ -167,7 +173,7 @@ void WebApi::init(const muse::modularity::ContextPtr& ctx)
         playback->currentPlaybackPositionChanged().onReceive(this, [this](muse::audio::secs_t secs, muse::midi::tick_t tick) {
             const double s = secs.to_double();
             //! NOTE The page needs ~10 updates per second, not one per audio buffer
-            if (std::abs(s - m_lastPositionSent) < 0.1) {
+            if (std::abs(s - m_lastPositionSent) < 0.033) {
                 return;
             }
             m_lastPositionSent = s;
@@ -436,6 +442,7 @@ void WebApi::dispatch(const std::string& actionCode)
 
 void WebApi::setPageLock(bool enabled)
 {
+    qApp->setProperty("musetabBitmapReader",enabled);
     if (enabled && m_currentNotation) m_pageMatrix = m_currentNotation->viewState()->matrix();
     m_pageLocked = enabled;
 }
@@ -455,6 +462,58 @@ void WebApi::selectAt(double x, double y)
     // Selecting a note must never trigger the mouse controller's canvas drag or recentering.
     view->setMatrix(matrix,nullptr);
     sendSelection();
+}
+
+void WebApi::selectPageAt(int page, double x, double y)
+{
+    if(!m_currentNotation||!std::isfinite(x)||!std::isfinite(y)||x<0||x>1||y<0||y>1)return;
+    const auto& pages=m_currentNotation->elements()->pages();if(page<0||page>=int(pages.size()))return;
+    const auto r=pages[page]->canvasBoundingRect();
+    const auto point=m_currentNotation->viewState()->matrix().map(PointF(r.x()+r.width()*x,r.y()+r.height()*y));
+    selectAt(point.x(),point.y());
+}
+
+std::string WebApi::pageMetrics() const
+{
+    QJsonArray list;if(m_currentNotation)for(const auto* page:m_currentNotation->elements()->pages()){
+        const auto r=page->canvasBoundingRect();list.append(QJsonObject{{"w",r.width()},{"h",r.height()}});
+    }
+    return QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
+}
+
+std::string WebApi::selectionImage(int pixels)
+{
+    if(!m_currentNotation)return "{}";
+    const auto sel=m_currentNotation->interaction()->selection();
+    if(sel->isNone()||sel->isRange()||sel->elements().size()>64)return "{}";
+    const auto& pages=m_currentNotation->elements()->pages();
+    const auto* first=sel->elements().front();int index=-1;
+    for(size_t i=0;i<pages.size();++i)if(pages[i]->canvasBoundingRect().contains(first->canvasBoundingRect().center())){index=int(i);break;}
+    if(index<0)return "{}";
+    const auto page=pages[index]->canvasBoundingRect();std::vector<const engraving::EngravingItem*> items;
+    for(const auto* item:sel->elements()){
+        items.push_back(item);
+        if(item->isNote()){
+            const auto* note=engraving::toNote(item);const auto* chord=note->chord();
+            if(note->accidental())items.push_back(note->accidental());
+            for(const auto* dot:note->dots())items.push_back(dot);
+            if(chord&&chord->stem())items.push_back(chord->stem());
+            if(chord&&chord->hook())items.push_back(chord->hook());
+        }
+    }
+    RectF bounds;for(const auto* item:items)bounds=bounds.united(item->pageBoundingRect());
+    bounds=bounds.adjusted(-2,-2,2,2);const double scale=std::clamp(pixels,800,2400)/page.width();
+    const int width=std::clamp(int(std::ceil(bounds.width()*scale)),1,4096),height=std::clamp(int(std::ceil(bounds.height()*scale)),1,4096);
+    QImage image(width,height,QImage::Format_ARGB32_Premultiplied);image.fill(Qt::transparent);
+    const auto renderer=webResolve<engraving::rendering::IScoreRenderer>();if(!renderer)return "{}";
+    {
+        muse::draw::Painter painter(&image,"MuseTab native selected elements");painter.scale(scale,scale);painter.translate(-bounds.x(),-bounds.y());
+        engraving::rendering::PaintOptions opt;opt.isPrinting=false;
+        const auto config=webResolve<notation::INotationConfiguration>();opt.invertColors=config&&config->shouldInvertScore();
+        for(const auto* item:items)renderer->paintItem(painter,item,opt);
+    }
+    QByteArray bytes;QBuffer buffer(&bytes);buffer.open(QIODevice::WriteOnly);image.save(&buffer,"PNG");
+    return QJsonDocument(QJsonObject{{"page",index},{"x",bounds.x()/page.width()},{"y",bounds.y()/page.height()},{"w",bounds.width()/page.width()},{"h",bounds.height()/page.height()},{"src",QString::fromLatin1(bytes.toBase64())}}).toJson(QJsonDocument::Compact).toStdString();
 }
 
 std::string WebApi::pageView(int page, double width, double height)
@@ -820,12 +879,13 @@ void WebApi::startAudioProcessing()
 
 void WebApi::setCanvasTheme(bool dark, const std::string& paper, const std::string& canvas)
 {
+    qApp->setProperty("musetabTransparentPaper",paper=="none");
     auto conf = webResolve<mu::notation::INotationConfiguration>();
     if (!conf) {
         return;
     }
     conf->setForegroundUseColor(true);
-    conf->setForegroundColor(QColor(QString::fromStdString(paper)));
+    conf->setForegroundColor(paper=="none"?QColor(Qt::transparent):QColor(QString::fromStdString(paper)));
     conf->setBackgroundUseColor(true);
     conf->setBackgroundColor(QColor(QString::fromStdString(canvas)));
     conf->setOnlyInvertInDarkTheme(false);

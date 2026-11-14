@@ -22,7 +22,7 @@ try{
   await page.getByRole('button',{name:'筛选格式',exact:true}).click();await page.getByRole('button',{name:'全部',exact:true}).click();await page.keyboard.press('Escape');
   await page.getByRole('searchbox',{name:'搜索曲谱',exact:true}).fill('1');
   const row=page.locator('.cloud-score').filter({has:page.getByRole('heading',{name:'1',exact:true})}).first();
-  await row.getByRole('button',{name:'保存到本地 1',exact:true}).click();await row.getByRole('button',{name:'已保存',exact:true}).waitFor({timeout:45000});
+  await row.locator('.cloud-score-main').click();await page.getByRole('dialog',{name:'云端乐谱详情'}).waitFor();await page.getByRole('button',{name:'保存到本地',exact:true}).click();await page.getByRole('button',{name:'打开本地乐谱',exact:true}).waitFor({timeout:45000});await page.getByRole('button',{name:'返回曲库',exact:true}).click();assert.match(await row.innerText(),/已下载到本地/);
   assert.equal(await page.locator('.reader').count(),0);assert(!requests.some(url=>url.includes('api.github.com')));
   assert.equal(errors.length,0,errors.join('\n'));
   console.log('PASS live static cloud UI, '+count+' scores, classification and scroll restored across all tabs, download saved locally, zero REST calls');

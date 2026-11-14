@@ -76,7 +76,7 @@
     if (next) paletteOpen = false;
   }
 
-  const title = $derived(engine.project.title || library.current?.title || library.current?.name || '');
+  const title = $derived(library.current?.displayName || engine.project.title || library.current?.title || library.current?.name || '');
 
   // —— 动作：按钮只负责派发，状态由引擎说了算 ——
   const UNDO = 'action://notation/undo';

@@ -146,6 +146,9 @@
           if(engine.Module._mtSelectAt){engine.Module.ccall('mtSelectAt',null,['number','number'],[x,y]);selectedStart=!engine.isPlaying&&!engine.lastSelection?.none;emit('reader-tap',{});}
           else{tapQt({clientX:x,clientY:y,pointerId:1});setTimeout(()=>emit('reader-tap',{}),100);}
         },
+        pageMetrics(){if(!engine.Module._mtPageMetrics)throw Error('原生核心需要更新');return JSON.parse(engine.Module.ccall('mtPageMetrics','string',[],[]));},
+        selectPageAt(page,x,y){engine.Module.ccall('mtSelectPageAt',null,['number','number','number'],[page,x,y]);selectedStart=!engine.isPlaying&&!engine.lastSelection?.none;emit('reader-tap',{});},
+        selectionImage(pixels){if(!engine.Module._mtSelectionImage)return {};const result=JSON.parse(engine.Module.ccall('mtSelectionImage','string',['number'],[pixels]));if(result.src)result.src='data:image/png;base64,'+result.src;return result;},
         scorePanels(){const state=JSON.parse(engine.Module.ccall('mtScorePanels','string',[],[]));for(const channel of state.channels||[])if(channel.name==='节拍器'){channel.muted=!engine.actionState('metronome').checked;channel.solo=false;}return state;},
         changeMixer(data){return JSON.parse(engine.Module.ccall('mtChangeMixer','string',['string'],[JSON.stringify(data)]));},
         changeParts(data){if(editLocked&&!['part-visible','staff-visible'].includes(data.op)){unlockRequest();return {ok:false};}return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
@@ -221,6 +224,7 @@
           },
         });
         const M = (engine.Module = engine.api.Module);
+        M.playbackRunning=()=>engine.isPlaying;
 
         M.onEngineEvent = (name, json) => {
           const data=JSON.parse(json);

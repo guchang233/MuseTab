@@ -45,6 +45,7 @@
         {:else if item==='cloud'}<button class="btn-ghost btn-sm" onclick={oncloud}>打开曲库</button>
         {:else if item==='source'}<code>github.com/guchang233/MuseTab</code>{/if}
       </span></div>
+      {#if item==='appearance'}<div class="setting-row"><span><span class="setting-title">曲谱背景</span><span class="setting-description">关闭纸张背景，让音符和五线谱融入界面背景。</span></span><span class="setting-controls"><button class="btn-ghost btn-sm" role="switch" aria-label="曲谱背景" aria-checked={theme.paper} onclick={()=>theme.setPaper(!theme.paper)}>{theme.paper?'已开启':'已关闭'}</button></span></div>{/if}
       {#if item==='version'}
         {#if updates.message}<p class="update-notice" role="status">{updates.message}</p>{/if}
         {#if updates.available}<p>新版本 {updates.release?.version} · {((updates.release?.size||0)/1048576).toFixed(1)} MB</p><p class="release-notes">{updates.release?.notes||''}</p>

@@ -1,5 +1,6 @@
 // 谱匣：导入的乐谱保存在本机（IndexedDB），不上传任何地方。
 import { unzipSync } from 'fflate';
+import {pageCache} from '../reader/page-cache';
 
 export type CloudSource = { repo: string; path: string; sha: string; commit: string; downloadedAt: number };
 export type InkStroke = { points: [number, number][]; color: string; width: number };
@@ -10,6 +11,8 @@ export type ScoreRecord = {
   name: string;
   /** 乐谱里的曲名，打开过一次后才知道 */
   title?: string;
+  /** A local label chosen by the user; never changes the score's own title. */
+  displayName?: string;
   ext: string;
   size: number;
   addedAt: number;
@@ -147,7 +150,14 @@ export const library = {
       t.objectStore('annotations').delete(id);
     });
     if (currentId === id) currentId = null;
+    await pageCache.removeScore(id);
     await refresh();
+  },
+  async rename(id:string,name:string){
+    const rec=records.find(r=>r.id===id);if(!rec)throw Error('这份乐谱已不存在');
+    const displayName=name.trim();if(!displayName||displayName.length>240)throw Error('请输入 1–240 个字的名称');
+    const next={...$state.snapshot(rec),displayName};
+    await tx([META],'readwrite',t=>t.objectStore(META).put(next));await refresh();
   },
   async notes(id: string): Promise<PdfNotes> { return (await tx<PdfNotes>(['annotations'], 'readonly', t => t.objectStore('annotations').get(id))) || {}; },
   async saveNotes(id: string, notes: PdfNotes) { await tx(['annotations'], 'readwrite', t => { t.objectStore('annotations').put(notes, id); }); },

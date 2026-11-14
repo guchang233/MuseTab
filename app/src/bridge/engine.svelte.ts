@@ -20,6 +20,9 @@ export type PaletteData = { name: string; id: string; w: number; h: number; cell
 export type ActionState = { known: boolean; enabled: boolean; checked: boolean };
 
 type HostEngine = {
+  pageMetrics():{w:number;h:number}[];
+  selectPageAt(page:number,x:number,y:number):void;
+  selectionImage(pixels:number):{page?:number;x?:number;y?:number;w?:number;h?:number;src?:string};
   setPageLock(v: boolean): void;
   pageView(index: number, width: number, height: number): PageState;
   gestureView(factor:number,dx:number,dy:number,cx:number,cy:number):{rect?:PageState['rect']};
@@ -156,6 +159,9 @@ function poll(win: Window, tries = 0) {
 }
 
 export const engine = {
+  pageMetrics(){return untrack(()=>host?.pageMetrics()||[]);},
+  selectPageAt(page:number,x:number,y:number){untrack(()=>host?.selectPageAt(page,x,y));},
+  selectionImage(pixels:number){return untrack(()=>host?.selectionImage(pixels)||{});},
   get editLocked(){return editLocked;},
   get unlockRequestSeq(){return unlockRequestSeq;},
   get readerTapSeq(){return readerTapSeq;},

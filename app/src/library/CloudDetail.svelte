@@ -1,0 +1,19 @@
+<script lang="ts">
+ import {cloud} from './cloud.svelte';import {REPOSITORY,type CloudScore} from './github';import {openLocal} from './open.svelte';import Icon from '../ui/Icon.svelte';
+ let {score,onclose}:{score:CloudScore;onclose:()=>void}=$props();let error=$state('');
+ const saved=$derived(cloud.saved(score)),downloading=$derived(cloud.saving===score.path);
+ $effect(()=>{const back=(e:Event)=>{e.preventDefault();e.stopImmediatePropagation();onclose();};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
+ async function open(){if(!saved)return;try{await openLocal(saved);onclose();}catch(e){error=e instanceof Error?e.message:'打开失败';}}
+</script>
+<div class="cloud-detail" role="dialog" aria-modal="true" aria-label="云端乐谱详情" tabindex="-1">
+ <div class="detail-page"><header><button class="back" onclick={onclose}><Icon name="back" size={18}/>返回曲库</button><h1>乐谱详情</h1></header>
+ <div class="summary"><div class="detail-cover"><Icon name={score.ext==='pdf'?'view-single':'book'} size={64}/><span>{score.ext.toUpperCase()}</span></div><div><h2>{score.name}</h2><p>只读云端曲库</p><p>{(score.size/1024/1024).toFixed(2)} MB · {score.ext.toUpperCase()}</p></div></div>
+ <dl><div><dt>来源</dt><dd>{REPOSITORY}</dd></div><div><dt>目录</dt><dd>{score.path}</dd></div><div><dt>本地状态</dt><dd>{saved?'已下载到本地':'尚未下载'}</dd></div><div><dt>文件版本</dt><dd><code>{score.sha.slice(0,12)}</code></dd></div></dl>
+ <p class="explain">保存到本地后即可看谱或编辑。本地修改不会上传到仓库。</p>
+ <div class="detail-actions">{#if downloading}<progress max={score.size} value={cloud.received}></progress><p role="status">正在保存 {Math.min(100,Math.round(cloud.received/score.size*100))}%</p><button onclick={()=>cloud.cancel()}>取消下载</button>{:else if saved}<p role="status"><Icon name="check" size={16}/>已下载到本地</p><button class="primary" onclick={open}>打开本地乐谱</button>{:else}<button class="primary" disabled={!!cloud.saving} onclick={()=>cloud.save(score)}><Icon name="download" size={18}/>保存到本地</button>{/if}</div>
+ {#if cloud.error||error}<p role="alert">{error||cloud.error}</p>{/if}
+ </div>
+</div>
+<style>
+ .cloud-detail{position:fixed;inset:0;z-index:70;overflow:auto;overscroll-behavior:contain;pointer-events:auto;background:var(--c-paper);color:var(--c-ink);}.detail-page{max-width:800px;margin:0 auto;padding:24px 24px 60px;}header{display:flex;gap:24px;align-items:center;}h1{font-family:var(--font-reading);font-size:25px;font-weight:500;}.back{display:flex;align-items:center;gap:6px;min-height:44px;padding:8px 16px;border:1px solid var(--c-line);font-size:13px;}.summary{display:flex;gap:28px;align-items:center;margin:32px 0;}.detail-cover{width:148px;aspect-ratio:2/3;flex:none;background:var(--c-soft);display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;border-radius:28px;color:var(--c-muted);}h2{font-size:22px;font-weight:500;line-height:1.6;overflow-wrap:anywhere;}p{font-size:13px;line-height:1.8;color:var(--c-muted);margin:10px 0;}dl{border-top:1px solid var(--c-line);}dl>div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:20px;border-bottom:1px solid var(--c-line);padding:18px 0;font-size:13px;}dt{color:var(--c-muted);}dd{margin:0;overflow-wrap:anywhere;}.explain{margin:24px 0;}.detail-actions{display:flex;flex-direction:column;gap:8px;align-items:stretch;max-width:440px;margin:30px auto;}.detail-actions button{min-height:52px;padding:12px 24px;border:1px solid var(--c-line);display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;}.primary{background:var(--c-soft);}.detail-actions p{display:flex;justify-content:center;gap:8px;align-items:center;}progress{width:100%;accent-color:var(--c-accent);}@media(max-width:500px){.detail-page{padding:16px 20px 40px;}.summary{gap:20px;align-items:flex-start;}.detail-cover{width:104px;}h2{font-size:18px;}header{gap:16px;}h1{font-size:23px;}}
+</style>
