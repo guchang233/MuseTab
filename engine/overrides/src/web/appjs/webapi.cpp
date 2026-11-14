@@ -476,7 +476,11 @@ void WebApi::selectPageAt(int page, double x, double y)
 std::string WebApi::pageMetrics() const
 {
     QJsonArray list;if(m_currentNotation)for(const auto* page:m_currentNotation->elements()->pages()){
-        const auto r=page->canvasBoundingRect();list.append(QJsonObject{{"w",r.width()},{"h",r.height()}});
+        const auto r=page->canvasBoundingRect();
+        // Read the live view transform without fitting or moving the canvas.
+        const auto view=m_currentNotation->viewState()->matrix().map(r);
+        list.append(QJsonObject{{"w",r.width()},{"h",r.height()},
+            {"rect",QJsonObject{{"x",view.x()},{"y",view.y()},{"w",view.width()},{"h",view.height()}}}});
     }
     return QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
 }

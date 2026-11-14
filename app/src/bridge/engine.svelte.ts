@@ -20,7 +20,7 @@ export type PaletteData = { name: string; id: string; w: number; h: number; cell
 export type ActionState = { known: boolean; enabled: boolean; checked: boolean };
 
 type HostEngine = {
-  pageMetrics():{w:number;h:number}[];
+  pageMetrics():{w:number;h:number;rect?:{x:number;y:number;w:number;h:number}}[];
   selectPageAt(page:number,x:number,y:number):void;
   selectionImage(pixels:number):{page?:number;x?:number;y?:number;w?:number;h?:number;src?:string};
   setPageLock(v: boolean): void;

@@ -1,4 +1,6 @@
-MuseTab native runtime v2
+MuseTab native runtime v3
+
+- Expose current transformed page bounds through the read-only page metrics API, so reader gutter taps use the live pages after panning instead of the last fitted page.
 
 - Add page metrics, normalized page hit testing, and cropped native selection glyph painting.
 - Support transparent score paper in both themes and skip hidden canvas cursor repaint in the bitmap reader.

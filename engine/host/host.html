@@ -286,7 +286,21 @@
       readerGestures(document,{
         enabled:()=> (viewOnly||editLocked)&&!bypassPointer,gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
         tap:e=>{
-          if(pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
+          commitPreview();
+          if(pageLocked&&pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
+          if(viewOnly&&!pageLocked){
+            // pageRect belongs to the last fitted page. In free view it can be
+            // far off-screen after panning, so it must never classify a tap on
+            // another page as a gutter/page-turn gesture.
+            const bounds=engine.pageMetrics().map(page=>page.rect).filter(Boolean);
+            const inside=bounds.some(r=>e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h);
+            if(!inside){
+              const row=bounds.filter(r=>r.x<innerWidth&&r.x+r.w>0&&r.y<innerHeight&&r.y+r.h>0&&e.clientY>=r.y&&e.clientY<=r.y+r.h);
+              if(row.length){const left=Math.min(...row.map(r=>r.x)),right=Math.max(...row.map(r=>r.x+r.w));
+                if(e.clientX<left||e.clientX>right){emit('reader-control',{key:e.clientX<left?'previous':'next'});return;}
+              }
+            }
+          }
           engine.tapAt(e.clientX,e.clientY);
         },
         pan:(dx,dy)=>previewMove(1,dx,dy,0,0),
