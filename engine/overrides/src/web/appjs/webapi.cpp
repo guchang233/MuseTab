@@ -627,9 +627,9 @@ std::string WebApi::scorePanels() const
     for(const auto* part:p->partList()){
         QJsonArray staves;
         for(const auto* staff:p->staffList(part->id())){
-            bool audible=false;
-            for(int voice=0;voice<mu::engraving::VOICES;++voice)audible|=staff->playbackVoice(voice);
-            staves.append(QJsonObject{{"id",QString::fromStdString(staff->id().toStdString())},{"visible",p->staffConfig(staff->id()).visible},{"audible",audible},{"lines",staff->lines(mu::engraving::Fraction(0,1))}});
+            int playbackMask=0;
+            for(int voice=0;voice<mu::engraving::VOICES;++voice)if(staff->playbackVoice(voice))playbackMask|=1<<voice;
+            staves.append(QJsonObject{{"id",QString::fromStdString(staff->id().toStdString())},{"index",int(staff->idx())},{"playbackMask",playbackMask},{"visible",p->staffConfig(staff->id()).visible},{"audible",playbackMask!=0},{"lines",staff->lines(mu::engraving::Fraction(0,1))}});
         }
         bool audible=true,found=false;
         if(controller)for(const auto& entry:controller->instrumentTrackIdMap())if(entry.first.partId==part->id()){

@@ -14,7 +14,11 @@
   import { library } from './library/store.svelte';
   import PdfReader from './reader/PdfReader.svelte';
   import { reading } from './reader/layout.svelte';
+  import Spinner from './ui/Spinner.svelte';
+  import {activity} from './ui/activity.svelte';
+  import {registerBack} from './ui/back';
   const isPdf = $derived(library.current?.ext === 'pdf');
+  $effect(()=>{if(activity.message)return registerBack(()=>true,200);});
   $effect(() => {
     const dark = theme.resolved === 'dark';
     const home = nav.screen === 'library';
@@ -87,6 +91,12 @@
   </div>
 {/key}
 
+{#if activity.message}
+  <div class="busy-layer"><div class="busy-message" role="status" aria-live="polite"><Spinner/><span>{activity.message}</span></div></div>
+{:else if nav.screen==='library'&&(engine.status==='loading'||engine.status==='idle')}
+  <div class="engine-starting" role="status"><Spinner size={18}/><span>正在启动谱面引擎…</span></div>
+{/if}
+
 {#if workspace.error}
   <p class="save-error" role="alert">更改还没能保存：{workspace.error}</p>
 {:else if importError}
@@ -94,6 +104,7 @@
 {/if}
 
 <style>
+  .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:999px;box-shadow:var(--lift);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);font-size:13px;pointer-events:none;white-space:nowrap;}
   .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100;max-width:90%;padding:12px 18px;background:var(--sheet);color:var(--rubric);border:1px solid currentColor;border-radius:8px;}
   .save-error button{min-height:44px;margin-left:12px;text-decoration:underline;}
   .screen {

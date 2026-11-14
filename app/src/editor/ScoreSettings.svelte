@@ -4,6 +4,7 @@
   import { workspace } from '../library/workspace.svelte';
   import IconButton from '../ui/IconButton.svelte';
   import {registerBack} from '../ui/back';
+  import {activity} from '../ui/activity.svelte';
   let { kind, onclose }: { kind: 'page' | 'style' | 'transpose'; onclose: () => void } = $props();
   let draft = $state<ScoreStyle | null>(null), error = $state(''), saving = $state(false);
   let key = $state(0), direction = $state(2), whole = $state(true);
@@ -52,6 +53,7 @@
     if(saving)return;
     error='';saving=true;
     try{
+      await activity.run('正在应用设置…',async()=>{
       let result;
       if(kind==='transpose')result=engine.transposeScore(key,direction,whole);
       else{
@@ -68,6 +70,7 @@
       await workspace.persist(true);
       engine.dispatch('zoom-page-width');
       onclose();
+      });
     }catch(e){error=e instanceof Error?e.message:'设置没有保存，请重试';}
     finally{saving=false;}
   }

@@ -127,9 +127,11 @@ async function setupWorker(Module)
         }else if(event.data.type==='WORKER_STATS'){
             AudioDriver.workerDiagnostics=event.data;
         }else if(event.data.type==='WORKER_ERROR'){
-            AudioDriver.soundFontFailed=true;console.error(event.data.message);
+            Module.audioError=/memory|Aborted|alloc/i.test(event.data.message)?'音频内存不足，请保存后重新打开应用':'音频引擎发生异常，请保存后重新打开应用';
+            AudioDriver.soundFontFailed=true;console.error(event.data.message);Module.onAudioError?.(Module.audioError);
         }
     }
+    Module.worker.onerror=event=>{Module.audioError='音频引擎发生异常，请保存后重新打开应用';AudioDriver.soundFontFailed=true;Module.onAudioError?.(Module.audioError);console.error(event.message);};
 
     Module.worker.postMessage({
     type: 'INITIALIZE_WORKER',
@@ -169,6 +171,7 @@ const MuImpl = {
         console.info("STEP 0.1: End setupRpc")
         setupInternalCallbacks(this.Module);
         console.info("STEP 0.2: End setupInternalCallbacks")
+
 
         this.Module = await qtLoad(this.Module);
         console.info("STEP 0.3: End load main module")

@@ -11,6 +11,7 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { nav } from '../ui/nav.svelte';
   import {registerBack} from '../ui/back';
+  import {activity} from '../ui/activity.svelte';
   import { ms, easeOut } from '../ui/motion';
   import IconButton from '../ui/IconButton.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -186,10 +187,12 @@
     if (barOpen) linger();
   }
   async function leave(to: 'library' | 'editor') {
-    try{await workspace.persist();}catch{return;}
-    if (engine.playing) engine.stop();
-    nav.go(to);
-    void reading.setFullscreen(false);
+    await activity.run('正在切换…',async()=>{
+      try{await workspace.persist();}catch{return;}
+      if (engine.playing) engine.stop();
+      nav.go(to);
+      void reading.setFullscreen(false);
+    });
   }
 
   function onkey(e: KeyboardEvent) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Spinner from '../ui/Spinner.svelte';
   import {tick,untrack} from 'svelte';
   import {registerBack} from '../ui/back';
   import {getDocument,GlobalWorkerOptions,type PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
@@ -54,7 +55,7 @@
 <div class="pdf-reader" class:gallery={reading.fullscreen} class:quiet={reading.fullscreen&&!annotating&&!controls}>
   <ReaderHeader title={current?.displayName||current?.name||'PDF'} editLabel="批注" active={annotating} onedit={()=>annotating=!annotating}/>
   <div class="pdf-viewport" bind:this={viewport} bind:clientWidth={width} bind:clientHeight={height} style:top={reading.top+'px'} style:bottom={(reading.fullscreen?0:toolHeight)+'px'} onscroll={onScroll}>
-    {#if loading}<p class="status" role="status">正在打开本地 PDF…</p>{/if}{#if error}<p class="error" role="alert">{error}</p>{/if}
+    {#if loading}<p class="status" role="status"><Spinner size={24}/> 正在打开本地 PDF…</p>{/if}{#if error}<p class="error" role="alert">{error}</p>{/if}
     <div class="page-space" class:horizontal={mode==='horizontal'} class:continuous={mode==='continuous'} style:width={contentWidth+'px'}>
       {#if pdf}{#each layout as size,i (i)}
         <div class="page-wrapper" data-wrapper={i+1} style:display={reading.fullscreen&&i+1!==pageNo?'none':undefined} style:left={reading.fullscreen?(width-size.w)/2+panX+'px':undefined} style:top={reading.fullscreen?(height-size.h)/2+panY+'px':undefined}>

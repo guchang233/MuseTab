@@ -6,3 +6,4 @@ import App from './App.svelte';
 import './native';
 
 mount(App, { target: document.getElementById('app')! });
+document.getElementById('boot-loading')?.remove();

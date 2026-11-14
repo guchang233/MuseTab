@@ -1,4 +1,8 @@
-MuseTab native runtime v4
+MuseTab native runtime v5
+
+- Apply staff/voice playback masks to cached native events; avoid replacing the entire MPE score when muting, unmuting, hiding or showing staves. Preserve structural score updates, undo/redo and saved flags.
+- Release stale shared score references in the audio source and track. Release obsolete caches before real score-event replacements.
+- Reserve the audio working set early and bound WASM growth for 32-bit WebViews; bound the Qt module's reservation too.
 
 - Honor native per-staff playback voice flags independently of notation visibility, including undo/redo and saved MSCZ.
 - Expose independent instrument/staff audio state and speaker operations to the parts panel. Instrument mute shares the existing mixer state; child switches are retained.

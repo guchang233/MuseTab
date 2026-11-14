@@ -11,6 +11,7 @@
   import {untrack} from 'svelte';
   import { nav } from '../ui/nav.svelte';
   import {registerBack} from '../ui/back';
+  import {activity} from '../ui/activity.svelte';
   import { theme } from '../ui/theme.svelte';
   import { ms, easeOut } from '../ui/motion';
   import IconButton from '../ui/IconButton.svelte';
@@ -130,7 +131,7 @@
     openIndex = index;
     if (!pages[index]) {
       // 引擎现画这一册的图样，稍等一帧让展开动画先走
-      requestAnimationFrame(() => {
+      void activity.run('正在加载符号…',() => {
         const data = engine.palette(index);
         if (data) pages = { ...pages, [index]: data };
       });
@@ -185,7 +186,7 @@
   }
   async function leave(to: 'library' | 'reader') {
     if (engine.noteInput) act('note-input');
-    try{await workspace.persist();nav.go(to);}
+    try{await activity.run('正在切换…',async()=>{await workspace.persist();nav.go(to);});}
     catch{say('更改尚未保存，请重试保存');}
   }
 

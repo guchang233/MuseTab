@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Spinner from '../ui/Spinner.svelte';
   import {untrack} from 'svelte';
   import type {PDFDocumentProxy,RenderTask} from 'pdfjs-dist/legacy/build/pdf.mjs';
   import type {InkStroke} from '../library/store.svelte';
@@ -36,7 +37,7 @@
 </script>
 <div class="pdf-surface" class:ready={loaded} data-page={index} data-active={active} bind:this={surface} style:width={width+'px'} style:height={height+'px'}>
   <canvas bind:this={canvas} aria-label="PDF 第 {index} 页"></canvas>
-  {#if !loaded}<span class="placeholder" role="status">正在准备第 {index} 页…</span>{/if}
+  {#if !loaded}<span class="placeholder" role="status"><Spinner size={24}/><span>正在准备第 {index} 页…</span></span>{/if}
   {#if error}<span class="placeholder error" role="alert">{error}</span>{/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg class:inking viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="第 {index} 页本地手写批注" onpointerdown={e=>oninkdown(e,index)} onpointermove={oninkmove} onpointerup={oninkup} onpointercancel={oninkup}>

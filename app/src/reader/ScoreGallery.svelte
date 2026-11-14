@@ -1,6 +1,7 @@
 <script lang="ts">
  import {untrack,tick} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {readerGestures} from './gestures.js';import {pageArrival} from './page-motion';
  import {library} from '../library/store.svelte';import {pageCache} from './page-cache';import pkg from '../../package.json';
+ import Spinner from '../ui/Spinner.svelte';
  export type PageLayout='auto'|'single'|'double';
  type Rect={x:number;y:number;w:number;h:number};type PageBitmap={src:string;image:HTMLImageElement};type Visible={page:number;bitmap:PageBitmap;rect:Rect};
  let {mode='auto',autoTurn=true,index=$bindable(0),count=$bindable(0),last=$bindable(0),selectionRect=$bindable<Rect|undefined>(),onerror,ongesture}:{mode?:PageLayout;autoTurn?:boolean;index?:number;count?:number;last?:number;selectionRect?:Rect;onerror?:(message:string)=>void;ongesture?:()=>void}=$props();
@@ -75,8 +76,8 @@
  {#each pages as p (p.page)}{@const r=pose(p.rect)}<img class="gallery-page" data-page={p.page} src={p.bitmap.src} alt={'乐谱第 '+(p.page+1)+' 页'} draggable="false" style:left={r.x+'px'} style:top={r.y+'px'} style:width={r.w+'px'} style:height={r.h+'px'}/>{/each}
  {#if selected&&selectionRect&&!engine.playing}<img class="selected-glyph" src={selected.src} alt="原生选中音符" style:left={selectionRect.x+'px'} style:top={selectionRect.y+'px'} style:width={selectionRect.w+'px'} style:height={selectionRect.h+'px'}/>{/if}
  {#if engine.playing&&engine.position.cursor}{@const c=engine.position.cursor}{@const r=symbolPose(c.page,{x:c.x,y:c.y,w:c.w,h:c.h})}{#if r}<span class="playback-line" aria-label="播放进度" style:left={r.x+'px'} style:top={r.y+'px'} style:width={Math.max(2,r.w)+'px'} style:height={r.h+'px'}></span>{/if}{/if}
- {#if busy&&!pages.length}<span class="preparing" role="status">正在准备乐谱页面…</span>{/if}
+ {#if busy}<span class="preparing" role="status"><Spinner size={24}/><span>正在准备乐谱页面…</span></span>{/if}
 </div>
 <style>
- .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:auto;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}:global([data-theme=dark]) .gallery-page{filter:invert(1);}.playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}.preparing{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-soft);font-size:14px;pointer-events:none;}
+ .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:auto;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}:global([data-theme=dark]) .gallery-page{filter:invert(1);}.playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}.preparing{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 18px;background:var(--parchment);color:var(--ink-soft);font-size:14px;pointer-events:none;white-space:nowrap;}
 </style>

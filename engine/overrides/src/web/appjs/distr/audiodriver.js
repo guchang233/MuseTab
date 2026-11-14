@@ -123,8 +123,9 @@ let AudioDriver = (function () {
 
         resume: function() {
             console.log("[driver]", "resume")
-            audioContext.resume()
+            return audioContext.resume()
         },
+        get state(){return audioContext?.state||'uninitialized';},
 
         suspend: function() {
             console.log("[driver]", "suspend")

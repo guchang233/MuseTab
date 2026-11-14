@@ -175,6 +175,11 @@ patch("src/app/CMakeLists.txt",
       '    target_link_options(MuseScoreStudio PRIVATE ${EXPORTED_FUNCTIONS})\n'
       '    target_link_options(MuseScoreStudio PRIVATE --emit-symbol-map)',
       "retain native symbol map for WebAssembly error diagnosis")
+patch("src/app/CMakeLists.txt",
+      '    target_link_options(MuseScoreStudio PRIVATE --emit-symbol-map)',
+      '    target_link_options(MuseScoreStudio PRIVATE --emit-symbol-map)\n'
+      '    set_property(TARGET MuseScoreStudio PROPERTY QT_WASM_MAXIMUM_MEMORY 768MB)',
+      "MuseTab: bound the Qt memory reservation for 32-bit Android WebViews")
 BRIDGE_EXPORTS = ["_mtPageMetrics", "_mtSelectPageAt", "_mtSelectionImage", "_mtOpen", "_mtExport", "_mtDispatch", "_mtActionState", "_mtSetTempoMultiplier",
                   "_mtSetViewOnly", "_mtSetCanvasTheme", "_mtPalettes", "_mtPalette", "_mtPaletteApply", "_mtSync",
                   "_mtSetPageLock", "_mtSelectAt", "_mtPageView", "_mtGestureView", "_mtRenderPage", "_mtReaderLayout", "_mtScorePanels", "_mtChangeMixer", "_mtChangeParts", "_mtScoreStyle", "_mtApplyScoreStyle", "_mtTransposeScore"]
@@ -386,6 +391,12 @@ patch("src/app/internal/guiapp.cpp",
 # visibility-driven patches when iterating an existing native checkout first.
 _legacy = {
     "src/engraving/playback/playbackmodel.cpp": [
+        ("    auto playbackVoices = [this]() {\n        std::vector<bool> values;\n        for (const Staff* staff : m_score->staves()) for (int voice=0;voice<VOICES;++voice) values.push_back(staff->playbackVoice(voice));\n        return values;\n    };\n"
+         "    changesChannel.onReceive(this, [this, playbackVoices, voices = playbackVoices()](const ScoreChanges& changes) mutable {\n"
+         "        const auto current = playbackVoices();\n        if (current != voices) {\n            voices = current;\n            reload();\n            return;\n        }\n        if (shouldSkipChanges(changes)) {",
+         "    changesChannel.onReceive(this, [this](const ScoreChanges& changes) {\n        if (shouldSkipChanges(changes)) {"),
+        ("if (!item || !item->part() || (item->staff() && !item->staff()->playbackVoice(item->voice()))) {", "if (!item || !item->part()) {"),
+        ("if (!item || !item->isChordRest() || !item->part() || (item->staff() && !item->staff()->playbackVoice(item->voice()))) {", "if (!item || !item->isChordRest() || !item->part()) {"),
         ("    auto visibleStaves = [this]() {\n        std::vector<bool> values;\n        for (const Staff* staff : m_score->staves()) values.push_back(staff->show() && staff->part()->show());\n        return values;\n    };\n"
          "    changesChannel.onReceive(this, [this, visibleStaves, visibility = visibleStaves()](const ScoreChanges& changes) mutable {\n"
          "        const auto current = visibleStaves();\n        if (current != visibility) {\n            visibility = current;\n            reload();\n            return;\n        }\n        if (shouldSkipChanges(changes)) {",
@@ -409,18 +420,11 @@ for _rel, _replacements in _legacy.items():
 
 patch("src/engraving/playback/playbackmodel.cpp",
       "    changesChannel.onReceive(this, [this](const ScoreChanges& changes) {\n        if (shouldSkipChanges(changes)) {",
-      "    auto playbackVoices = [this]() {\n        std::vector<bool> values;\n        for (const Staff* staff : m_score->staves()) for (int voice=0;voice<VOICES;++voice) values.push_back(staff->playbackVoice(voice));\n        return values;\n    };\n"
-      "    changesChannel.onReceive(this, [this, playbackVoices, voices = playbackVoices()](const ScoreChanges& changes) mutable {\n"
-      "        const auto current = playbackVoices();\n        if (current != voices) {\n            voices = current;\n            reload();\n            return;\n        }\n        if (shouldSkipChanges(changes)) {",
-      "MuseTab: native staff playback flags and undo/redo rebuild audio")
-patch("src/engraving/playback/playbackmodel.cpp",
-      "if (!item || !item->part()) {",
-      "if (!item || !item->part() || (item->staff() && !item->staff()->playbackVoice(item->voice()))) {",
-      "MuseTab: honor staff playback for chord symbols independently of display")
-patch("src/engraving/playback/playbackmodel.cpp",
-      "if (!item || !item->isChordRest() || !item->part()) {",
-      "if (!item || !item->isChordRest() || !item->part() || (item->staff() && !item->staff()->playbackVoice(item->voice()))) {",
-      "MuseTab: honor native per-staff playback flags independently of display")
+      "    auto playbackVoices = [this]() {\n        std::vector<bool> values;\n        for (const Staff* staff : m_score->staves()) {\n            for (int voice=0;voice<VOICES;++voice) values.push_back(staff->playbackVoice(voice));\n            values.push_back(staff->show());\n            values.push_back(staff->part() && staff->part()->show());\n        }\n        return values;\n    };\n"
+      "    auto staffOrder = [this]() {\n        std::vector<muse::ID> ids;\n        for (const Staff* staff : m_score->staves()) ids.push_back(staff->id());\n        return ids;\n    };\n"
+      "    changesChannel.onReceive(this, [this, playbackVoices, staffOrder, voices = playbackVoices(), order = staffOrder()](const ScoreChanges& changes) mutable {\n"
+      "        const auto current = playbackVoices();\n        const auto currentOrder = staffOrder();\n        const bool controlOnly = currentOrder == order && current != voices;\n        voices = current;\n        order = currentOrder;\n        if (controlOnly) return; // Worker applies masks; display does not change audio.\n        if (shouldSkipChanges(changes)) {",
+      "MuseTab: staff playback/display controls avoid score event rebuilds; structural edits still update audio")
 patch_all("src/playback/internal/playbackcontroller.cpp",
       "m_notation->hasVisibleParts()", "m_notation->parts()->hasParts()",
       "MuseTab: hidden notation still supports independent audio playback")

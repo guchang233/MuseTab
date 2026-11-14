@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="color-scheme" content="light dark" />
     <title>MuseTab</title>
+    <style>
+      #boot-loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;background:#f7f6f2;color:#49413a;font:16px system-ui;z-index:9999;}#boot-loading i{width:24px;height:24px;border:2px solid #d9d3c8;border-top-color:#b35c3e;border-radius:50%;animation:boot-spin .8s linear infinite;}html[data-theme=dark] #boot-loading{background:#2a2622;color:#e9e0cc;}@keyframes boot-spin{to{transform:rotate(360deg);}}@media(prefers-reduced-motion:reduce){#boot-loading i{animation:none;}}
+    </style>
     <link rel="preload" href="/fonts/NewCM10-Book.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/NotoSerifSC-subset-VF.woff2" as="font" type="font/woff2" crossorigin />
     <script>
@@ -22,6 +25,7 @@
     </script>
   </head>
   <body>
+    <div id="boot-loading" role="status"><i aria-hidden="true"></i><span>正在启动 MuseTab…</span></div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

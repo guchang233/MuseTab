@@ -67,7 +67,7 @@ export class AndroidCDP {
       this.ws.send(JSON.stringify({ id, method, params }));
     });
   }
-  async evaluate(expression, core = false) {
+  async evaluate(expression, core = false, userGesture = false) {
     const frames = await this.call("Page.getFrameTree");
     const frameId = core
       ? frames.frameTree.childFrames?.find((f) =>
@@ -83,7 +83,7 @@ export class AndroidCDP {
       returnByValue: true,
       awaitPromise: true,
       contextId: ctx.id,
-      userGesture: true,
+      userGesture,
     });
     if (r.exceptionDetails) throw Error(JSON.stringify(r.exceptionDetails));
     return r.result.value;

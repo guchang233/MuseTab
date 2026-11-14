@@ -2,6 +2,7 @@
 // 引擎（MuseScore 4.7 WASM）跑在一个同源 iframe 里（/engine/host.html），只画谱面；
 // 这里把它的事件收成响应式状态，并把按钮动作转成引擎的具名动作。
 import { untrack } from 'svelte';
+import {activity} from '../ui/activity.svelte';
 
 export type Selection = {
   none: boolean;
@@ -36,6 +37,7 @@ type HostEngine = {
   applyScoreStyle(values: Partial<ScoreStyle>): { ok: boolean; message?: string };
   transposeScore(key: number, direction: number, whole: boolean): { ok: boolean; message?: string };
   ready: boolean;
+  audioError?:string;
   on(fn: (name: string, data: any) => void): () => void;
   open(bytes: Uint8Array, ext: string): Promise<void>;
   dispatch(code: string): void;
@@ -55,7 +57,7 @@ type HostEngine = {
 export type PageState = { index: number; count: number; rect?: { x: number; y: number; w: number; h: number } };
 export type ScoreStyle = { width: number; height: number; left: number; right: number; top: number; bottom: number; twoSided: boolean; spatium: number; staffDistance: number; minSystemDistance: number; maxSystemDistance: number; measureSpacing: number; staffLineWidth: number; verticalSpread: boolean };
 export type MixerChannel={id:number;name:string;sound:string;volume:number;pan:number;muted:boolean;solo:boolean};
-export type LayoutPart={id:string;name:string;visible:boolean;audible:boolean;staves:{id:string;visible:boolean;audible:boolean;lines:number}[]};
+export type LayoutPart={id:string;name:string;visible:boolean;audible:boolean;staves:{id:string;index:number;playbackMask:number;visible:boolean;audible:boolean;lines:number}[]};
 export type ScorePanels={parts:LayoutPart[];channels:MixerChannel[]};
 
 const UNKNOWN: ActionState = { known: false, enabled: false, checked: false };
@@ -96,6 +98,7 @@ function refreshActions(codes: string[]) {
 
 function onEvent(name: string, data: any) {
   switch (name) {
+    case 'audio-error':playing=false;dispatchEvent(new CustomEvent('musetab-error',{detail:data.message}));break;
     case 'edit-unlock-request':unlockRequestSeq++;break;
     case 'reader-tap':readerTapSeq++;break;
     case 'reader-control': readerControl={seq:readerControl.seq+1,key:data.key};break;
@@ -290,8 +293,18 @@ export const engine = {
   /** 必须在用户手势里调用（浏览器的自动播放限制） */
   async togglePlay() {
     if (!host) return;
-    await host.startAudio();
-    host.dispatch('play');
+    if(playing){host.dispatch('play');return;}
+    try{
+      await activity.run('正在准备播放…',async()=>{
+        await host!.startAudio();host!.dispatch('play');
+        const until=Date.now()+10000;
+        while(!playing){
+          if(host!.audioError)throw Error(host!.audioError);
+          if(Date.now()>until)throw Error('播放未能启动，请保存后重新打开应用');
+          await new Promise(resolve=>setTimeout(resolve,40));
+        }
+      },'playback-start');
+    }catch(e){dispatchEvent(new CustomEvent('musetab-error',{detail:(e as {message?:string})?.message||'播放未能启动'}));}
   },
   stop() {
     host?.dispatch('stop');

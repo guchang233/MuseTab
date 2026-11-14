@@ -19,6 +19,12 @@ modified = ['src/framework/global/settings.h', 'src/framework/audio/common/audio
             'src/framework/audio/engine/internal/synthesizers/soundfontrepository.cpp',
             'src/framework/audio/engine/internal/enginecontroller.cpp',
             'src/framework/audio/engine/internal/eventaudiosource.cpp',
+            'src/framework/audio/engine/internal/track.h',
+            'src/framework/audio/engine/internal/abstracteventsequencer.h',
+            'src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.h',
+            'src/framework/audio/engine/internal/synthesizers/fluidsynth/staffplayback.h',
+            'src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.cpp',
+            'src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsynth.cpp',
             'src/web/audioengine/engine_export.cpp',
             'src/framework/audio/engine/internal/mixer.cpp']
 before = {rel: ((dest / rel).read_bytes(), (dest / rel).stat())
@@ -96,8 +102,15 @@ patch('src/web/audioengine/engine_export.cpp',
       'std::memset(stream, 0.0f, samplesPerChannel * 2);',
       'std::memset(stream, 0, samplesPerChannel * 2 * sizeof(float));')
 patch('src/web/audioengine/engine_export.cpp', '#include "log.h"',
-      '#include "log.h"\n#include "global/modularity/ioc.h"\n#include "audio/engine/isoundfontrepository.h"')
+      '#include "log.h"\n#include <malloc.h>\n#include "global/modularity/ioc.h"\n#include "audio/engine/isoundfontrepository.h"\n#include "audio/engine/internal/synthesizers/fluidsynth/staffplayback.h"')
 patch('src/web/audioengine/engine_export.cpp', 'extern "C" {', '''extern "C" {
+unsigned audioHeapUsed() { return static_cast<unsigned>(mallinfo().uordblks); }
+void setStaffPlayback(uintptr_t ptr, unsigned size)
+{
+    const auto* masks = reinterpret_cast<const unsigned char*>(ptr);
+    muse::audio::synth::staffPlaybackMasks.assign(masks, masks + size);
+    ++muse::audio::synth::staffPlaybackRevision;
+}
 void loadSoundFont(uintptr_t ptr, unsigned size, const char* uri)
 {
     auto repository = muse::modularity::globalIoc()->resolve<muse::audio::synth::ISoundFontRepository>("audio_engine");
@@ -110,7 +123,7 @@ void loadSoundFont(uintptr_t ptr, unsigned size, const char* uri)
 ''')
 patch('src/web/audioengine/CMakeLists.txt',
       'EXPORTED_FUNCTIONS=[_main,_malloc,_free,_Init,_process]',
-      'EXPORTED_FUNCTIONS=[_main,_malloc,_free,_Init,_process,_loadSoundFont]')
+      'EXPORTED_FUNCTIONS=[_main,_malloc,_free,_Init,_process,_loadSoundFont,_audioHeapUsed,_setStaffPlayback]')
 patch('src/web/audioengine/CMakeLists.txt',
       'project(MuseAudio LANGUAGES C CXX)',
       'project(MuseAudio LANGUAGES C CXX)\noption(MUSETAB_AUDIO_SIMD "Build the SIMD audio backend" OFF)\nif(MUSETAB_AUDIO_SIMD)\n    add_compile_options(-msimd128)\n    add_link_options(-msimd128)\nendif()')
@@ -120,11 +133,90 @@ patch('src/web/audioengine/CMakeLists.txt',
 patch('src/web/audioengine/CMakeLists.txt',
       'target_link_options(MuseAudio PRIVATE "SHELL:-s EXPORT_NAME=MuseAudio_entry")',
       'target_link_options(MuseAudio PRIVATE --emit-symbol-map)\ntarget_link_options(MuseAudio PRIVATE "SHELL:-s EXPORT_NAME=MuseAudio_entry")')
+patch('src/web/audioengine/CMakeLists.txt',
+      'target_link_options(MuseAudio PRIVATE "SHELL:-s INITIAL_MEMORY=50MB")',
+      '''# Reserve the normal soundfont/score working set before Qt/page caches
+# fragment the 32-bit renderer address space; keep later growth bounded.
+target_link_options(MuseAudio PRIVATE "SHELL:-s INITIAL_MEMORY=224MB")
+target_link_options(MuseAudio PRIVATE "SHELL:-s MAXIMUM_MEMORY=512MB")
+target_link_options(MuseAudio PRIVATE "SHELL:-s MEMORY_GROWTH_LINEAR_STEP=8MB")''')
 patch('src/framework/audio/engine/internal/mixer.cpp',
       '    if (m_masterParams.muted || samplesPerChannel == 0 || (m_isSilence && !m_shouldProcessMasterFxDuringSilence)) {\n        notifyNoAudioSignal();',
       '    if (m_masterParams.muted || samplesPerChannel == 0 || (m_isSilence && !m_shouldProcessMasterFxDuringSilence)) {\n        std::fill(outBuffer, outBuffer + outBufferSize, 0.f);\n        notifyNoAudioSignal();')
 patch('src/framework/audio/engine/internal/eventaudiosource.cpp',
       '#include "eventaudiosource.h"', '#include "eventaudiosource.h"\n#include <emscripten.h>')
+patch('src/framework/audio/engine/internal/eventaudiosource.cpp',
+      '    m_synth->setup(m_playbackData);',
+      '''    m_synth->setup(m_playbackData);
+    // The sequencer owns the current events. Retaining the initial snapshot
+    // here keeps an obsolete full score alive after every stream replacement.
+    m_playbackData.originEvents = {};
+    m_playbackData.dynamics = {};''')
+patch('src/framework/audio/engine/internal/abstracteventsequencer.h',
+      'if (m_isActive || m_updateMainStreamWhenInactive) {',
+      'if (m_isActive || m_updateMainStreamWhenInactive || events.empty()) {')
+patch('src/framework/audio/engine/internal/track.h',
+      '    EventTrack()\n        : Track(Event_track) {}',
+      '''    EventTrack()
+        : Track(Event_track) {}
+
+    ~EventTrack() override { m_data.mainStream.disconnect(this); }''')
+patch('src/framework/audio/engine/internal/track.h',
+      '''        m_data = newData;
+        playbackDataChanged.send(std::move(newData));''',
+      '''        m_data.mainStream.disconnect(this);
+        m_data = newData;
+        // Keep this track's shared snapshot current too. Otherwise it pins the
+        // entire initial score even after the synthesizer releases/replaces it.
+        m_data.mainStream.onReceive(this, [this](const mpe::PlaybackEventsMap& events,
+                                                const mpe::DynamicLevelLayers& dynamics) {
+            m_data.originEvents = events;
+            m_data.dynamics = dynamics;
+        });
+        playbackDataChanged.send(std::move(newData));''')
+# Staff/voice switches are tiny control messages, not new MPE score snapshots.
+# Keep complete events in the sequencer and rebuild only its compact MIDI cache.
+(dest / 'src/framework/audio/engine/internal/synthesizers/fluidsynth/staffplayback.h').write_text('''// SPDX-License-Identifier: GPL-3.0-only
+#pragma once
+#include <vector>
+namespace muse::audio::synth {
+inline std::vector<unsigned char> staffPlaybackMasks;
+inline unsigned staffPlaybackRevision = 0;
+inline bool staffVoiceAudible(unsigned staff, unsigned voice) {
+    return staff >= staffPlaybackMasks.size() || (staffPlaybackMasks[staff] & (1u << (voice % 4)));
+}
+}
+''', encoding='utf-8', newline='\n')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.h',
+      '    int lastStaff() const;',
+      '    int lastStaff() const;\n    bool refreshStaffPlayback();')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.h',
+      '    int m_lastStaff = -1;',
+      '    int m_lastStaff = -1;\n    unsigned m_staffPlaybackRevision = 0;')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.cpp',
+      '#include "fluidsequencer.h"', '#include "fluidsequencer.h"\n#include "staffplayback.h"')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.cpp',
+      'int FluidSequencer::currentExpressionLevel() const',
+      '''bool FluidSequencer::refreshStaffPlayback()
+{
+    if (m_staffPlaybackRevision == staffPlaybackRevision) return false;
+    m_staffPlaybackRevision = staffPlaybackRevision;
+    const auto& data = playbackData();
+    updateMainStreamEvents(data.originEvents, data.dynamics);
+    return true;
+}
+
+int FluidSequencer::currentExpressionLevel() const''')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsequencer.cpp',
+      '    const channel_t channelIdx = channel(noteEvent);',
+      '''    const auto& ctx = noteEvent.arrangementCtx();
+    if (!staffVoiceAudible(ctx.staffLayerIndex, ctx.voiceLayerIndex)) return;
+    const channel_t channelIdx = channel(noteEvent);''')
+patch('src/framework/audio/engine/internal/synthesizers/fluidsynth/fluidsynth.cpp',
+      '    if (m_flushSoundRequested) {\n        doFlushSound();',
+      '''    if (m_sequencer.refreshStaffPlayback()) m_flushSoundRequested = true;
+    if (m_flushSoundRequested) {
+        doFlushSound();''')
 patch('src/framework/audio/engine/internal/eventaudiosource.cpp',
       '        m_synth = synthResolver()->resolveDefaultSynth(m_trackId);',
       '''        const auto defaults = synthResolver()->resolveDefaultInputParams();

@@ -3,6 +3,7 @@
   import {engine,type ScorePanels,type MixerChannel} from '../bridge/engine.svelte';
   import IconButton from '../ui/IconButton.svelte';
   import {registerBack} from '../ui/back';
+  import {activity} from '../ui/activity.svelte';
   let {kind,onclose,onsettings}:{kind:'mixer'|'parts';onclose:()=>void;onsettings:(kind:'page'|'style')=>void}=$props();
   let data=$state<ScorePanels>({parts:[],channels:[]}),error=$state('');
   const title=$derived(kind==='mixer'?'混音器':'声部');
@@ -14,7 +15,7 @@
   function mix(channel:MixerChannel,key:'volume'|'pan'|'muted'|'solo',value:number|boolean){
     (channel as any)[key]=value;pending.set(channel.id,{...pending.get(channel.id),id:channel.id,[key]:value});if(!frame)frame=requestAnimationFrame(flush);
   }
-  function part(data:Record<string,unknown>){error='';if(['part-visible','staff-visible'].includes(String(data.op)))engine.pause();if(!engine.changeParts(data).ok)error='声部操作未能完成';refresh();}
+  async function part(data:Record<string,unknown>){error='';await activity.run('正在更新声部…',()=>{if(['part-visible','staff-visible'].includes(String(data.op)))engine.pause();if(!engine.changeParts(data).ok)error='声部操作未能完成';refresh();});}
   $effect(()=>()=>{if(frame){cancelAnimationFrame(frame);flush();}});
 </script>
 <aside class="score-panel" class:mixer={kind==='mixer'} role="region" aria-label={title}>

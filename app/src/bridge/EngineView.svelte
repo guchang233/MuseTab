@@ -5,6 +5,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { engine } from './engine.svelte';
+  import Spinner from '../ui/Spinner.svelte';
 
   type Props = {
     visible: boolean;
@@ -33,12 +34,13 @@
         <p class="display">谱面引擎没能启动</p>
         <p class="muted">{engine.error}</p>
       {:else}
+        <Spinner size={30}/>
         <p class="display">正在铺开谱纸…</p>
         <p class="muted">首次启动需要几秒钟</p>
       {/if}
     </div>
   {:else if visible && engine.opening}
-    <div class="veil soft"><p class="display">正在翻开乐谱…</p></div>
+    <div class="veil soft" role="status"><Spinner size={30}/><p class="display">正在翻开乐谱…</p></div>
   {/if}
 </div>
 
@@ -47,11 +49,8 @@
     position: fixed;
     z-index: 0;
     background: var(--parchment-deep);
-    transition:
-      top var(--dur) var(--ease),
-      right var(--dur) var(--ease),
-      bottom var(--dur) var(--ease),
-      left var(--dur) var(--ease);
+    /* Resize Qt once when switching modes; animated bounds rebuilt its GPU
+       surface on every frame on dense Android tablets. */
   }
   /* 不用 display:none：那样引擎的画布尺寸会归零 */
   .hidden {
@@ -71,6 +70,7 @@
     place-content: center;
     gap: 8px;
     text-align: center;
+    justify-items:center;
     background: var(--parchment-deep);
     color: var(--ink-soft);
   }
