@@ -29,3 +29,7 @@
 - `tools/verify-update-presentation.mjs`：8 种主题/尺寸下的更新界面及状态、Back/Escape。
 - `tools/verify-page-motion.mjs`：实际动画帧、页面坐标保持、PDF 和减少动态效果。
 - 多页点击与导航回归仍通过；截图与本机报告在被 Git 忽略的 `tests/results/`。
+
+## 发布
+
+0.6.3 已通过 [tag CI](https://github.com/guchang233/MuseTab/actions/runs/43573037293) 并 [正式发布](https://github.com/guchang233/MuseTab/releases/tag/v0.6.3)。下载回来的 APK 已验证 versionCode 13、长度、SHA-256 与应用资源一致（忽略构建主机文本换行差异），未打包用户测试乐谱。SHA-256：`5e1878e708113c87a7faef92c974228ae56a54ab272851417f4f54435c4c01dd`。
