@@ -11,6 +11,7 @@ dist/
 app/public/pdfjs/
 release/*.idsig
 release/ui-preview/
+release/ci-*/
 .claude/
 *.keystore
 *.jks

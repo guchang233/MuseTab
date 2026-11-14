@@ -18,6 +18,12 @@
 
 ## 设备验证
 
+正式发布包已在 MuMu Android 15 中验证离线 MSCZ 导入、点击音符后视图不移动、原生音符选择、全屏双页触摸前后翻页和播放竖线。1280×800 CSS 视口，预热后双页前进/后退约 15.5/15.6 ms；5 秒播放区间断流计数未增加。模拟器结果不能代替实体平板。
+
+同一发布包上也已验证原始 MSCZ 的高音谱表隐藏后，保留低音谱表播放持续前进，撤销后恢复谱表并继续播放。设备脚本等待停止完成，并使用与 UI 相同的完整撤销 action URI。
+
 0.6.0 APK 已构建并提交华为平板系统安装。系统要求设备持有人输入锁屏密码，等待直接在设备上完成验证；安装后再核对原有 5 份文件和 1 份批注，记录真实翻页与播放表现。
+
+正式发布及 CI：[0.6.0](https://github.com/guchang233/MuseTab/releases/tag/v0.6.0)、[成功构建](https://github.com/guchang233/MuseTab/actions/runs/43558802696)。APK SHA-256：`83245ec4c10f5778e78d0f6e499896c183fd7bad2fe67c922e776e1a37611819`。
 
 参照：[forScore 多页模式](https://forscore.co/kb/2-up/)、[MobileSheets 显示模式](https://zubersoft.com/mobilesheets/features/display/)。自动阈值仍需结合实际设备可读性调整。
