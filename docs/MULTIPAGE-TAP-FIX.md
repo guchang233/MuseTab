@@ -22,3 +22,9 @@
 MuMu Android 15 安装包回归也已通过同样 8 组自由模式检查，以及从第三页选中音符播放到 tick 72099。实体平板结果另行记录，模拟器结果不代替实体设备结果。
 
 原始样例文件不会修改或提交到仓库。
+
+## 交付
+
+0.6.1 已由 [tag CI](https://github.com/guchang233/MuseTab/actions/runs/43562644775) 构建并 [正式发布](https://github.com/guchang233/MuseTab/releases/tag/v0.6.1)。下载回来的 APK 已验证版本号 0.6.1 / versionCode 11、长度、SHA-256，以及与本地已测包的应用资源一致（忽略构建主机文本换行差异）。APK SHA-256：`57078a67f3ceb1f34609d668639b73160d17b006bf215e5e5cfdd8ef358e2fcb`。
+
+连接的华为平板仍显示已安装 0.5.1，处于锁屏状态；新版覆盖安装等待设备持有人解锁及系统验证，尚不能计为实机通过。
