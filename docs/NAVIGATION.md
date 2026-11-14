@@ -32,3 +32,7 @@
 - `verify-android-navigation.mjs`：MuMu Android 15，APK 0.6.2 / versionCode 12，使用 ADB `KEYCODE_BACK` 实际触发 Activity 返回；设置逐级返回、筛选和详情关闭、标签状态保留、设置到云端的返回来源均通过。该测试使用模拟器本地的曲库列表夹具，不下载夹具曲谱。
 
 实体华为平板此前仍停留在锁屏/系统安装验证阶段，不能将模拟器结果作为该平板已升级或通过的证明。
+
+## 发布
+
+0.6.2 已通过 [tag CI](https://github.com/guchang233/MuseTab/actions/runs/43567975054) 并 [正式发布](https://github.com/guchang233/MuseTab/releases/tag/v0.6.2)。下载的 APK 已核对 versionCode 12、长度、SHA-256 和与本地已测包一致的应用资源（忽略文本换行差异），未包含用户测试乐谱。SHA-256：`193085c0f8ccd47c15e2dcb64f569df712a65ead93043059e8cfdddfeea13d0a`。
