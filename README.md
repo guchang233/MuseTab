@@ -1,6 +1,6 @@
 # MuseTab
 
-当前版本 **0.6.3**。面向 Android 平板的离线看谱、记号、播放和编辑。
+当前版本 **0.6.4**。面向 Android 平板的离线看谱、记号、播放和编辑。
 
 - 支持 MSCZ、MusicXML、MIDI 导入，以及 PDF 看谱和手写批注。
 - 看谱提供整页全屏、左右滑动、双指缩放和自由拖动；PDF 有横向、竖向、连续三种排版。
@@ -70,7 +70,7 @@ pnpm --dir app dev --host 127.0.0.1 --port 5183
 node android/build.mjs
 ```
 
-Android 输出：`release/MuseTab-0.6.3.apk`，包名 `org.musetab.app`。
+Android 输出：`release/MuseTab-0.6.4.apk`，包名 `org.musetab.app`。
 本地开发签名；支持 Android 9 及以上、WebGL 2 的设备。
 
 ## 数据与范围

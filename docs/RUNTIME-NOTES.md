@@ -1,4 +1,8 @@
-MuseTab native runtime v3
+MuseTab native runtime v4
+
+- Honor native per-staff playback voice flags independently of notation visibility, including undo/redo and saved MSCZ.
+- Expose independent instrument/staff audio state and speaker operations to the parts panel. Instrument mute shares the existing mixer state; child switches are retained.
+- Allow hidden notation to play without overwriting explicit mute settings.
 
 - Expose current transformed page bounds through the read-only page metrics API, so reader gutter taps use the live pages after panning instead of the last fitted page.
 

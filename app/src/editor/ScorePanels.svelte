@@ -5,7 +5,7 @@
   import {registerBack} from '../ui/back';
   let {kind,onclose,onsettings}:{kind:'mixer'|'parts';onclose:()=>void;onsettings:(kind:'page'|'style')=>void}=$props();
   let data=$state<ScorePanels>({parts:[],channels:[]}),error=$state('');
-  const title=$derived(kind==='mixer'?'混音器':'版面');
+  const title=$derived(kind==='mixer'?'混音器':'声部');
   function refresh(){try{data=engine.scorePanels();}catch(e){error=String(e);}}
   $effect(()=>{kind;if(kind==='parts')engine.changeSeq;untrack(refresh);});
   $effect(()=>registerBack(()=>{onclose();return true;},50));
@@ -14,7 +14,7 @@
   function mix(channel:MixerChannel,key:'volume'|'pan'|'muted'|'solo',value:number|boolean){
     (channel as any)[key]=value;pending.set(channel.id,{...pending.get(channel.id),id:channel.id,[key]:value});if(!frame)frame=requestAnimationFrame(flush);
   }
-  function part(data:Record<string,unknown>){error='';if(['part-visible','staff-visible'].includes(String(data.op)))engine.pause();if(!engine.changeParts(data).ok)error='版面操作未能完成';refresh();}
+  function part(data:Record<string,unknown>){error='';if(['part-visible','staff-visible'].includes(String(data.op)))engine.pause();if(!engine.changeParts(data).ok)error='声部操作未能完成';refresh();}
   $effect(()=>()=>{if(frame){cancelAnimationFrame(frame);flush();}});
 </script>
 <aside class="score-panel" class:mixer={kind==='mixer'} role="region" aria-label={title}>
@@ -36,14 +36,14 @@
       <div class="settings-actions"><button onclick={()=>onsettings('page')}>页面设置</button><button onclick={()=>onsettings('style')}>谱面样式</button></div>
       {#each data.parts as p,index (p.id)}
         <section class="part">
-          <div class="row"><input aria-label={'显示乐器 '+p.name} type="checkbox" checked={p.visible} onchange={e=>part({op:'part-visible',id:p.id,visible:e.currentTarget.checked})}/><h3>{p.name}</h3><IconButton label={'上移乐器 '+p.name} icon="up" disabled={index===0} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index-1].id})}/><IconButton label={'下移乐器 '+p.name} icon="down" disabled={index===data.parts.length-1} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index+1].id,after:true})}/></div>
+          <div class="row"><input aria-label={'显示乐器 '+p.name} type="checkbox" checked={p.visible} onchange={e=>part({op:'part-visible',id:p.id,visible:e.currentTarget.checked})}/><h3 title={p.name}>{p.name}</h3><IconButton label={'乐器 '+p.name+' 发声'} icon={p.audible?'speaker':'speaker-off'} aria-pressed={p.audible} onclick={()=>part({op:'part-audible',id:p.id,audible:!p.audible})}/><IconButton label={'上移乐器 '+p.name} icon="up" disabled={index===0} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index-1].id})}/><IconButton label={'下移乐器 '+p.name} icon="down" disabled={index===data.parts.length-1} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index+1].id,after:true})}/></div>
           {#each p.staves as staff,i (staff.id)}
-            <div class="staff row"><input aria-label={'显示'+p.name+'谱表'+(i+1)} type="checkbox" checked={staff.visible} onchange={e=>part({op:'staff-visible',id:staff.id,visible:e.currentTarget.checked})}/><span>谱表 {i+1} · {staff.lines} 线</span><IconButton label={'上移谱表'+(i+1)} icon="up" disabled={i===0} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i-1].id})}/><IconButton label={'下移谱表'+(i+1)} icon="down" disabled={i===p.staves.length-1} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i+1].id,after:true})}/></div>
+            <div class="staff row"><input aria-label={'显示'+p.name+'谱表'+(i+1)} type="checkbox" checked={staff.visible} onchange={e=>part({op:'staff-visible',id:staff.id,visible:e.currentTarget.checked})}/><span>谱表 {i+1} · {staff.lines} 线</span><IconButton label={p.name+' 谱表 '+(i+1)+' 发声'} icon={staff.audible?'speaker':'speaker-off'} aria-pressed={staff.audible} onclick={()=>part({op:'staff-audible',id:staff.id,audible:!staff.audible})}/><IconButton label={'上移谱表'+(i+1)} icon="up" disabled={i===0} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i-1].id})}/><IconButton label={'下移谱表'+(i+1)} icon="down" disabled={i===p.staves.length-1} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i+1].id,after:true})}/></div>
           {/each}
           <button class="add" onclick={()=>part({op:'add-staff',id:p.id})}>＋ 添加空白谱表</button>
         </section>
       {/each}
-      <p class="hint">隐藏、排序和添加谱表可用编辑工具栏的撤销恢复。</p>
+      <p class="hint">显示与发声分别控制；乐器静音时，其下所有谱表均不发声。设置会自动保存。谱表开关、排序和添加可撤销。</p>
     </div>
   {/if}
 </aside>
@@ -54,4 +54,5 @@
   input[type=range]{width:100%;min-height:44px;accent-color:var(--rubric);touch-action:pan-x;}input[type=checkbox]{width:22px;height:22px;accent-color:var(--rubric);flex:none;}
   button{min-height:44px;padding:0 10px;border:1px solid var(--hairline);border-radius:8px;font-size:13px;}button[aria-pressed=true]{background:var(--rubric);color:var(--on-rubric);}.buttons{display:flex;gap:8px;}.buttons button{flex:1;}.hint{padding:8px 16px 14px;color:var(--ink-soft);font-size:12px;line-height:1.7;}.error{padding:12px;color:var(--rubric);}.parts{overflow-y:auto;padding:12px;min-height:0;}.settings-actions{display:flex;gap:8px;margin-bottom:12px;}.settings-actions button{flex:1;}.part{border-top:1px solid var(--hairline);padding:8px 0;}.row{display:flex;align-items:center;gap:8px;min-height:48px;}.row h3,.row span{flex:1;min-width:0;}.row :global(.ib){padding:0;border:0;}.staff{padding-left:12px;font-size:13px;}.add{width:100%;margin-top:8px;}
   @media(max-width:600px){.score-panel{top:auto;bottom:6px;max-height:75%;}.channels{padding:12px;gap:8px;}.channel{flex-basis:156px;}}
+  .row :global(button[aria-pressed=false]){color:var(--ink-mute);}.row span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 </style>

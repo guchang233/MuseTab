@@ -623,12 +623,21 @@ std::string WebApi::scorePanels() const
     if(!m_currentProject||!m_currentNotation)return "{}";
     QJsonArray parts,channels;
     const auto p=m_currentNotation->parts();
+    const auto controller=webResolve<mu::playback::IPlaybackController>();
     for(const auto* part:p->partList()){
         QJsonArray staves;
-        for(const auto* staff:p->staffList(part->id()))staves.append(QJsonObject{{"id",QString::fromStdString(staff->id().toStdString())},{"visible",p->staffConfig(staff->id()).visible},{"lines",staff->lines(mu::engraving::Fraction(0,1))}});
-        parts.append(QJsonObject{{"id",QString::fromStdString(part->id().toStdString())},{"name",part->partName().toQString()},{"visible",part->show()},{"staves",staves}});
+        for(const auto* staff:p->staffList(part->id())){
+            bool audible=false;
+            for(int voice=0;voice<mu::engraving::VOICES;++voice)audible|=staff->playbackVoice(voice);
+            staves.append(QJsonObject{{"id",QString::fromStdString(staff->id().toStdString())},{"visible",p->staffConfig(staff->id()).visible},{"audible",audible},{"lines",staff->lines(mu::engraving::Fraction(0,1))}});
+        }
+        bool audible=true,found=false;
+        if(controller)for(const auto& entry:controller->instrumentTrackIdMap())if(entry.first.partId==part->id()){
+            if(!found)audible=false;
+            found=true;audible|=!controller->trackSoloMuteState(entry.first).mute;
+        }
+        parts.append(QJsonObject{{"id",QString::fromStdString(part->id().toStdString())},{"name",part->partName().toQString()},{"visible",part->show()},{"audible",audible},{"staves",staves}});
     }
-    const auto controller=webResolve<mu::playback::IPlaybackController>();
     const auto settings=m_currentProject->audioSettings();
     if(controller)for(const auto& entry:controller->instrumentTrackIdMap()){
         const auto& id=entry.first;const auto& out=settings->trackOutputParams(id);const auto& sm=controller->trackSoloMuteState(id);
@@ -675,6 +684,24 @@ std::string WebApi::changeParts(const std::string& json)
     if(visibilityChange)m_currentNotation->interaction()->clearSelection();
     if(op=="part-visible"&&parts->partExists(id))parts->setPartVisible(id,data["visible"].toBool());
     else if(op=="staff-visible"&&parts->staffExists(id))parts->setStaffVisible(id,data["visible"].toBool());
+    else if(op=="part-audible"&&parts->partExists(id)&&data["audible"].isBool()){
+        const auto controller=webResolve<mu::playback::IPlaybackController>();if(!controller)return "{\"ok\":false}";
+        bool found=false;
+        for(const auto& entry:controller->instrumentTrackIdMap())if(entry.first.partId==id){
+            auto state=controller->trackSoloMuteState(entry.first);state.mute=!data["audible"].toBool();
+            controller->setTrackSoloMuteState(entry.first,state);found=true;
+        }
+        if(!found)return "{\"ok\":false}";
+        sendEvent("changed",QJsonObject{});
+    }else if(op=="staff-audible"&&parts->staffExists(id)&&data["audible"].isBool()){
+        auto* staff=const_cast<mu::engraving::Staff*>(parts->staff(id));
+        const bool audible=data["audible"].toBool();
+        const mu::engraving::Pid properties[]={mu::engraving::Pid::PLAYBACK_VOICE1,mu::engraving::Pid::PLAYBACK_VOICE2,mu::engraving::Pid::PLAYBACK_VOICE3,mu::engraving::Pid::PLAYBACK_VOICE4};
+        const auto undo=m_currentNotation->undoStack();
+        undo->prepareChanges(muse::TranslatableString("undoableAction","Change staff playback"));
+        for(int voice=0;voice<mu::engraving::VOICES;++voice)if(staff->playbackVoice(voice)!=audible)staff->undoChangeProperty(properties[voice],mu::engraving::PropertyValue(audible));
+        undo->commitChanges();
+    }
     else if(op=="add-staff"&&parts->partExists(id)){
         auto* part=const_cast<mu::engraving::Part*>(parts->part(id));auto* staff=mu::engraving::Factory::createStaff(part);
         if(!part->staves().empty())staff->init(part->staves().back());

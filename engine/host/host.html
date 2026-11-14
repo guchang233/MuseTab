@@ -151,7 +151,7 @@
         selectionImage(pixels){if(!engine.Module._mtSelectionImage)return {};const result=JSON.parse(engine.Module.ccall('mtSelectionImage','string',['number'],[pixels]));if(result.src)result.src='data:image/png;base64,'+result.src;return result;},
         scorePanels(){const state=JSON.parse(engine.Module.ccall('mtScorePanels','string',[],[]));for(const channel of state.channels||[])if(channel.name==='节拍器'){channel.muted=!engine.actionState('metronome').checked;channel.solo=false;}return state;},
         changeMixer(data){return JSON.parse(engine.Module.ccall('mtChangeMixer','string',['string'],[JSON.stringify(data)]));},
-        changeParts(data){if(editLocked&&!['part-visible','staff-visible'].includes(data.op)){unlockRequest();return {ok:false};}return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
+        changeParts(data){if(editLocked&&!['part-visible','staff-visible','part-audible','staff-audible'].includes(data.op)){unlockRequest();return {ok:false};}return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
         scoreStyle(){return JSON.parse(engine.Module.ccall('mtScoreStyle','string',[],[]));},
         applyScoreStyle(values){return JSON.parse(engine.Module.ccall('mtApplyScoreStyle','string',['string'],[JSON.stringify(values)]));},
         transposeScore(key,direction,whole){
@@ -161,7 +161,6 @@
         },
         actionState(code) {
           const s = engine.Module.ccall('mtActionState', 'number', ['string'], [code]);
-          if(code.split('/').pop()==='play'&&s>=0&&!engine.scorePanels().parts?.some(p=>p.visible&&p.staves?.some(staff=>staff.visible)))return {known:true,enabled:false,checked:false};
           return { known: s >= 0, enabled: s >= 0 && (s & 1) !== 0, checked: s >= 0 && (s & 2) !== 0 };
         },
         setTempoMultiplier(m) { engine.Module.ccall('mtSetTempoMultiplier', null, ['number'], [m]); },
@@ -236,7 +235,7 @@
             const finish=()=>{
               if(!opening||pendingOpen!==opening)return;
               const ready=engine.actionState('play');
-              if(!ready.known||ready.enabled||!engine.scorePanels().parts?.some(part=>part.visible&&part.staves?.some(staff=>staff.visible))){opening.resolve();pendingOpen=null;}
+              if(!ready.known||ready.enabled||!engine.scorePanels().parts?.length){opening.resolve();pendingOpen=null;}
               else if(Date.now()-start>45000){opening.reject(Error('播放音色尚未准备完成，请重新打开乐谱'));pendingOpen=null;}
               else setTimeout(finish,50);
             };setTimeout(finish,0);

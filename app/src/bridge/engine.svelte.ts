@@ -55,7 +55,7 @@ type HostEngine = {
 export type PageState = { index: number; count: number; rect?: { x: number; y: number; w: number; h: number } };
 export type ScoreStyle = { width: number; height: number; left: number; right: number; top: number; bottom: number; twoSided: boolean; spatium: number; staffDistance: number; minSystemDistance: number; maxSystemDistance: number; measureSpacing: number; staffLineWidth: number; verticalSpread: boolean };
 export type MixerChannel={id:number;name:string;sound:string;volume:number;pan:number;muted:boolean;solo:boolean};
-export type LayoutPart={id:string;name:string;visible:boolean;staves:{id:string;visible:boolean;lines:number}[]};
+export type LayoutPart={id:string;name:string;visible:boolean;audible:boolean;staves:{id:string;visible:boolean;audible:boolean;lines:number}[]};
 export type ScorePanels={parts:LayoutPart[];channels:MixerChannel[]};
 
 const UNKNOWN: ActionState = { known: false, enabled: false, checked: false };

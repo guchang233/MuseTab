@@ -229,7 +229,7 @@
 
     <!-- 书口标签：面板收起时留在边缘 -->
     {#if !panel}
-      <button class="tab left secondary" onclick={()=>openPanel('parts')} aria-label="版面"><span>版面</span></button>
+      <button class="tab left secondary" onclick={()=>openPanel('parts')} aria-label="声部"><span>声部</span></button>
       <button class="tab right secondary" onclick={()=>openPanel('mixer')} aria-label="混音器"><span>混音器</span></button>
     {/if}
     {#if panel}<ScorePanels kind={panel} onclose={()=>panel=null} onsettings={openSettings}/>{/if}
@@ -326,7 +326,7 @@
           <button role="menuitem" onclick={() => openSettings('page')}><Icon name="view-single" size={20} />页面设置…</button>
           <button role="menuitem" onclick={() => openSettings('style')}><Icon name="book" size={20} />样式…</button>
           <button role="menuitem" onclick={()=>openPanel('mixer')}><Icon name="sliders" size={20}/>混音器</button>
-          <button role="menuitem" onclick={()=>openPanel('parts')}><Icon name="view-single" size={20}/>版面</button>
+          <button role="menuitem" onclick={()=>openPanel('parts')}><Icon name="view-single" size={20}/>声部</button>
           <hr class="hair-rule" />
           <button role="menuitem" onclick={() => theme.cycle()}>
             <Icon name={theme.pref === 'auto' ? 'auto' : theme.pref === 'light' ? 'sun' : 'moon'} size={20} />
