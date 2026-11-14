@@ -1,7 +1,7 @@
 {
   "project": "ZeraFun",
   "version": "0.7.4",
-  "scope": "PhoneChrome / CatalogueHeader / SearchBar / shared catalogue CSS",
+  "scope": "PhoneChrome / catalogue / personal settings / update presentation",
   "files": [
     {
       "file": "style.css",
@@ -32,6 +32,11 @@
       "file": "components/AppSettings.tsx",
       "source": "D:\\AI\\management\\pending-cleanup\\gcys-design-backup\\distribution\\site-src\\components\\AppSettings.tsx",
       "sha256": "397545288da313f88092f5c8072fd88033211d0c58e047485fa306600ee69b8e"
+    },
+    {
+      "file": "native/UpdateFlow.java",
+      "sha256": "152f8b26279e6e174a0f7bf2bc6f0c798d17fe85edc1185d2a894af5b6ac4b4b",
+      "source": "D:/AI/management/pending-cleanup/gcys-design-backup/client/src/com/gathin/zhuiju/tv/UpdateFlow.java"
     }
   ]
 }

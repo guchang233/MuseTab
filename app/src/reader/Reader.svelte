@@ -22,6 +22,7 @@
   import { workspace } from '../library/workspace.svelte';
   import ReaderHeader from './ReaderHeader.svelte';
   import { reading } from './layout.svelte';
+  import {pageArrival} from './page-motion';
 
   const LINGER = 4800; // 工具条停留时长
 
@@ -180,7 +181,7 @@
   }
   function turn(delta: number) {
     if (reading.fullscreen) gallery?.turn(delta);
-    else engine.dispatch(delta > 0 ? 'scr-next' : 'scr-prev');
+    else{engine.dispatch(delta > 0 ? 'scr-next' : 'scr-prev');pageArrival(engine.frame||undefined);}
     compassOpen = false;
     if (barOpen) linger();
   }

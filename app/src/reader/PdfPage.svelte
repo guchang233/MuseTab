@@ -3,8 +3,10 @@
   import type {PDFDocumentProxy,RenderTask} from 'pdfjs-dist/legacy/build/pdf.mjs';
   import type {InkStroke} from '../library/store.svelte';
   import {theme} from '../ui/theme.svelte';
-  let {pdf,index,width,height,active,warm,strokes,draft,inking,oninkdown,oninkmove,oninkup}:{pdf:PDFDocumentProxy;index:number;width:number;height:number;active:boolean;warm:boolean;strokes:InkStroke[];draft:InkStroke|null;inking:boolean;oninkdown:(e:PointerEvent,index:number)=>void;oninkmove:(e:PointerEvent)=>void;oninkup:(e:PointerEvent)=>void}=$props();
+  import {pageArrival} from './page-motion';
+  let {pdf,index,width,height,active,warm,arrival=0,strokes,draft,inking,oninkdown,oninkmove,oninkup}:{pdf:PDFDocumentProxy;index:number;width:number;height:number;active:boolean;warm:boolean;arrival?:number;strokes:InkStroke[];draft:InkStroke|null;inking:boolean;oninkdown:(e:PointerEvent,index:number)=>void;oninkmove:(e:PointerEvent)=>void;oninkup:(e:PointerEvent)=>void}=$props();
   let canvas:HTMLCanvasElement,surface:HTMLDivElement,near=$state(false),loaded=$state(false),error=$state('');
+  let lastArrival=0;$effect(()=>{if(active&&loaded&&arrival&&arrival!==lastArrival){lastArrival=arrival;untrack(()=>pageArrival(surface));}});
   const path=(stroke:InkStroke)=>stroke.points.map((p,i)=>(i?'L':'M')+p.join(',')).join(' ');
   // Keep stored ink unchanged; make dark pen strokes readable on transparent dark paper.
   function ink(color:string){

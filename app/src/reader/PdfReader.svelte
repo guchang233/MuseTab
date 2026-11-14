@@ -13,6 +13,7 @@
   let loading=$state(true),error=$state(''),saved=$state(true),annotating=$state(false),erasing=$state(false),color=$state('#b33f35'),controls=$state(false);
   let notes=$state<PdfNotes>({}),draft=$state<InkStroke|null>(null),pointer:number|null=null,strokePage=$state(1);
   let viewport:HTMLDivElement,writes:Promise<void>=Promise.resolve();
+  let turnPage=$state(0),turnSeq=$state(0);
   $effect(()=>registerBack(()=>{if(!annotating)return false;draft=null;pointer=null;annotating=false;return true;},40));
   const current=$derived(library.current),strokes=$derived(notes[pageNo]||[]);
   const layout=$derived(sizes.map(s=>{const base=reading.fullscreen?Math.min(width/s.w,height/s.h):mode==='horizontal'?Math.min((width-24)/s.w,(height-24)/s.h):Math.max(1,width-(mode==='continuous'?0:24))/s.w;return{w:s.w*base*zoom,h:s.h*base*zoom};}));
@@ -36,7 +37,7 @@
   function inkMove(e:PointerEvent){if(e.pointerId!==pointer)return;if(erasing)erase(point(e));else draft?.points.push(point(e));}
   function inkUp(e:PointerEvent){if(e.pointerId!==pointer)return;if(draft){notes[strokePage]=[...(notes[strokePage]||[]),draft];draft=null;persist();}pointer=null;}
   function scrollToPage(index:number){const page=viewport?.querySelector<HTMLElement>('[data-wrapper="'+index+'"]');if(!page)return;viewport.scrollTo({left:mode==='horizontal'?page.offsetLeft-12:Math.max(0,(contentWidth-width)/2),top:mode==='horizontal'?0:page.offsetTop-12});}
-  async function turn(delta:number){if(!pdf)return;pageNo=Math.max(1,Math.min(pdf.numPages,pageNo+delta));zoom=1;panX=panY=0;await tick();if(!reading.fullscreen)scrollToPage(pageNo);}
+  async function turn(delta:number){if(!pdf)return;const next=Math.max(1,Math.min(pdf.numPages,pageNo+delta));if(next!==pageNo){turnPage=next;turnSeq++;}pageNo=next;zoom=1;panX=panY=0;await tick();if(!reading.fullscreen)scrollToPage(pageNo);}
   function onScroll(){if(reading.fullscreen||!viewport)return;const target=mode==='horizontal'?viewport.scrollLeft+width/2:viewport.scrollTop+Math.min(height/2,200);let closest=Infinity,next=pageNo;for(const el of viewport.querySelectorAll<HTMLElement>('[data-wrapper]')){const center=mode==='horizontal'?el.offsetLeft+el.offsetWidth/2:el.offsetTop+Math.min(el.offsetHeight/2,200);if(Math.abs(center-target)<closest){closest=Math.abs(center-target);next=Number(el.dataset.wrapper);}}pageNo=next;}
   function clampPan(){panX=Math.max(-Math.max(0,(activeSize.w-width)/2),Math.min(Math.max(0,(activeSize.w-width)/2),panX));panY=Math.max(-Math.max(0,(activeSize.h-height)/2),Math.min(Math.max(0,(activeSize.h-height)/2),panY));}
   function changeZoom(factor:number,cx:number,cy:number,dx=0,dy=0){const r=viewport.getBoundingClientRect(),x=cx-r.x,y=cy-r.y,previous=zoom,next=Math.max(reading.fullscreen?1:.5,Math.min(4,previous*factor)),ratio=next/previous;
@@ -57,7 +58,7 @@
     <div class="page-space" class:horizontal={mode==='horizontal'} class:continuous={mode==='continuous'} style:width={contentWidth+'px'}>
       {#if pdf}{#each layout as size,i (i)}
         <div class="page-wrapper" data-wrapper={i+1} style:display={reading.fullscreen&&i+1!==pageNo?'none':undefined} style:left={reading.fullscreen?(width-size.w)/2+panX+'px':undefined} style:top={reading.fullscreen?(height-size.h)/2+panY+'px':undefined}>
-          <PdfPage {pdf} index={i+1} width={size.w} height={size.h} active={i+1===pageNo} warm={Math.abs(i+1-pageNo)<=1} strokes={notes[i+1]||[]} draft={strokePage===i+1?draft:null} inking={annotating} oninkdown={inkDown} oninkmove={inkMove} oninkup={inkUp}/>
+          <PdfPage {pdf} index={i+1} width={size.w} height={size.h} active={i+1===pageNo} warm={Math.abs(i+1-pageNo)<=1} arrival={i+1===turnPage?turnSeq:0} strokes={notes[i+1]||[]} draft={strokePage===i+1?draft:null} inking={annotating} oninkdown={inkDown} oninkmove={inkMove} oninkup={inkUp}/>
         </div>
       {/each}{/if}
     </div>

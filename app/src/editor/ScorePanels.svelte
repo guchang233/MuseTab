@@ -14,7 +14,7 @@
   function mix(channel:MixerChannel,key:'volume'|'pan'|'muted'|'solo',value:number|boolean){
     (channel as any)[key]=value;pending.set(channel.id,{...pending.get(channel.id),id:channel.id,[key]:value});if(!frame)frame=requestAnimationFrame(flush);
   }
-  function part(data:Record<string,unknown>){error='';if(!engine.changeParts(data).ok)error='版面操作未能完成';refresh();}
+  function part(data:Record<string,unknown>){error='';if(['part-visible','staff-visible'].includes(String(data.op)))engine.pause();if(!engine.changeParts(data).ok)error='版面操作未能完成';refresh();}
   $effect(()=>()=>{if(frame){cancelAnimationFrame(frame);flush();}});
 </script>
 <aside class="score-panel" class:mixer={kind==='mixer'} role="region" aria-label={title}>

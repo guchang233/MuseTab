@@ -51,7 +51,6 @@ button {
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--rubric) 55%, transparent);
   outline-offset: 3px;
-  border-radius: var(--radius);
 }
 
 h1,

@@ -296,6 +296,7 @@ export const engine = {
   stop() {
     host?.dispatch('stop');
   },
+  pause(){untrack(()=>{if(playing)host?.dispatch('play');});},
 
   /** 让引擎画布拿回键盘焦点（外接键盘输入音符时需要） */
   focus() {

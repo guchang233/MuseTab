@@ -114,7 +114,7 @@
 
 <style>
   .settings-layer{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;pointer-events:auto;padding:16px;}
-  .backdrop{position:absolute;inset:0;background:#0006;cursor:default;}
+  .backdrop{position:absolute;inset:0;background:#0006;cursor:default;border-radius:0;}
   .score-settings{position:relative;width:min(600px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:var(--parchment);border:1px solid var(--hairline);border-radius:16px;box-shadow:var(--lift);outline:none;overflow:hidden;}
   header{display:flex;align-items:center;justify-content:space-between;flex:none;padding:8px 12px 8px 20px;border-bottom:1px solid var(--hairline);}
   h2{font-size:20px;font-weight:500;}
@@ -125,7 +125,7 @@
   small{display:inline;color:var(--ink-soft);font-size:12px;}
   input[type=number],select{width:100%;min-width:0;min-height:48px;padding:8px 12px;border:1px solid var(--hairline);border-radius:8px;background:var(--sheet);color:var(--ink);font:inherit;font-size:16px;}
   .orientation{display:flex;gap:8px;}
-  .orientation button{flex:1;border:1px solid var(--hairline);border-radius:8px;min-height:44px;font-size:14px;}
+  .orientation button{flex:1;border:1px solid var(--hairline);border-radius:999px;min-height:44px;font-size:14px;}
   .orientation button[aria-pressed=true]{background:var(--rubric-wash);border-color:var(--rubric);color:var(--rubric);}
   .check{flex-direction:row;align-items:center;gap:10px;min-height:44px;}
   .check input{width:20px;height:20px;accent-color:var(--rubric);}
@@ -134,7 +134,7 @@
   .hint{font-size:13px;color:var(--ink-soft);line-height:1.8;}
   .error{font-size:14px;color:var(--rubric);padding:10px;border:1px solid currentColor;border-radius:8px;overflow-wrap:anywhere;}
   footer{display:flex;justify-content:flex-end;gap:12px;padding:12px 20px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--hairline);flex:none;background:var(--parchment);}
-  footer button{min-height:48px;padding:0 20px;border:1px solid var(--hairline);border-radius:8px;font-size:14px;}
+  footer button{min-height:48px;padding:0 20px;border:1px solid var(--hairline);border-radius:999px;font-size:14px;}
   .apply{background:var(--rubric);color:var(--on-rubric);border-color:var(--rubric);}
   @media(max-width:600px){.settings-layer{align-items:flex-end;padding:8px;}.score-settings{max-height:calc(100dvh - 16px);border-radius:16px 16px 8px 8px;}.body{padding:16px;gap:16px;}.fields{gap:14px 12px;}footer{padding-inline:16px;}}
 </style>

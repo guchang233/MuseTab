@@ -1,5 +1,5 @@
 <script lang="ts">
- import {untrack} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {readerGestures} from './gestures.js';
+ import {untrack,tick} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {readerGestures} from './gestures.js';import {pageArrival} from './page-motion';
  import {library} from '../library/store.svelte';import {pageCache} from './page-cache';import pkg from '../../package.json';
  export type PageLayout='auto'|'single'|'double';
  type Rect={x:number;y:number;w:number;h:number};type PageBitmap={src:string;image:HTMLImageElement};type Visible={page:number;bitmap:PageBitmap;rect:Rect};
@@ -41,7 +41,8 @@
   focusPage=Math.max(0,Math.min(count-1,page));const start=Math.floor(focusPage/columns)*columns,end=Math.min(count-1,start+columns-1),version=++generation;busy=true;
   try{
    const wanted=Array.from({length:end-start+1},(_,i)=>start+i),bitmaps=await Promise.all(wanted.map(imageFor));if(version!==generation)return;
-   pages=wanted.map((p,i)=>layoutPage(p,start,bitmaps[i]));index=start;last=end;zoom=1;dx=dy=0;busy=false;loaded=true;scheduleWarm();
+   const turning=loaded&&start!==index;pages=wanted.map((p,i)=>layoutPage(p,start,bitmaps[i]));index=start;last=end;zoom=1;dx=dy=0;busy=false;loaded=true;scheduleWarm();
+   if(turning){await tick();if(version===generation)surface.querySelectorAll<HTMLImageElement>('.gallery-page').forEach(pageArrival);}
   }catch(e){if(version===generation){busy=false;onerror?.(e instanceof Error?e.message:'页面暂时未能显示');}}
  }
  export function turn(delta:number){lastInput=performance.now();void showPage(index+delta*columns);}

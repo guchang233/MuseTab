@@ -36,7 +36,7 @@
     width: var(--tap);
     height: var(--tap);
     flex: none;
-    border-radius: 14px;
+    border-radius: 50%;
     color: var(--ink);
     transition:
       background-color var(--dur) var(--ease),

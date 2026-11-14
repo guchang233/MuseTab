@@ -17,6 +17,7 @@
 | components/SearchBar.tsx | app/src/library/zerafun/SearchBar.svelte；保留表单、筛选弹层、点击外部 / Escape / Android Back 关闭 |
 | main.tsx 中 PhoneChrome | app/src/library/zerafun/PhoneNavigation.svelte；改为乐谱、云端、最近、我的 |
 | pages/Personal.tsx Settings / components/AppSettings.tsx | app/src/library/zerafun/Personal.svelte；沿用逐级菜单、路径、返回和 SettingRow，替换业务内容 |
+| components/AppSettings.tsx SettingRow / client UpdateFlow.java | app/src/library/zerafun/VersionSettings.svelte；移植版本设置行及更新弹窗的标题、说明、安装包大小和操作层级。弹窗在 Svelte 内渲染，下载校验继续使用 MuseTab 的 Android 更新器 |
 | style.css | app/src/library/zerafun/source.css；从原文件自动提取，保留原有颜色、尺寸、断点和选择器规则 |
 
 原始文件快照在 `docs/references/zerafun-0.7.4`，`provenance.json`

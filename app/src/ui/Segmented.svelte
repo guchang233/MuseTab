@@ -22,7 +22,8 @@
   .seg {
     display: inline-flex;
     border: 1px solid var(--hairline);
-    border-radius: var(--radius);
+    border-radius: 999px;
+    overflow:hidden;
   }
   button {
     position: relative;

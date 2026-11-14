@@ -37,13 +37,13 @@
   let moreOpen = $state(false);
   $effect(()=>registerBack(()=>{if(moreOpen)moreOpen=false;else if(propsOpen)propsOpen=false;else if(paletteOpen)paletteOpen=false;else return false;return true;},40));
   let panel=$state<'mixer'|'parts'|null>(null);
-  function openPanel(kind:'mixer'|'parts'){moreOpen=false;paletteOpen=propsOpen=false;panel=kind;if(kind==='parts'&&engine.playing)engine.stop();}
+  function openPanel(kind:'mixer'|'parts'){moreOpen=false;paletteOpen=propsOpen=false;panel=kind;if(kind==='parts')engine.pause();}
   let settings = $state<'page'|'style'|'transpose'|null>(null);
   function openSettings(kind:'page'|'style'|'transpose') {
     moreOpen=false;
     panel=null;
     if(engine.noteInput)act('note-input');
-    if(engine.playing)engine.stop();
+    engine.pause();
     settings=kind;
   }
   let seenDialog=engine.dialogRequest.seq;
