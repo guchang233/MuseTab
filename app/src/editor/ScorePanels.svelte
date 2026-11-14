@@ -2,12 +2,13 @@
   import {untrack} from 'svelte';
   import {engine,type ScorePanels,type MixerChannel} from '../bridge/engine.svelte';
   import IconButton from '../ui/IconButton.svelte';
+  import {registerBack} from '../ui/back';
   let {kind,onclose,onsettings}:{kind:'mixer'|'parts';onclose:()=>void;onsettings:(kind:'page'|'style')=>void}=$props();
   let data=$state<ScorePanels>({parts:[],channels:[]}),error=$state('');
   const title=$derived(kind==='mixer'?'混音器':'版面');
   function refresh(){try{data=engine.scorePanels();}catch(e){error=String(e);}}
   $effect(()=>{kind;if(kind==='parts')engine.changeSeq;untrack(refresh);});
-  $effect(()=>{const back=(event:Event)=>{event.preventDefault();onclose();};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
+  $effect(()=>registerBack(()=>{onclose();return true;},50));
   let pending=new Map<number,Record<string,unknown>>(),frame=0;
   function flush(){frame=0;for(const patch of pending.values())if(!engine.changeMixer(patch).ok)error='混音设置未能应用，请重试';pending.clear();}
   function mix(channel:MixerChannel,key:'volume'|'pan'|'muted'|'solo',value:number|boolean){

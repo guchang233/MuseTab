@@ -3,6 +3,7 @@
   import { engine, type ScoreStyle } from '../bridge/engine.svelte';
   import { workspace } from '../library/workspace.svelte';
   import IconButton from '../ui/IconButton.svelte';
+  import {registerBack} from '../ui/back';
   let { kind, onclose }: { kind: 'page' | 'style' | 'transpose'; onclose: () => void } = $props();
   let draft = $state<ScoreStyle | null>(null), error = $state(''), saving = $state(false);
   let key = $state(0), direction = $state(2), whole = $state(true);
@@ -35,10 +36,10 @@
   });
   function close(){if(!saving)onclose();}
   $effect(()=>{
-    const back=(event:Event)=>{event.preventDefault();close();};
+    const off=registerBack(()=>{close();return true;},100);
     const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close();}};
-    addEventListener('musetab-back',back,true);addEventListener('keydown',escape);
-    return()=>{removeEventListener('musetab-back',back,true);removeEventListener('keydown',escape);};
+    addEventListener('keydown',escape);
+    return()=>{off();removeEventListener('keydown',escape);};
   });
   function paper(value:string){
     if(!draft||value==='custom')return;

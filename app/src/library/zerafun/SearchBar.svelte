@@ -3,18 +3,19 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import Icon from '../../ui/Icon.svelte';
+  import {registerBack} from '../../ui/back';
   let { value = $bindable(''), active = false, filters }: { value?: string; active?: boolean; filters?: Snippet } = $props();
   let open = $state(false);
   let root: HTMLDivElement, input: HTMLInputElement, trigger: HTMLButtonElement;
   const id = $props.id();
-  function close() { open = false; trigger?.focus(); }
+  function close() { open = false; trigger?.focus({preventScroll:true}); }
   $effect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => { if (!root.contains(event.target as Node)) open = false; };
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); close(); } };
-    const back = (event: Event) => { event.preventDefault(); close(); };
-    document.addEventListener('pointerdown', outside); document.addEventListener('keydown', key); addEventListener('musetab-back', back, true);
-    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key); removeEventListener('musetab-back', back, true); };
+    const off=registerBack(()=>{close();return true;},100);
+    document.addEventListener('pointerdown', outside); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key); off(); };
   });
 </script>
 <div bind:this={root} class="shared-search">

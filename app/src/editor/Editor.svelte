@@ -10,6 +10,7 @@
   import { fade, fly } from 'svelte/transition';
   import {untrack} from 'svelte';
   import { nav } from '../ui/nav.svelte';
+  import {registerBack} from '../ui/back';
   import { theme } from '../ui/theme.svelte';
   import { ms, easeOut } from '../ui/motion';
   import IconButton from '../ui/IconButton.svelte';
@@ -31,9 +32,10 @@
   let unlockOpen=$state(false),seenUnlock=engine.unlockRequestSeq;
   $effect(()=>{if(engine.status!=='ready')return;untrack(()=>engine.enterEditor());return()=>untrack(()=>engine.leaveEditor());});
   $effect(()=>{const seq=engine.unlockRequestSeq;if(seq!==seenUnlock){seenUnlock=seq;unlockOpen=true;}});
-  $effect(()=>{if(!unlockOpen)return;const back=(e:Event)=>{e.preventDefault();e.stopImmediatePropagation();unlockOpen=false;};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
+  $effect(()=>{if(!unlockOpen)return;return registerBack(()=>{unlockOpen=false;return true;},110);});
   let propsOpen = $state(false);
   let moreOpen = $state(false);
+  $effect(()=>registerBack(()=>{if(moreOpen)moreOpen=false;else if(propsOpen)propsOpen=false;else if(paletteOpen)paletteOpen=false;else return false;return true;},40));
   let panel=$state<'mixer'|'parts'|null>(null);
   function openPanel(kind:'mixer'|'parts'){moreOpen=false;paletteOpen=propsOpen=false;panel=kind;if(kind==='parts'&&engine.playing)engine.stop();}
   let settings = $state<'page'|'style'|'transpose'|null>(null);

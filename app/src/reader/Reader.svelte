@@ -10,6 +10,7 @@
   import { theme } from '../ui/theme.svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { nav } from '../ui/nav.svelte';
+  import {registerBack} from '../ui/back';
   import { ms, easeOut } from '../ui/motion';
   import IconButton from '../ui/IconButton.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -37,6 +38,7 @@
   let root:HTMLDivElement,selectionRect=$state<{x:number;y:number;w:number;h:number}>();
   let gallery=$state<{showPage:(page:number)=>Promise<void>;turn:(delta:number)=>void}>();
   let pageLayout=$state<'auto'|'single'|'double'>((localStorage.getItem('musetab.pageLayout') as 'auto'|'single'|'double')||'auto'),layoutOpen=$state(false);
+  $effect(()=>registerBack(()=>{if(layoutOpen||tempoOpen){layoutOpen=tempoOpen=false;return true;}if(compassOpen){compassOpen=false;return true;}return false;},40));
   function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);linger();}
   function fitPage(index:number){void gallery?.showPage(index);}
   $effect(()=>{

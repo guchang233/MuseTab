@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick,untrack } from 'svelte';
+  import {registerBack} from '../ui/back';
+  import {libraryView,persistLibraryView,type LibraryTab as Tab} from './view.svelte';
   import './zerafun/source.css';
   import CatalogueHeader from './zerafun/CatalogueHeader.svelte';
   import SearchBar from './zerafun/SearchBar.svelte';
@@ -15,11 +17,11 @@
   import { cloud } from './cloud.svelte';
   import { REPOSITORY,type CloudScore } from './github';
 
-  type Tab = 'local' | 'cloud' | 'recent' | 'settings';
-  let tab = $state<Tab>('local');
-  let query = $state(''), filter = $state('all'), notice = $state(''), dragging = $state(false);
+  let tab = $state<Tab>(libraryView.tab);
+  let query = $state(libraryView.lists[libraryView.tab].query), filter = $state(libraryView.lists[libraryView.tab].filter), notice = $state(''), dragging = $state(false);
   let picker: HTMLInputElement;
-  let managed=$state<ScoreRecord|null>(null),detail=$state<CloudScore|null>(null);
+  let managed=$state<ScoreRecord|null>(null);
+  const detail=$derived(cloud.catalog?.scores.find(score=>score.path===libraryView.detailPath)||null);
   let pressTimer:ReturnType<typeof setTimeout>,pressStart:{x:number;y:number}|null=null,heldId:string|null=null;
   const label=(rec:ScoreRecord)=>rec.displayName||rec.title||rec.name;
   function press(e:PointerEvent,rec:ScoreRecord){if(e.button!==0)return;heldId=null;pressStart={x:e.clientX,y:e.clientY};clearTimeout(pressTimer);pressTimer=setTimeout(()=>{heldId=rec.id;managed=rec;pressStart=null;},500);}
@@ -28,7 +30,27 @@
   function clickScore(e:MouseEvent,rec:ScoreRecord){if(heldId===rec.id){heldId=null;e.preventDefault();return;}void openScore(rec);}
   $effect(()=>()=>clearTimeout(pressTimer));
   let scroller: HTMLDivElement;
-  const positions:Record<Tab,{query:string;filter:string;scroll:number}>={local:{query:'',filter:'all',scroll:0},cloud:{query:'',filter:'all',scroll:0},recent:{query:'',filter:'all',scroll:0},settings:{query:'',filter:'all',scroll:0}};
+  let pending={tab:libraryView.tab,...$state.snapshot(libraryView.lists[libraryView.tab])} as ({tab:Tab}&typeof libraryView.lists.local)|null,restoreFrame=0;
+  let criteria=untrack(()=>query+'\0'+filter);
+  function captureCurrent(){
+    const view=libraryView.lists[tab];view.query=query;view.filter=filter;
+    if(scroller?.isConnected&&!pending){view.scroll=scroller.scrollTop;view.width=scroller.clientWidth;const top=scroller.getBoundingClientRect().top;
+      const card=[...scroller.querySelectorAll<HTMLElement>('[data-view-key]')].find(el=>el.getBoundingClientRect().bottom>top);
+      view.anchor=card?{key:card.dataset.viewKey!,offset:card.getBoundingClientRect().top-top}:undefined;
+    }persistLibraryView();
+  }
+  function rememberScroll(){if(!pending&&scroller?.isConnected){libraryView.lists[tab].scroll=scroller.scrollTop;persistLibraryView(true);}}
+  function cancelRestore(e:Event){if((e.target as Element)?.closest('.app-tabbar'))return;pending=null;cancelAnimationFrame(restoreFrame);}
+  function restoreSoon(){
+    const wanted=pending;if(!wanted)return;
+    void tick().then(()=>{if(pending!==wanted||tab!==wanted.tab||!scroller)return;cancelAnimationFrame(restoreFrame);restoreFrame=requestAnimationFrame(()=>{
+      if(pending!==wanted||tab!==wanted.tab)return;let target=wanted.scroll;
+      if(wanted.anchor&&wanted.width!==scroller.clientWidth){const card=[...scroller.querySelectorAll<HTMLElement>('[data-view-key]')].find(el=>el.dataset.viewKey===wanted.anchor!.key);if(card)target=scroller.scrollTop+card.getBoundingClientRect().top-scroller.getBoundingClientRect().top-wanted.anchor.offset;}
+      const max=scroller.scrollHeight-scroller.clientHeight;
+      if(tab==='cloud'&&cloud.refreshing&&max<target)return;
+      scroller.scrollTop=target;pending=null;rememberScroll();
+    });});
+  }
   const accept = SUPPORTED.map(e => '.' + e).join(',');
   const titles: Record<Tab, string> = { local: '我的乐谱', cloud: '云端曲库', recent: '最近打开', settings: '我的' };
   const destinations = $derived<{ value: Tab; label: string; aria: string; icon: IconName }[]>([
@@ -44,27 +66,30 @@
   const cloudScores = $derived((cloud.catalog?.scores || []).filter(matches));
   const size = (n: number) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
   const date = (n: number) => new Date(n).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
-  async function switchTab(value: Tab) {
+  async function switchTab(value: Tab,fromSettings=false) {
     if(value===tab)return;
-    positions[tab]={query,filter,scroll:scroller?.scrollTop||0};
-    tab = value; filter = positions[value].filter; query = positions[value].query; notice = '';
+    captureCurrent();libraryView.settingsCloudReturn=fromSettings;
+    const view=libraryView.lists[value];pending={tab:value,...$state.snapshot(view)};criteria=view.query+'\0'+view.filter;
+    tab = libraryView.tab=value; filter = view.filter; query = view.query; notice = '';
     if (value === 'cloud') cloud.ensure();
-    await tick();if(scroller&&tab===value)scroller.scrollTop=positions[value].scroll;
+    persistLibraryView();restoreSoon();
   }
-  $effect(() => {
-    const back = (event: Event) => { if (!event.defaultPrevented && tab !== 'local') { event.preventDefault(); switchTab('local'); } };
-    addEventListener('musetab-back', back);
-    return () => removeEventListener('musetab-back', back);
-  });
+  $effect(()=>registerBack(()=>{if(tab==='local')return false;void switchTab(tab==='cloud'&&libraryView.settingsCloudReturn?'settings':'local');return true;},10));
+  $effect(()=>{tab;query;filter;untrack(()=>{const next=query+'\0'+filter;if(criteria!==next){criteria=next;pending=null;if(scroller)scroller.scrollTop=0;libraryView.lists[tab].scroll=0;libraryView.lists[tab].anchor=undefined;}libraryView.lists[tab].query=query;libraryView.lists[tab].filter=filter;persistLibraryView(true);});});
+  $effect(()=>{tab;localScores.length;cloudScores.length;cloud.refreshing;untrack(()=>{if(tab==='cloud')cloud.ensure();restoreSoon();});});
+  $effect(()=>{libraryView.personal.section;libraryView.personal.item;untrack(()=>persistLibraryView(true));});
+  $effect(()=>{const hide=()=>captureCurrent();addEventListener('pagehide',hide);return()=>{captureCurrent();cancelAnimationFrame(restoreFrame);removeEventListener('pagehide',hide);};});
+  function openDetail(score:CloudScore){captureCurrent();libraryView.detailPath=score.path;persistLibraryView();}
+  function closeDetail(){libraryView.detailPath='';persistLibraryView();}
   async function openScore(rec: ScoreRecord) {
-    notice = '';
+    captureCurrent();notice = '';
     try { await openLocal(rec); } catch (e) { notice = e instanceof Error ? e.message : '打开失败，请重试'; }
   }
   async function importFiles(files: FileList | File[] | null) {
     if (!files?.length) return;
     const imported = Array.from(files); notice = ''; let last: ScoreRecord | undefined;
     for (const file of imported) { try { last = await library.add(file); } catch (e) { notice = e instanceof Error ? e.message : '导入失败'; } }
-    picker.value = ''; tab = 'local';
+    picker.value = ''; await switchTab('local');
     if (last && imported.length === 1) await openScore(last);
     else if (!notice) notice = '已导入 ' + imported.length + ' 份文件';
   }
@@ -89,12 +114,12 @@
 
 <input bind:this={picker} type="file" {accept} multiple hidden onchange={() => importFiles(picker.files)} />
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="library zf-app" bind:this={scroller} class:dragging ondragover={e => { e.preventDefault(); dragging = true; }} ondragleave={() => dragging = false} {ondrop}>
+<div class="library zf-app" bind:this={scroller} class:dragging onscroll={rememberScroll} onwheel={cancelRestore} onpointerdown={cancelRestore} ondragover={e => { e.preventDefault(); dragging = true; }} ondragleave={() => dragging = false} {ondrop}>
   <div class="page">
     {#if tab !== 'settings'}<CatalogueHeader title={titles[tab]} actions={pageActions} search={pageSearch} />{/if}
 
     {#if tab === 'settings'}
-      <Personal oncloud={() => switchTab('cloud')} />
+      <Personal bind:section={libraryView.personal.section} bind:item={libraryView.personal.item} oncloud={() => switchTab('cloud',true)} />
     {:else}
       <div class="collection-meta">
         {#if tab === 'cloud'}
@@ -114,8 +139,8 @@
             <div class="scores cloud-list media-grid">
               {#each cloudScores as rec (rec.path)}
                 {@const saved = cloud.saved(rec)}
-                <article class="score cloud-score media-card">
-                  <button class="cloud-score-main" onclick={()=>detail=rec} aria-label={'查看详情 '+rec.name}>
+                <article class="score cloud-score media-card" data-view-key={rec.path}>
+                  <button class="cloud-score-main" onclick={()=>openDetail(rec)} aria-label={'查看详情 '+rec.name}>
                     <div class="cover poster poster-fallback placeholder"><Icon name={rec.ext==='pdf'?'view-single':'book'} size={30}/><span class="format">{rec.ext.toUpperCase()} · {size(rec.size)}</span></div>
                     <h2 title={rec.name}>{rec.name}</h2><p>{saved?'已下载到本地':'查看详情'}</p>
                   </button>
@@ -130,7 +155,7 @@
         {:else if localScores.length}
           <div class="scores local-grid media-grid">
             {#each localScores as rec (rec.id)}
-              <button class="score local-score media-card" disabled={documents.opening} onpointerdown={e=>press(e,rec)} onpointermove={movePress} onpointerup={endPress} onpointercancel={endPress} oncontextmenu={e=>{e.preventDefault();endPress();heldId=rec.id;managed=rec;}} onclick={e=>clickScore(e,rec)} aria-label={'打开 ' + label(rec)}>
+              <button class="score local-score media-card" data-view-key={rec.id} disabled={documents.opening} onpointerdown={e=>press(e,rec)} onpointermove={movePress} onpointerup={endPress} onpointercancel={endPress} oncontextmenu={e=>{e.preventDefault();endPress();heldId=rec.id;managed=rec;}} onclick={e=>clickScore(e,rec)} aria-label={'打开 ' + label(rec)}>
                 <div class="cover poster poster-fallback" class:placeholder={!rec.cover}>{#if rec.cover}<img src={rec.cover} alt="" loading="lazy" />{:else}<Icon name={rec.ext === 'pdf' ? 'view-single' : 'book'} size={30} />{/if}<span class="format">{rec.ext.toUpperCase()}{rec.editedAt ? ' · 已编辑' : ''}</span></div>
                 <h2 title={label(rec)}>{label(rec)}</h2>
                 <p>{tab === 'recent' ? date(rec.openedAt) : rec.source ? '已下载到本地' : '本地导入'} · {size(rec.size)}</p>
@@ -148,7 +173,7 @@
 
   <PhoneNavigation items={destinations} value={tab} onchange={switchTab} />
   {#if managed}<ManageScore record={managed} onclose={()=>managed=null}/>{/if}
-  {#if detail}<CloudDetail score={detail} onclose={()=>detail=null}/>{/if}
+  {#if tab==='cloud'&&detail}<CloudDetail score={detail} onclose={closeDetail}/>{/if}
 </div>
 
 <style>

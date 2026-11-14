@@ -50,6 +50,7 @@ export class AndroidCDP {
       else if (msg.method === "Runtime.exceptionThrown")
         c.errors.push(msg.params.exceptionDetails.text);
       else if(msg.method === 'Runtime.executionContextsCleared')c.contexts=[];
+      else if(msg.method === 'Runtime.executionContextDestroyed')c.contexts=c.contexts.filter(ctx=>ctx.id!==msg.params.executionContextId);
     };
     c.ws.onclose=()=>{for(const p of c.pending.values())p.reject(Error('WebView connection closed; check the USB device'));c.pending.clear();};
     await c.call("Runtime.enable");

@@ -5,6 +5,7 @@ import { engine } from './bridge/engine.svelte';
 import { workspace } from './library/workspace.svelte';
 import { openLocal } from './library/open.svelte';
 import { reading } from './reader/layout.svelte';
+import {handleLayerBack} from './ui/back';
 
 type AndroidBridge = {
   appInfo?():string;
@@ -95,8 +96,8 @@ window.onNativeOpen = (name, base64) => {
 
 // 返回键：编辑 → 看谱 → 谱匣 → 退出
 window.onNativeBack = () => {
+  if(handleLayerBack())return true;
   if (reading.fullscreen) { void reading.setFullscreen(false); return true; }
-  if (!window.dispatchEvent(new Event('musetab-back', { cancelable: true }))) return true;
   if (nav.screen === 'editor') {
     workspace.persist().then(()=>nav.go('reader')).catch(console.error);
     return true;

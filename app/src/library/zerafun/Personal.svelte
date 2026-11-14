@@ -5,14 +5,14 @@
   import {library} from '../store.svelte';
   import {REPOSITORY} from '../github';
   import {updates} from '../../update.svelte';
-  let {oncloud}:{oncloud:()=>void}=$props();
-  let section=$state(''),item=$state('');
+  import {registerBack} from '../../ui/back';
+  let {oncloud,section=$bindable(''),item=$bindable('')}:{oncloud:()=>void;section?:string;item?:string}=$props();
   const sections=[{id:'app',title:'应用设置',detail:'外观、版本与更新'},{id:'library',title:'曲库与文件',detail:'本地乐谱、只读云端曲库'},{id:'about',title:'关于 MuseTab',detail:'离线看谱、播放与编辑'}];
   const entries:Record<string,{id:string;title:string;detail?:string}[]>={app:[{id:'appearance',title:'外观'},{id:'version',title:'版本与更新'},{id:'update',title:'自动检查更新'}],library:[{id:'local',title:'本地文件'},{id:'cloud',title:'云端曲库'}],about:[{id:'info',title:'应用信息'},{id:'source',title:'开源与许可'}]};
   const selected=$derived(entries[section]?.find(x=>x.id===item));
   const group=$derived(sections.find(x=>x.id===section));
   function back(){if(item)item='';else section='';}
-  $effect(()=>{const handler=(e:Event)=>{if(section&&!e.defaultPrevented){e.preventDefault();e.stopImmediatePropagation();back();}};addEventListener('musetab-back',handler,true);return()=>removeEventListener('musetab-back',handler,true);});
+  $effect(()=>registerBack(()=>{if(!section)return false;back();return true;},40));
 </script>
 <div class="settings-page settings-drilldown personal">
   <header class="settings-topbar">

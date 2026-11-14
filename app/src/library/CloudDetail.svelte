@@ -1,9 +1,10 @@
 <script lang="ts">
  import {cloud} from './cloud.svelte';import {REPOSITORY,type CloudScore} from './github';import {openLocal} from './open.svelte';import Icon from '../ui/Icon.svelte';
+ import {registerBack} from '../ui/back';
  let {score,onclose}:{score:CloudScore;onclose:()=>void}=$props();let error=$state('');
  const saved=$derived(cloud.saved(score)),downloading=$derived(cloud.saving===score.path);
- $effect(()=>{const back=(e:Event)=>{e.preventDefault();e.stopImmediatePropagation();onclose();};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
- async function open(){if(!saved)return;try{await openLocal(saved);onclose();}catch(e){error=e instanceof Error?e.message:'打开失败';}}
+ $effect(()=>registerBack(()=>{onclose();return true;},80));
+ async function open(){if(!saved)return;try{await openLocal(saved);}catch(e){error=e instanceof Error?e.message:'打开失败';}}
 </script>
 <div class="cloud-detail" role="dialog" aria-modal="true" aria-label="云端乐谱详情" tabindex="-1">
  <div class="detail-page"><header><button class="back" onclick={onclose}><Icon name="back" size={18}/>返回曲库</button><h1>乐谱详情</h1></header>

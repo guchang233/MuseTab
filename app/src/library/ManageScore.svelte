@@ -1,10 +1,11 @@
 <script lang="ts">
  import {library,type ScoreRecord} from './store.svelte';import {saveAs} from '../native';import IconButton from '../ui/IconButton.svelte';
+ import {registerBack} from '../ui/back';
  let {record,onclose}:{record:ScoreRecord;onclose:()=>void}=$props();
  let action=$state<'menu'|'rename'|'delete'>('menu'),name=$state(''),busy=$state(false),error=$state('');
  $effect(()=>{name=record.displayName||record.title||record.name;});
  const title=$derived(record.displayName||record.title||record.name);
- $effect(()=>{const back=(e:Event)=>{e.preventDefault();e.stopImmediatePropagation();if(action!=='menu')action='menu';else onclose();};addEventListener('musetab-back',back,true);return()=>removeEventListener('musetab-back',back,true);});
+ $effect(()=>registerBack(()=>{if(action!=='menu')action='menu';else onclose();return true;},100));
  async function run(kind:'rename'|'delete'|'export'){
   busy=true;error='';try{
    if(kind==='rename'){await library.rename(record.id,name);onclose();}

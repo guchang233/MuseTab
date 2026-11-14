@@ -1,5 +1,6 @@
 <script lang="ts">
   import {tick,untrack} from 'svelte';
+  import {registerBack} from '../ui/back';
   import {getDocument,GlobalWorkerOptions,type PDFDocumentProxy} from 'pdfjs-dist/legacy/build/pdf.mjs';
   import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
   import {library,type PdfNotes,type InkStroke} from '../library/store.svelte';
@@ -12,6 +13,7 @@
   let loading=$state(true),error=$state(''),saved=$state(true),annotating=$state(false),erasing=$state(false),color=$state('#b33f35'),controls=$state(false);
   let notes=$state<PdfNotes>({}),draft=$state<InkStroke|null>(null),pointer:number|null=null,strokePage=$state(1);
   let viewport:HTMLDivElement,writes:Promise<void>=Promise.resolve();
+  $effect(()=>registerBack(()=>{if(!annotating)return false;draft=null;pointer=null;annotating=false;return true;},40));
   const current=$derived(library.current),strokes=$derived(notes[pageNo]||[]);
   const layout=$derived(sizes.map(s=>{const base=reading.fullscreen?Math.min(width/s.w,height/s.h):mode==='horizontal'?Math.min((width-24)/s.w,(height-24)/s.h):Math.max(1,width-(mode==='continuous'?0:24))/s.w;return{w:s.w*base*zoom,h:s.h*base*zoom};}));
   const contentWidth=$derived(reading.fullscreen?width:Math.max(width,mode==='horizontal'?layout.reduce((n,s)=>n+s.w+24,0):Math.max(0,...layout.map(s=>s.w))+(mode==='continuous'?0:24)));
