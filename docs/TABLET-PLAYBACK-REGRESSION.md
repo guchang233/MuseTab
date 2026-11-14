@@ -26,3 +26,11 @@
 测试曲谱、数据库备份、设备截图和日志保留在被 Git 忽略的 `tests/results/`，不会发布。
 
 已请用户按原复现方式测试，后续推进播放/编谱模式拆分和 PDF 识别。
+
+## 用户复测与正式发布
+
+用户已确认：按原复现方式切换声部后可以正常播放。实机数据库仍为 5 份乐谱、5 个文件、1 份批注记录。
+
+[0.6.7 CI](https://github.com/guchang233/MuseTab/actions/runs/43601953309) 成功，[正式 Release](https://github.com/guchang233/MuseTab/releases/tag/v0.6.7) 已发布。正式 APK 为 135,973,714 字节，SHA-256 为 `aaac3ea1743813b800cfabeb7b83810434c90ec113dc99d75d284bc443d1ffd0`。已下载核对更新清单、相同签名证书及全部应用资源（文本忽略 Windows 回车差异），本地 release/MuseTab-0.6.7.apk 已替换为 CI 产物。
+
+Runtime v5 的 SHA-256 为 `0ca86de6c6dc59529508f1fe19434ba6659629903ccf2b1102af4d14da9d0383`，完整原生对应源码归档为 210,954,558 字节，SHA-256 为 `46e3a679eab03b933187fb3b04f24e7471016f6abbb48cedd17d9527dc1a0625`。已核对关键源文件与实际构建目录一致。
