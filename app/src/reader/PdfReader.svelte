@@ -91,7 +91,7 @@
   .pdf-tools{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;background:var(--parchment);border-top:1px solid var(--hairline);padding:6px 8px max(10px,env(safe-area-inset-bottom));}
   .page-tools,.ink-tools{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;max-width:100%;}.ink-tools{padding-bottom:6px;border-bottom:1px solid var(--hairline);margin-bottom:4px;}
   .page-number{min-width:56px;text-align:center;font-variant-numeric:tabular-nums;}.zoom,.done{min-height:48px;padding:0 12px;}
-  select{min-height:44px;padding:0 10px;border:1px solid var(--hairline);border-radius:8px;background:var(--sheet);color:var(--ink);font-size:14px;}
+  select{min-height:44px;padding:0 12px;border:1px solid var(--hairline);border-radius:var(--radius-pill);background:var(--sheet);color:var(--ink);font:14px var(--font-ui);}
   .color{width:44px;height:48px;display:grid;place-items:center;}.color::after{content:'';width:22px;height:22px;border-radius:50%;background:var(--color);border:3px solid var(--parchment);box-shadow:0 0 0 1px var(--hairline);}.color.on::after{box-shadow:0 0 0 2px var(--color);}.red{--color:#b33f35;}.blue{--color:#285b9d;}
   .ink-tools small{font-size:var(--text-xs);color:var(--ink-soft);}.status,.error{padding:24px;text-align:center;overflow-wrap:anywhere;}.error{color:var(--rubric);}
   @media(max-width:600px){.page-tools,.ink-tools{gap:2px;}.ink-tools small{display:none;}select{max-width:128px;}.pdf-tools{padding-inline:4px;}}

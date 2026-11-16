@@ -314,15 +314,15 @@
 </div>
 
 <style>
-  .auto-turn{min-height:44px;padding:0 16px;font-size:13px;width:100%;border:1px solid var(--hairline);}
+  .auto-turn{min-height:44px;padding:0 16px;font-size:13px;width:100%;border:1px solid var(--hairline);border-radius:var(--radius-pill);}
   .auto-turn[aria-pressed=true]{background:var(--rubric-wash);}
   .ribbon-col{position:relative;}
   .layout-slip{position:absolute;bottom:calc(100% + 12px);left:0;width:min(340px,calc(100vw - 24px));pointer-events:auto;}
-  .layout-body{padding:20px;display:flex;flex-direction:column;gap:14px;}.layout-options{display:flex;gap:8px;}.layout-options button{min-height:44px;flex:1;padding:8px 16px;border:1px solid var(--hairline);}.layout-options button[aria-pressed=true]{background:var(--rubric);color:var(--on-rubric);}.layout-body p{font-size:12px;line-height:1.7;color:var(--ink-soft);}
+  .layout-body{padding:20px;display:flex;flex-direction:column;gap:14px;}.layout-options{display:flex;gap:8px;}.layout-options button{min-height:44px;flex:1;padding:8px 16px;border:1px solid var(--hairline);border-radius:var(--radius-pill);}.layout-options button[aria-pressed=true]{background:var(--rubric);color:var(--on-rubric);border-color:transparent;}.layout-body p{font-size:12px;line-height:1.7;color:var(--ink-soft);}
   .page-number.raised{bottom:max(96px,calc(env(safe-area-inset-bottom) + 96px));}
   .reader{overflow:hidden;}
   .page-number{position:absolute;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:4px 12px;background:var(--slip);color:var(--ink-soft);border-radius:999px;font-size:12px;pointer-events:none;font-variant-numeric:tabular-nums;}
-  .page-error{position:absolute;top:70px;left:16px;right:16px;padding:12px;background:var(--sheet);color:var(--rubric);font-size:14px;pointer-events:auto;}
+  .page-error{position:absolute;top:70px;left:16px;right:16px;padding:12px 16px;background:var(--paper);color:var(--danger);font-size:14px;pointer-events:auto;border:1px solid var(--danger);border-radius:var(--radius-sm);}
   /* 本层盖在引擎画布之上，但自己不接手势：只有浮出来的东西可点 */
   .reader {
     position: absolute;

@@ -23,7 +23,7 @@
     border: 1px solid var(--hairline);
     border-radius: 999px;
     font-size: var(--text-md);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.02em;
     white-space: nowrap;
     transition:
       background-color var(--dur) var(--ease),

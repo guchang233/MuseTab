@@ -26,7 +26,7 @@ try{
   pass('real Android touch opens source filter; Back dismisses it without exiting');
   await tap('.app-tabbar button:nth-child(4)');await wait('!!document.querySelector(".theme-options")');
   await tap('.theme-options button:nth-child(3)');
-  assert.equal(await c.evaluate('getComputedStyle(document.querySelector(".library")).getPropertyValue("--c-paper").trim()'),'#2a2622');
+  assert.equal(await c.evaluate('getComputedStyle(document.querySelector(".library")).getPropertyValue("--c-paper").trim()'),await c.evaluate('getComputedStyle(document.documentElement).getPropertyValue("--parchment").trim()'));
   await c.screenshot(out+'/mumu-phone-dark.png');
   await tap('.theme-options button:nth-child(2)');
   await shell('input','keyevent','4');await wait('document.querySelector(".browse-heading h1")?.textContent==="我的乐谱"');

@@ -29,9 +29,9 @@
   });
   $effect(()=>{if(activity.message)return registerBack(()=>true,200);});
   $effect(() => {
-    const dark = theme.resolved === 'dark';
-    const home = nav.screen === 'library';
-    window.Android?.setSystemBars?.(home ? dark ? '#2a2622' : '#f7f6f2' : dark ? '#201a14' : '#f3ecdd', !dark);
+    theme.resolved;
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--parchment').trim();
+    window.Android?.setSystemBars?.(bg, theme.resolved !== 'dark');
   });
   let importError=$state('');
   $effect(()=>{
@@ -65,12 +65,16 @@
     }
   }
 
-  // 谱纸与画布底色跟随界面主题（值与 tokens.css 中的 --sheet / --parchment-deep 一致）
+  // 谱纸与画布底色跟随设计 token。编谱谱纸保持象牙色，避免深色界面把音符涂没。
   $effect(() => {
     if (engine.status !== 'ready') return;
     const dark = theme.resolved === 'dark';
     const composer=nav.screen==='editor';
-    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?'#ffffff':'#fbf8ef'):'none', composer?'#3b3b40':dark ? '#18130e' : '#e9e0cc');
+    const css=getComputedStyle(document.documentElement);
+    const sheet=css.getPropertyValue('--sheet').trim();
+    const deep=css.getPropertyValue('--parchment-deep').trim();
+    const ivory=css.getPropertyValue('--aria-ivory').trim()||'#fffdf8';
+    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?ivory:sheet):'none', composer?(dark?'#2a2420':deep):deep);
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -117,12 +121,13 @@
 <style>
   .underlay{visibility:hidden;}.composer-layer{position:absolute;inset:0;z-index:10;pointer-events:none;}
   .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:999px;box-shadow:var(--lift);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);font-size:13px;pointer-events:none;white-space:nowrap;}
-  .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100;max-width:90%;padding:12px 18px;background:var(--sheet);color:var(--rubric);border:1px solid currentColor;border-radius:8px;}
+  .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:var(--z-toast);max-width:90%;padding:12px 18px;background:var(--paper);color:var(--danger);border:1px solid currentColor;border-radius:var(--radius-sm);box-shadow:var(--shadow-md);}
   .save-error button{min-height:44px;margin-left:12px;text-decoration:underline;}
   .screen {
     position: fixed;
     inset: 0;
-    z-index: 1;
+    /* 不建立层叠上下文，弹层的 z-index 才能盖过同级的启动提示。 */
+    z-index: auto;
   }
   /* 看谱 / 编辑两屏盖在引擎画布上：自身不拦手势，只有其中的控件可点 */
   .over {

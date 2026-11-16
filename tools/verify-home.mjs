@@ -37,7 +37,7 @@ try{
   await page.setViewportSize({width:390,height:844});
   await page.getByRole('button',{name:'我的',exact:true}).click();await page.getByRole('radio',{name:'深色',exact:true}).click();await snap('phone-settings-dark');
   await page.getByRole('button',{name:'本地谱匣 3',exact:true}).click();
-  assert.equal(await page.locator('.library').evaluate(e=>getComputedStyle(e).getPropertyValue('--c-paper').trim()),'#2a2622');
+  assert.equal(await page.locator('.library').evaluate(e=>getComputedStyle(e).getPropertyValue('--c-paper').trim()),await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--parchment').trim()));
   await snap('phone-dark');
   await page.getByRole('button',{name:'我的',exact:true}).click();await page.getByRole('radio',{name:'浅色',exact:true}).click();
   await page.getByRole('button',{name:'本地谱匣 3',exact:true}).click();

@@ -70,7 +70,8 @@
     min-height:48px;
     padding:0 14px;
     border:1px solid var(--hairline);
-    border-radius:var(--radius);
+    border-radius:var(--radius-pill);
+    background:var(--paper);
     flex:none;
   }
     .edit.on {

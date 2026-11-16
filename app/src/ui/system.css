@@ -1,0 +1,67 @@
+/* 谱笺在曲库壳上的落点。布局仍由 zerafun/source.css 负责，这里只统一
+   字体、选中态、卡片和焦点，不改网格列数、导航高度和筛选结构。 */
+
+html .zf-app .browse-heading h1,
+html .zf-app .settings-heading,
+html .zf-app .search-filters > header strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+html .zf-app .browse-heading h1 {
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+html .zf-app .app-tabbar {
+  background: color-mix(in srgb, var(--parchment) 92%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 -1px 0 var(--hairline);
+}
+
+html .zf-app .app-tabbar button[aria-current='page'] {
+  color: var(--rubric);
+}
+
+html .zf-app .media-card > :is(.poster, .poster-fallback) {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+html .zf-app .media-card :is(h2, h3) {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+html .zf-app .icon-btn,
+html .zf-app .search-filter,
+html .zf-app .search-clear {
+  border-radius: var(--radius-pill);
+}
+
+html .zf-app .search-field:focus-within,
+html .zf-app .search-submit:hover {
+  border-color: color-mix(in srgb, var(--rubric) 55%, var(--hairline));
+}
+
+html .zf-app .settings-menu-row {
+  border-radius: var(--radius-sm);
+}
+
+html .zf-app .settings-menu-row:hover,
+html .zf-app .icon-btn:hover,
+html .zf-app .search-submit:hover {
+  background: var(--veil);
+}
+
+html .zf-app .seg-item[aria-selected='true'],
+html .zf-app .seg-item[aria-pressed='true'] {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+html .zf-app :is(button, a, input, select):focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
