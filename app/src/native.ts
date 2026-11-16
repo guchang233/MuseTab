@@ -98,7 +98,8 @@ window.onNativeOpen = (name, base64) => {
 window.onNativeBack = () => {
   if(handleLayerBack())return true;
   if (reading.fullscreen) { void reading.setFullscreen(false); return true; }
-  if (nav.screen === 'editor') {
+  if (nav.screen === 'editor') {void import('./workspace/modes').then(m=>m.closeComposer());return true;}
+  if (nav.screen==='player') {
     workspace.persist().then(()=>nav.go('reader')).catch(console.error);
     return true;
   }

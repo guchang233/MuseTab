@@ -1,0 +1,21 @@
+<script lang="ts">
+ import {zh} from './zh';
+ import AriaPaletteButton from './AriaPaletteButton.svelte';
+ import {durations,dot,rest,tie,stack,accidentals,tuplets,extraNotes,type AriaTool} from './tools';
+ let {phone=false,landscape=false,sections='all',more=false,enabled=true,selected,onaction,onmore}:{phone?:boolean;landscape?:boolean;sections?:'all'|'duration'|'options';more?:boolean;enabled?:boolean;selected:(id:string)=>boolean;onaction:(tool:AriaTool,event:MouseEvent)=>void;onmore:()=>void}=$props();
+ let width=$state(900);const regularWidth=$derived(Math.max(813,Math.min(920,width))),scale=$derived(Math.min(1,width/813));
+ const tuplet:AriaTool={id:'tuplets',label:'Tuplet',symbol:'3',menu:tuplets};
+ const arrow=$derived<AriaTool>({id:'moreNotes',label:more?'Hide more note options':'More note options',icon:more?'chevron.down':'chevron.up'});
+ const regular=$derived([stack,...durations,dot,rest,tie,tuplet,...accidentals,arrow]);
+ const phoneRows=$derived([[...durations,{...dot,symbol:'·'},arrow],[accidentals[2],accidentals[0],accidentals[1],stack,tie,rest,tuplet,{id:'action://notation/delete',icon:'trash',label:'Delete selection'}]] as AriaTool[][]);
+ function choose(tool:AriaTool,event:MouseEvent){if(tool.id==='moreNotes')onmore();else onaction(tool,event);}
+</script>
+<div class="aria-rhythm" class:phone class:landscape bind:clientWidth={width}>
+ {#if more}<div class="extra-note-row" class:regular-extra={!phone}>{#each extraNotes as tool}<AriaPaletteButton {tool} active={selected(tool.id)} {enabled} titled={!phone} width={phone?52:undefined} onaction={choose}/>{/each}</div>{/if}
+ {#if !phone}<div class="regular-holder"><div class="regular-card" style:width={regularWidth+'px'} style:transform={'translateX(-50%) scale('+scale+')'}>{#each regular as tool,index}{#if index}<span class="divider"></span>{/if}<div class="regular-cell"><AriaPaletteButton {tool} active={selected(tool.id)} {enabled} titled={!tool.id.startsWith('pad-note')&&tool.id!=='stack'&&tool.id!=='moreNotes'} width={tool.id.startsWith('pad-note')||tool.id==='stack'||tool.id==='moreNotes'?38:52} onaction={choose}/></div>{/each}</div></div>
+ {:else if !landscape}<div class="portrait-grid">{#each phoneRows as row}<div class="phone-row">{#each row as tool}<AriaPaletteButton {tool} active={selected(tool.id)} {enabled} grid onaction={choose}/>{/each}</div>{/each}</div>
+ {:else}<div class="landscape-rhythm">{#if sections!=='options'}<small>时值与节奏</small><div class="duration-row">{#each durations as tool}<AriaPaletteButton {tool} active={selected(tool.id)} {enabled} grid onaction={choose}/>{/each}<AriaPaletteButton tool={{...dot,symbol:'·'}} active={selected('pad-dot')} {enabled} grid onaction={choose}/><AriaPaletteButton tool={tuplet} {enabled} grid onaction={choose}/></div>{/if}{#if sections!=='duration'}<small>变音与选项</small><div class="options-row">{#each phoneRows[1].filter(t=>t.id!=='tuplets') as tool}<AriaPaletteButton {tool} active={selected(tool.id)} {enabled} grid onaction={choose}/>{/each}<AriaPaletteButton tool={arrow} grid onaction={choose}/></div>{/if}</div>{/if}
+</div>
+<style>
+ .aria-rhythm{min-width:0;width:100%;}.regular-holder{height:72px;position:relative;}.regular-card{position:absolute;left:50%;height:72px;display:flex;align-items:center;transform-origin:center center;border:.7px solid #00000017;border-radius:8px;background:#ffffffdb;padding:7px 10px;}.regular-cell{flex:1;min-width:0;display:flex;justify-content:center;}.divider{width:.5px;margin:0 2.25px;height:36px;flex:none;background:#0000001a;}.extra-note-row{display:flex;gap:2px;overflow-x:auto;margin-bottom:6px;background:#ffffffa8;border:.6px solid #00000014;border-radius:10px;}.regular-extra{justify-content:space-around;height:72px;border-radius:8px;align-items:center;}.portrait-grid{display:grid;gap:4px;padding:2px;}.phone-row{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;}.phone-row:first-child{grid-template-columns:repeat(7,minmax(0,1fr));}.duration-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;}.options-row{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;}.landscape-rhythm{padding:6px 0;display:grid;gap:4px;}small{font:600 10px system-ui,sans-serif;letter-spacing:.7px;color:#0006;padding-left:4px;}
+</style>

@@ -32,7 +32,21 @@
       const pendingExports = new Map(); // ext -> [resolve, reject]
       let pendingOpen = null;
       let exportQueue = Promise.resolve();
+      let textFontReady=null;
+      function loadTextFont(){
+        if(!textFontReady)textFontReady=(async()=>{
+          const M=engine.Module;
+          if(!M._mtLoadTextFont)throw Error('编谱核心需要更新，请重新打开应用');
+          const response=await fetch('../fonts/NotoSansCJKsc-Regular.otf');
+          if(!response.ok)throw Error('本地中文字体未能加载');
+          const bytes=new Uint8Array(await response.arrayBuffer()),ptr=M._malloc(bytes.length);
+          try{M.HEAPU8.set(bytes,ptr);if(!M.ccall('mtLoadTextFont','number',['number','number'],[ptr,bytes.length]))throw Error('本地中文字体未能注册');}
+          finally{M._free(ptr);}
+        })().catch(error=>{textFontReady=null;throw error;});
+        return textFontReady;
+      }
       let viewOnly = false;
+      let nativeComposer=false;
       let editLocked = false;
       let lastLockedTap=null;
       let selectedStart=false;
@@ -45,7 +59,7 @@
       let gesture = null;
       let preview=null,previewFrame=0,wheelTimer;
       function previewMove(factor,dx,dy,cx,cy){
-        if(pageLocked)return engine.gestureView(factor,dx,dy,cx,cy);
+        if(pageLocked||nativeComposer)return engine.gestureView(factor,dx,dy,cx,cy);
         const canvas=findCanvas();if(!canvas)return;
         if(previewFrame){cancelAnimationFrame(previewFrame);previewFrame=0;canvas.style.transform='';}
         preview??={scale:1,x:0,y:0,canvas};
@@ -91,7 +105,7 @@
 
         async open(bytes, ext) {
           if(pendingOpen)throw Error('另一份乐谱正在打开');
-          await engine.startAudio();
+          await Promise.all([engine.startAudio(),loadTextFont()]);
           return new Promise((resolve,reject)=>{
             const timer=setTimeout(()=>{pendingOpen=null;reject(Error('打开乐谱超时'));},90000);
             pendingOpen={resolve:()=>{clearTimeout(timer);resolve();},reject:e=>{clearTimeout(timer);reject(e);}};
@@ -116,7 +130,8 @@
           if(['stop','rewind'].includes(code.split('/').pop()))selectedStart=false;
           if(['play','play-from-selection','stop','rewind'].includes(code.split('/').pop()))engine.Module.flushPlaybackUpdates?.();
           const kind=code.split('/').pop();
-          if(['page-settings','edit-style','transpose','toggle-mixer','toggle-instruments'].includes(kind)){emit('mobile-dialog',{kind});return;}
+          if(nativeComposer&&editLocked&&kind==='transpose')return unlockRequest();
+          if(['toggle-mixer','toggle-instruments'].includes(kind)||(!nativeComposer&&['page-settings','edit-style','transpose'].includes(kind))){emit('mobile-dialog',{kind});return;}
           engine.Module.ccall('mtDispatch', null, ['string'], [code]);
         },
         setPageLock(v) {
@@ -149,10 +164,26 @@
           else{tapQt({clientX:x,clientY:y,pointerId:1});setTimeout(()=>emit('reader-tap',{}),100);}
         },
         pageMetrics(){if(!engine.Module._mtPageMetrics)throw Error('原生核心需要更新');return JSON.parse(engine.Module.ccall('mtPageMetrics','string',[],[]));},
+        viewRect(){return JSON.parse(engine.Module.ccall('mtViewRect','string',[],[]));},
+        composerState(patch={}){
+          if('enabled' in patch)nativeComposer=!!patch.enabled;
+          const state=JSON.parse(engine.Module.ccall('mtComposerState','string',['string'],[JSON.stringify(patch)]));
+          if(nativeComposer&&'enabled' in patch)setTimeout(()=>{
+            if(!nativeComposer)return;const v=engine.viewRect(),pages=engine.pageMetrics();
+            const centre={x:v.x+v.w/2,y:v.y+v.h/2};
+            const r=pages.map(p=>p.rect).filter(Boolean).sort((a,b)=>Math.hypot(a.x+a.w/2-centre.x,a.y+a.h/2-centre.y)-Math.hypot(b.x+b.w/2-centre.x,b.y+b.h/2-centre.y))[0];
+            if(!r||!Number.isFinite(r.w)||r.w<1||!Number.isFinite(r.x)||!Number.isFinite(r.y)||v.w<100||v.h<120)return;const margin=v.w<600?8:20,f=(v.w-2*margin)/r.w;
+            engine.gestureView(f,margin-(r.x-v.x)*f,margin-(r.y-v.y)*f,v.x,v.y);
+          },180);
+          return state;
+        },
         selectPageAt(page,x,y){engine.Module.ccall('mtSelectPageAt',null,['number','number','number'],[page,x,y]);selectedStart=!engine.isPlaying&&!engine.lastSelection?.none;emit('reader-tap',{});},
         selectionImage(pixels){if(!engine.Module._mtSelectionImage)return {};const result=JSON.parse(engine.Module.ccall('mtSelectionImage','string',['number'],[pixels]));if(result.src)result.src='data:image/png;base64,'+result.src;return result;},
         scorePanels(){const state=JSON.parse(engine.Module.ccall('mtScorePanels','string',[],[]));for(const channel of state.channels||[])if(channel.name==='节拍器'){channel.muted=!engine.actionState('metronome').checked;channel.solo=false;}return state;},
         changeMixer(data){return JSON.parse(engine.Module.ccall('mtChangeMixer','string',['string'],[JSON.stringify(data)]));},
+        playbackInfo(){return engine.Module._mtPlaybackInfo?JSON.parse(engine.Module.ccall('mtPlaybackInfo','string',[],[])):{duration:0};},
+        seekSeconds(seconds){selectedStart=false;return !!engine.Module.ccall('mtSeekSeconds','number',['number'],[seconds]);},
+        addPitch(step,octave,accidental,chord){if(editLocked||viewOnly){unlockRequest();return false;}if(!engine.Module._mtAddPitch)throw Error('请更新编谱核心');return !!engine.Module.ccall('mtAddPitch','number',['number','number','number','number'],[step,octave,accidental,chord?1:0]);},
         changeParts(data){if(editLocked&&!['part-visible','staff-visible','part-audible','staff-audible'].includes(data.op)){unlockRequest();return {ok:false};}return JSON.parse(engine.Module.ccall('mtChangeParts','string',['string'],[JSON.stringify(data)]));},
         scoreStyle(){return JSON.parse(engine.Module.ccall('mtScoreStyle','string',[],[]));},
         applyScoreStyle(values){return JSON.parse(engine.Module.ccall('mtApplyScoreStyle','string',['string'],[JSON.stringify(values)]));},
@@ -177,6 +208,7 @@
           commitPreview();
           if(v&&engine.actionState('note-input').checked)engine.dispatch('note-input');
           editLocked=!!v;engine.Module.ccall('mtSetViewOnly',null,['number'],[viewOnly||editLocked?1:0]);
+          if(engine.Module._mtComposerState)engine.composerState({locked:editLocked});
         },
         focus(){window.focus();findCanvas()?.focus();},
         palettes() { return JSON.parse(engine.Module.ccall('mtPalettes', 'string', [], [])); },
@@ -270,6 +302,12 @@
           if(Date.now()>windowDeadline)throw Error('谱面窗口未能启动，请重新打开应用');
           await new Promise(r=>setTimeout(r,80));
         }
+        // The workspace is QML, loaded locally by Qt; its original MuseScore
+        // panel types stay in the native module. UI iterations need no relink.
+        const workspaceResponse=await fetch('ComposerWorkspace.qml');
+        if(!workspaceResponse.ok)throw Error('本地编谱界面文件未能加载');
+        M.FS.mkdirTree('/musetab');
+        M.FS.writeFile('/musetab/ComposerWorkspace.qml',new Uint8Array(await workspaceResponse.arrayBuffer()));
         engine.ready = true;
         emit('ready', {});
       } catch (e) {
@@ -297,7 +335,7 @@
         finally{bypassPointer=false;if(area){area.setPointerCapture=capture;area.releasePointerCapture=release;}}
       };
       readerGestures(document,{
-        enabled:()=> (viewOnly||editLocked)&&!bypassPointer,gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
+        enabled:e=>{if(!(viewOnly||editLocked)||bypassPointer)return false;if(!nativeComposer)return true;if(engine.composerState().modalOpen)return false;const r=engine.viewRect();return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;},gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
         tap:e=>{
           commitPreview();
           if(pageLocked&&pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
@@ -322,9 +360,10 @@
         cancel:()=>emit('reader-control',{key:'gesture'}),
         end:commitPreview,
       });
-      for(const type of ['contextmenu','dblclick'])document.addEventListener(type,e=>{if(viewOnly||editLocked){e.preventDefault();e.stopImmediatePropagation();if(editLocked)unlockRequest();}},{capture:true,passive:false});
+      for(const type of ['contextmenu','dblclick'])document.addEventListener(type,e=>{if(nativeComposer&&engine.composerState().modalOpen)return;if(viewOnly||editLocked){e.preventDefault();e.stopImmediatePropagation();if(editLocked)unlockRequest();}},{capture:true,passive:false});
       document.addEventListener('keydown',e=>{
         if(!engine.ready)return;
+        if(nativeComposer&&engine.composerState().modalOpen)return;
         const mod=e.ctrlKey||e.metaKey;
         const key=e.key.toLowerCase();
         if(mod&&key==='s'){e.preventDefault();e.stopImmediatePropagation();emit('save-request',{});return;}

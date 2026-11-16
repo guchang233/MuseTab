@@ -42,6 +42,13 @@ EMSCRIPTEN_KEEPALIVE
 void mtOpen(const void* source, unsigned int len, const char* ext) { WebApi::instance()->open(source, len, std::string(ext)); }
 
 EMSCRIPTEN_KEEPALIVE
+int mtLoadTextFont(const void* source, unsigned int len) { return WebApi::instance()->loadTextFont(source,len)?1:0; }
+EMSCRIPTEN_KEEPALIVE
+const char* mtComposerState(const char* json) { static std::string s;s=WebApi::instance()->composerState(std::string(json));return s.c_str(); }
+EMSCRIPTEN_KEEPALIVE
+const char* mtViewRect() { static std::string s;s=WebApi::instance()->viewRect();return s.c_str(); }
+
+EMSCRIPTEN_KEEPALIVE
 void mtExport(const char* ext) { WebApi::instance()->exportTo(std::string(ext)); }
 
 EMSCRIPTEN_KEEPALIVE
@@ -91,6 +98,12 @@ EMSCRIPTEN_KEEPALIVE
 const char* mtApplyScoreStyle(const char* json) { static std::string s; s=WebApi::instance()->applyScoreStyle(json); return s.c_str(); }
 EMSCRIPTEN_KEEPALIVE
 const char* mtTransposeScore(int key, int direction, int wholeScore) { static std::string s; s=WebApi::instance()->transposeScore(key,direction,wholeScore!=0); return s.c_str(); }
+EMSCRIPTEN_KEEPALIVE
+const char* mtPlaybackInfo() { static std::string s; s=WebApi::instance()->playbackInfo(); return s.c_str(); }
+EMSCRIPTEN_KEEPALIVE
+int mtSeekSeconds(double seconds) { return WebApi::instance()->seekSeconds(seconds)?1:0; }
+EMSCRIPTEN_KEEPALIVE
+int mtAddPitch(int step, int octave, int accidental, int chord) { return WebApi::instance()->addPitch(step,octave,accidental,chord!=0)?1:0; }
 
 //! NOTE Returned strings stay valid until the next call of the same function
 EMSCRIPTEN_KEEPALIVE

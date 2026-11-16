@@ -1,0 +1,10 @@
+{
+  "upstream": "https://github.com/aicelen/Andromr",
+  "revision": "d8005852211026c5a67f6fededb6d4cede6680d5",
+  "release": "https://github.com/aicelen/Andromr/releases/download/v1.0/",
+  "models": [
+    {"file":"segnet_308_int8.tflite","archive":"segnet_308_int8.zip","sha256":"2c7ba2ad87a20f11b5122ce76cb244167ba67c2d0be962ac55f746f6ef03f377"},
+    {"file":"encoder_414_int8.tflite","archive":"encoder_414_int8.zip","sha256":"69e2c54bf46bb8d48ee23bd8e8b90edb0da699c79a3ec118b310177ae6c48332"},
+    {"file":"decoder_414_int8.onnx","archive":"decoder_414_int8.zip","sha256":"1d0c29a5be7b52a35dc6a1d1d43282e95ce1297e8de656540eecd3ee99201060"}
+  ]
+}

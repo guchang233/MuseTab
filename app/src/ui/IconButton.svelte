@@ -15,12 +15,13 @@
     glyphSize?: number;
     active?: boolean;
     seal?: boolean;
+    flat?: boolean;
     children?: Snippet;
   };
-  let { label, icon, glyph, glyphSize = 28, active = false, seal = false, children, ...rest }: Props = $props();
+  let { label, icon, glyph, glyphSize = 28, active = false, seal = false, flat = false, children, ...rest }: Props = $props();
 </script>
 
-<button class="ib" class:active class:seal aria-label={label} title={label} aria-pressed={active || undefined} {...rest}>
+<button class="ib" class:active class:seal class:flat aria-label={label} title={label} aria-pressed={active || undefined} {...rest}>
   <span class="face">
     {#if icon}<Icon name={icon} />{/if}
     {#if glyph}<Glyph name={glyph} size={glyphSize} />{/if}
@@ -29,6 +30,7 @@
 </button>
 
 <style>
+  .ib.flat{border-radius:3px;}.ib.flat.active::after{display:none;}
   .ib {
     position: relative;
     display: inline-grid;

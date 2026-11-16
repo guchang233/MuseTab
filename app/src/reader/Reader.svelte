@@ -24,7 +24,9 @@
   import ReaderHeader from './ReaderHeader.svelte';
   import { reading } from './layout.svelte';
   import {pageArrival} from './page-motion';
+  import {changeMode} from '../workspace/modes';
 
+  let {active=true}:{active?:boolean}=$props();
   const LINGER = 4800; // 工具条停留时长
 
   type View = 'horizontal' | 'vertical' | 'continuous';
@@ -35,21 +37,22 @@
   let barOpen = $state(false);
   let tempoOpen = $state(false);
   let compassOpen = $state(false);
-  let tempo = $state(100);
+  const tempo = $derived(Math.round(engine.tempoMultiplier*100));
   let pageIndex=$state(0),pageCount=$state(0),lastIndex=$state(0),pageError=$state('');
+  $effect(()=>{if(active&&reading.fullscreen)reading.setPage(pageIndex);});
   let root:HTMLDivElement,selectionRect=$state<{x:number;y:number;w:number;h:number}>();
   let gallery=$state<{showPage:(page:number)=>Promise<void>;turn:(delta:number)=>void}>();
   let pageLayout=$state<'auto'|'single'|'double'>((localStorage.getItem('musetab.pageLayout') as 'auto'|'single'|'double')||'auto'),layoutOpen=$state(false);
-  $effect(()=>registerBack(()=>{if(layoutOpen||tempoOpen){layoutOpen=tempoOpen=false;return true;}if(compassOpen){compassOpen=false;return true;}return false;},40));
+  $effect(()=>active?registerBack(()=>{if(layoutOpen||tempoOpen){layoutOpen=tempoOpen=false;return true;}if(compassOpen){compassOpen=false;return true;}return false;},40):undefined);
   function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);linger();}
   function fitPage(index:number){void gallery?.showPage(index);}
-  $effect(()=>{
+  $effect(()=>{if(!active)return;
     if(!reading.fullscreen||engine.status!=='ready')return;
     untrack(()=>engine.setPageLock(true));
     return()=>untrack(()=>{engine.setPageLock(false);if(nav.screen==='reader'){engine.readerLayout(VIEW_MODE[view]);engine.dispatch('zoom-page-width');}});
   });
   let seenControl=engine.readerControl.seq;
-  $effect(()=>{const command=engine.readerControl;if(command.seq===seenControl)return;seenControl=command.seq;untrack(()=>{
+  $effect(()=>{const command=engine.readerControl;if(!active){seenControl=command.seq;return;}if(command.seq===seenControl)return;seenControl=command.seq;untrack(()=>{
     if(command.key==='gesture'){compassOpen=false;showBar(false);return;}
     if(!reading.fullscreen){if(command.key==='next'||command.key==='previous')turn(command.key==='next'?1:-1);return;}
     if(command.key==='exit')void reading.setFullscreen(false);
@@ -76,21 +79,24 @@
   }
 
   let seenTap=engine.readerTapSeq;
-  $effect(()=>{const seq=engine.readerTapSeq;if(seq===seenTap)return;seenTap=seq;untrack(()=>{if(!engine.selection.none){compassOpen=true;showBar(false);}else{compassOpen=false;showBar(!barOpen);}});});
+  $effect(()=>{const seq=engine.readerTapSeq;if(!active){seenTap=seq;return;}if(seq===seenTap)return;seenTap=seq;untrack(()=>{if(!engine.selection.none){compassOpen=true;showBar(false);}else{compassOpen=false;showBar(!barOpen);}});});
   let autoTurn=$state(localStorage.getItem('musetab.autoTurn')!=='false');
   function toggleAutoTurn(){autoTurn=!autoTurn;localStorage.setItem('musetab.autoTurn',String(autoTurn));}
 
 
   // 进入看谱即只读；离开时交还
   $effect(() => {
+    if(!active)return;
     if (engine.status !== 'ready') return;
     engine.setViewOnly(true);
+    engine.readerLayout(VIEW_MODE[view]);
     return () => engine.setViewOnly(false);
   });
 
   // 新翻开的谱子：按页宽铺满
   let fittedFor = '';
   $effect(() => {
+    if(!active)return;
     const key = engine.project.open ? `${library.current?.id ?? ''}:${engine.project.title ?? ''}` : '';
     if (!key || key === fittedFor || engine.status !== 'ready') return;
     fittedFor = key;
@@ -100,6 +106,7 @@
 
   // 记下曲名，谱匣里显示用
   $effect(() => {
+    if(!active)return;
     const t = engine.project.title;
     const cur = library.current;
     if (t && cur && cur.title !== t) library.touch(cur.id, { title: t });
@@ -107,6 +114,7 @@
 
   // 选择消失时收起罗盘
   $effect(() => {
+    if(!active)return;
     if (engine.selection.none) compassOpen = false;
   });
 
@@ -176,7 +184,6 @@
     linger();
   }
   function setTempo(v: number) {
-    tempo = v;
     engine.setTempoMultiplier(v / 100);
     linger();
   }
@@ -186,7 +193,7 @@
     compassOpen = false;
     if (barOpen) linger();
   }
-  async function leave(to: 'library' | 'editor') {
+  async function leave(to: 'library' | 'editor' | 'player') {
     await activity.run('正在切换…',async()=>{
       try{await workspace.persist();}catch{return;}
       if (engine.playing) engine.stop();
@@ -196,6 +203,7 @@
   }
 
   function onkey(e: KeyboardEvent) {
+    if(!active)return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') turn(1);
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') turn(-1);
     else if (e.key === ' ') {
@@ -281,9 +289,10 @@
             onclick={cycleView}
           />{/if}
           <span class="sep"></span>
-          <button class="to-edit" onclick={() => leave('editor')}>
-            <Icon name="pen" size={20} /><span>编辑</span>
+          <button class="to-edit" onclick={() => leave('player')}>
+            <Icon name="sliders" size={20} /><span>播放设置</span>
           </button>
+          <IconButton label="编谱" icon="pen" onclick={()=>changeMode('editor')}/>
         </Slip>
 
         {#if layoutOpen}<div class="layout-slip"><Slip><div class="layout-body"><span class="label">页面排版</span><div class="layout-options">{#each [{value:'auto',label:'自动'},{value:'single',label:'单页'},{value:'double',label:'双页'}] as option}<button aria-pressed={pageLayout===option.value} onclick={()=>setLayout(option.value as 'auto'|'single'|'double')}>{option.label}</button>{/each}</div><p>自动：竖屏单页，横屏平板并排双页。</p><button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={()=>{toggleAutoTurn();linger();}}>播放时自动翻页 · {autoTurn?'开':'关'}</button></div></Slip></div>{/if}
@@ -292,7 +301,7 @@
             <Slip>
               <div class="tempo-body">
                 <span class="label">速度</span>
-                <Slider label="播放速度" min={40} max={160} step={5} bind:value={tempo} oninput={setTempo} />
+                <Slider label="播放速度" min={40} max={160} step={5} value={tempo} oninput={setTempo} />
                 <span class="pct">{tempo}%</span>
                 <button class="reset" onclick={() => setTempo(100)}>原速</button>
               </div>

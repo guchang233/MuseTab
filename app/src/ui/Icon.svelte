@@ -4,6 +4,8 @@
     `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" stroke="none"/>`;
 
   const icons = {
+    rewind:'<path d="M5 5v14m14-13-9 6 9 6z"/>',
+    stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
     speaker:'<path d="M4 9h4l5-4v14l-5-4H4zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/>',
     'speaker-off':'<path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6m0-6-5 6"/>',
     lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',

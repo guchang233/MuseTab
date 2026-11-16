@@ -7,11 +7,16 @@ qt_add_qml_module(appshell_qml
     VERSION 1.0
     QML_FILES
         platform/web/Main.qml
+        platform/web/ComposerWorkspace.qml
     DEPENDENCIES
         Muse.Ui
         Muse.UiComponents
         Muse.Shortcuts
         MuseScore.NotationScene
+        MuseScore.Palette
+        MuseScore.Inspector
+        MuseScore.InstrumentsScene
+        MuseScore.Playback
 )
 
 fixup_qml_module_dependencies(appshell_qml)

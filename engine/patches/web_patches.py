@@ -6,6 +6,7 @@ Usage: python web_patches.py <musescore-source-root>
 Each patch is a literal replace; a patch whose result is already present is skipped.
 """
 import sys
+import re
 from pathlib import Path
 
 root = Path(sys.argv[1])
@@ -180,9 +181,9 @@ patch("src/app/CMakeLists.txt",
       '    target_link_options(MuseScoreStudio PRIVATE --emit-symbol-map)\n'
       '    set_property(TARGET MuseScoreStudio PROPERTY QT_WASM_MAXIMUM_MEMORY 768MB)',
       "MuseTab: bound the Qt memory reservation for 32-bit Android WebViews")
-BRIDGE_EXPORTS = ["_mtPageMetrics", "_mtSelectPageAt", "_mtSelectionImage", "_mtOpen", "_mtExport", "_mtDispatch", "_mtActionState", "_mtSetTempoMultiplier",
+BRIDGE_EXPORTS = ["_mtComposerState", "_mtViewRect", "_mtLoadTextFont", "_mtPageMetrics", "_mtSelectPageAt", "_mtSelectionImage", "_mtOpen", "_mtExport", "_mtDispatch", "_mtActionState", "_mtSetTempoMultiplier",
                   "_mtSetViewOnly", "_mtSetCanvasTheme", "_mtPalettes", "_mtPalette", "_mtPaletteApply", "_mtSync",
-                  "_mtSetPageLock", "_mtSelectAt", "_mtPageView", "_mtGestureView", "_mtRenderPage", "_mtReaderLayout", "_mtScorePanels", "_mtChangeMixer", "_mtChangeParts", "_mtScoreStyle", "_mtApplyScoreStyle", "_mtTransposeScore"]
+                  "_mtSetPageLock", "_mtSelectAt", "_mtPageView", "_mtGestureView", "_mtRenderPage", "_mtReaderLayout", "_mtScorePanels", "_mtChangeMixer", "_mtChangeParts", "_mtScoreStyle", "_mtApplyScoreStyle", "_mtTransposeScore", "_mtPlaybackInfo", "_mtSeekSeconds", "_mtAddPitch"]
 set_line("src/app/exported_functions.cmake",
          'set(EXPORTED_FUNCTIONS "SHELL:-s EXPORTED_FUNCTIONS=',
          'set(EXPORTED_FUNCTIONS "SHELL:-s EXPORTED_FUNCTIONS=[_main,_malloc,_free,_load,_startAudioProcessing,_addSoundFont,'
@@ -315,13 +316,18 @@ patch(AE,
       "include(GetPlatformInfo)\ninclude(MuseCreateModule)\ninclude(SetupCompileWarnings)",
       "audioengine: platform macros")
 
-patch("src/web/appjs/CMakeLists.txt",
-      "    webapi.cpp\n    webapi.h\n)",
-      "    webapi.cpp\n    webapi.h\n)\n\n"
-      "# MuseTab: the bridge reaches into the palette module to offer the full symbol set\n"
-      "target_include_directories(appjs PRIVATE ${PROJECT_SOURCE_DIR}/src/palette)\n"
-      "target_link_libraries(appjs PRIVATE Qt::Gui Qt::Quick)",
-      "appjs: palette include path")
+appjs_cmake=root/"src/web/appjs/CMakeLists.txt"
+appjs_before=appjs_cmake.read_text(encoding="utf-8")
+appjs_base=re.sub(r"\n*# MuseTab: the bridge reaches into the palette module to offer the full symbol set\n"
+                  r"target_include_directories\(appjs PRIVATE \$\{PROJECT_SOURCE_DIR\}/src/palette\)\n"
+                  r"target_link_libraries\(appjs PRIVATE Qt::Gui Qt::Quick(?: Qt::Widgets)?\)\n?", "", appjs_before)
+appjs_after=appjs_base.rstrip()+"\n\n"+(
+    "# MuseTab: the bridge reaches into the palette module to offer the full symbol set\n"
+    "target_include_directories(appjs PRIVATE ${PROJECT_SOURCE_DIR}/src/palette)\n"
+    "target_link_libraries(appjs PRIVATE Qt::Gui Qt::Quick Qt::Widgets)\n")
+if appjs_after!=appjs_before:
+    appjs_cmake.write_text(appjs_after,encoding="utf-8",newline="\n")
+    print("  patched appjs: native panel and dialog dependencies (deduplicated)")
 
 # --- MuseTab view-only mode (reader): select by tap, never edit by gesture ----
 NV = "src/notationscene/qml/MuseScore/NotationScene/notationviewinputcontroller.cpp"
@@ -425,6 +431,14 @@ patch("src/engraving/playback/playbackmodel.cpp",
       "    changesChannel.onReceive(this, [this, playbackVoices, staffOrder, voices = playbackVoices(), order = staffOrder()](const ScoreChanges& changes) mutable {\n"
       "        const auto current = playbackVoices();\n        const auto currentOrder = staffOrder();\n        const bool controlOnly = currentOrder == order && current != voices;\n        voices = current;\n        order = currentOrder;\n        if (controlOnly) return; // Worker applies masks; display does not change audio.\n        if (shouldSkipChanges(changes)) {",
       "MuseTab: staff playback/display controls avoid score event rebuilds; structural edits still update audio")
+patch("src/playback/iplaybackcontroller.h",
+      "    virtual void seekBeat(int measureIndex, int beatIndex, bool flushSound = true) = 0;",
+      "    virtual void seekBeat(int measureIndex, int beatIndex, bool flushSound = true) = 0;\n    virtual void seek(muse::audio::secs_t seconds, bool flushSound = true) = 0;",
+      "MuseTab: expose timeline seeking on the existing playback controller")
+patch("src/playback/tests/mocks/playbackcontrollermock.h",
+      "    MOCK_METHOD(void, seekBeat, (int, int, bool), (override));",
+      "    MOCK_METHOD(void, seekBeat, (int, int, bool), (override));\n    MOCK_METHOD(void, seek, (muse::audio::secs_t, bool), (override));",
+      "MuseTab: mock existing-player timeline seeking")
 patch_all("src/playback/internal/playbackcontroller.cpp",
       "m_notation->hasVisibleParts()", "m_notation->parts()->hasParts()",
       "MuseTab: hidden notation still supports independent audio playback")

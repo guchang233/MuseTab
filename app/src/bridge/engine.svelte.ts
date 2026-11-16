@@ -11,6 +11,8 @@ export type Selection = {
   type?: string;
   tick?: number;
   pitch?: number;
+  text?:string;
+  voice?:number;dots?:number;durationTicks?:number;chordPitches?:number[];measureIndex?:number;
   /** 选中内容在引擎画布里的位置（CSS 像素，相对 iframe 左上角） */
   rect?: { x: number; y: number; w: number; h: number };
 };
@@ -21,6 +23,11 @@ export type PaletteData = { name: string; id: string; w: number; h: number; cell
 export type ActionState = { known: boolean; enabled: boolean; checked: boolean };
 
 type HostEngine = {
+  composerState(patch?:Record<string,unknown>):{enabled:boolean;locked:boolean;panel:string;keyboard:boolean;modalOpen:boolean;textOk?:boolean;textError?:string;pitchOk?:boolean;pitchError?:string;editOk?:boolean;editError?:string;editorInfo?:AriaEditorInfo;actions?:{code:string;title:string;enabled:boolean;checked:boolean}[];controls:{name:string;label:string;type:string;x:number;y:number;w:number;h:number;enabled:boolean}[]};
+  viewRect():{x:number;y:number;w:number;h:number};
+  playbackInfo():{duration:number;bpm?:number;numerator?:number;denominator?:number};
+  seekSeconds(seconds:number):boolean;
+  addPitch(step:number,octave:number,accidental:number,chord:boolean):boolean;
   pageMetrics():{w:number;h:number;rect?:{x:number;y:number;w:number;h:number}}[];
   selectPageAt(page:number,x:number,y:number):void;
   selectionImage(pixels:number):{page?:number;x?:number;y?:number;w?:number;h?:number;src?:string};
@@ -59,6 +66,7 @@ export type ScoreStyle = { width: number; height: number; left: number; right: n
 export type MixerChannel={id:number;name:string;sound:string;volume:number;pan:number;muted:boolean;solo:boolean};
 export type LayoutPart={id:string;name:string;visible:boolean;audible:boolean;staves:{id:string;index:number;playbackMask:number;visible:boolean;audible:boolean;lines:number}[]};
 export type ScorePanels={parts:LayoutPart[];channels:MixerChannel[]};
+export type AriaEditorInfo={metadata?:Record<string,string>;nominalNumerator?:number;nominalDenominator?:number;pickupNumerator?:number;pickupDenominator?:number;hasPickup?:boolean;currentNumerator?:number;currentDenominator?:number;key?:number;parts?:{id:string;name:string;selected:boolean}[];instruments?:{id:string;name:string;group:string;staves:number}[]};
 
 const UNKNOWN: ActionState = { known: false, enabled: false, checked: false };
 
@@ -72,9 +80,12 @@ let selection = $state<Selection>({ none: true, range: false, count: 0 });
 /** 每收到一次选择事件加一：同一个音符被再次点中时也能触发界面反应 */
 let selectionSeq = $state(0);
 let playing = $state(false);
+let tempoMultiplier=$state(1);
+let mixerLevels=$state<Record<number,number>>({});
 let position = $state<{secs:number;tick:number;cursor?:{page:number;x:number;y:number;w:number;h:number}}>({ secs: 0, tick: 0 });
 let editLocked=$state(true),unlockRequestSeq=$state(0),readerTapSeq=$state(0);
 let noteInput = $state(false);
+let composerViewportSeq=$state(0);
 let actionStates = $state<Record<string, ActionState>>({});
 let opening = $state(false);
 let changeSeq = $state(0);
@@ -98,6 +109,7 @@ function refreshActions(codes: string[]) {
 
 function onEvent(name: string, data: any) {
   switch (name) {
+    case 'composer-ui':composerViewportSeq++;break;
     case 'audio-error':playing=false;dispatchEvent(new CustomEvent('musetab-error',{detail:data.message}));break;
     case 'edit-unlock-request':unlockRequestSeq++;break;
     case 'reader-tap':readerTapSeq++;break;
@@ -133,6 +145,9 @@ function onEvent(name: string, data: any) {
     case 'playing':
       playing = !!data.playing;
       break;
+    case 'mixer-level':
+      mixerLevels={...mixerLevels,[data.id]:data.level};
+      break;
     case 'position':
       position = data;
       break;
@@ -163,9 +178,12 @@ function poll(win: Window, tries = 0) {
 
 export const engine = {
   pageMetrics(){return untrack(()=>host?.pageMetrics()||[]);},
+  composerState(patch:Record<string,unknown>={}){return untrack(()=>host?.composerState(patch));},
+  viewRect(){return untrack(()=>host?.viewRect());},
   selectPageAt(page:number,x:number,y:number){untrack(()=>host?.selectPageAt(page,x,y));},
   selectionImage(pixels:number){return untrack(()=>host?.selectionImage(pixels)||{});},
   get editLocked(){return editLocked;},
+  get composerViewportSeq(){return composerViewportSeq;},
   get unlockRequestSeq(){return unlockRequestSeq;},
   get readerTapSeq(){return readerTapSeq;},
   setEditLocked(v:boolean){editLocked=v;untrack(()=>host?.setEditLocked(v));},
@@ -204,6 +222,8 @@ export const engine = {
   get playing() {
     return playing;
   },
+  get tempoMultiplier(){return tempoMultiplier;},
+  get mixerLevels(){return mixerLevels;},
   get position() {
     return position;
   },
@@ -245,6 +265,9 @@ export const engine = {
   dispatch(code: string) {
     untrack(()=>host?.dispatch(code));
   },
+  addPitch(step:number,octave:number,accidental=0,chord=false){return untrack(()=>host?.addPitch(step,octave,accidental,chord)??false);},
+  playbackInfo(){return untrack(()=>host?.playbackInfo()??{duration:0});},
+  seekSeconds(seconds:number){return untrack(()=>host?.seekSeconds(seconds)??false);},
 
   /** 某个动作当前是否可用 / 处于选中态；首次查询后会随引擎事件自动更新 */
   action(code: string): ActionState {
@@ -257,6 +280,8 @@ export const engine = {
     });
     return st;
   },
+  // Command preparation must read the current core state, not a cached UI event.
+  currentAction(code:string):ActionState{return untrack(()=>host?.actionState(code)??UNKNOWN);},
 
   /** 引擎自带的全套符号面板（目录） */
   palettes(): PaletteInfo[] {
@@ -282,7 +307,8 @@ export const engine = {
   },
 
   setTempoMultiplier(m: number) {
-    host?.setTempoMultiplier(m);
+    tempoMultiplier=Math.max(.25,Math.min(2,m));
+    host?.setTempoMultiplier(tempoMultiplier);
   },
 
   exportTo(ext: string): Promise<Uint8Array> {

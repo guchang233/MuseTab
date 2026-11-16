@@ -1,0 +1,1054 @@
+[
+  {
+    "id": "flute",
+    "name": "长笛",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Flute"
+  },
+  {
+    "id": "piccolo",
+    "name": "短笛",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Piccolo"
+  },
+  {
+    "id": "alto-flute",
+    "name": "中音长笛",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "jazz",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "G 调移调",
+    "englishName": "Alto Flute"
+  },
+  {
+    "id": "oboe",
+    "name": "双簧管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "",
+    "englishName": "Oboe"
+  },
+  {
+    "id": "english-horn",
+    "name": "英国管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "F 调移调",
+    "englishName": "English Horn"
+  },
+  {
+    "id": "bassoon",
+    "name": "巴松管",
+    "category": "woodwinds",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "",
+    "englishName": "Bassoon"
+  },
+  {
+    "id": "contrabassoon",
+    "name": "低音巴松管",
+    "category": "woodwinds",
+    "clef": "bass",
+    "genres": [
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Contrabassoon"
+  },
+  {
+    "id": "bb-clarinet",
+    "name": "降 B 调单簧管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Clarinet in Bb"
+  },
+  {
+    "id": "a-clarinet",
+    "name": "A 调单簧管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "orchestra"
+    ],
+    "detail": "A 调移调",
+    "englishName": "Clarinet in A"
+  },
+  {
+    "id": "eb-clarinet",
+    "name": "降 E 调单簧管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "jazz",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "Eb 调移调",
+    "englishName": "Clarinet in Eb"
+  },
+  {
+    "id": "bb-bass-clarinet",
+    "name": "降 B 调低音单簧管",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Bass Clarinet in Bb"
+  },
+  {
+    "id": "alto-saxophone",
+    "name": "中音萨克斯",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Eb 调移调",
+    "englishName": "Alto Saxophone"
+  },
+  {
+    "id": "tenor-saxophone",
+    "name": "次中音萨克斯",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Tenor Saxophone"
+  },
+  {
+    "id": "baritone-saxophone",
+    "name": "上低音萨克斯",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Eb 调移调",
+    "englishName": "Baritone Saxophone"
+  },
+  {
+    "id": "soprano-saxophone",
+    "name": "高音萨克斯",
+    "category": "woodwinds",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Soprano Saxophone"
+  },
+  {
+    "id": "accordion",
+    "name": "手风琴",
+    "category": "freeReed",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz"
+    ],
+    "detail": "",
+    "englishName": "Accordion"
+  },
+  {
+    "id": "bandoneon",
+    "name": "班多钮手风琴",
+    "category": "freeReed",
+    "clef": "treble",
+    "genres": [
+      "world"
+    ],
+    "detail": "",
+    "englishName": "Bandoneon"
+  },
+  {
+    "id": "harmonica",
+    "name": "口琴",
+    "category": "freeReed",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz"
+    ],
+    "detail": "",
+    "englishName": "Harmonica"
+  },
+  {
+    "id": "bb-trumpet",
+    "name": "降 B 调小号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Trumpet in Bb"
+  },
+  {
+    "id": "c-trumpet",
+    "name": "C 调小号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Trumpet in C"
+  },
+  {
+    "id": "horn",
+    "name": "F 调圆号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "F 调移调",
+    "englishName": "Horn in F"
+  },
+  {
+    "id": "trombone",
+    "name": "长号",
+    "category": "brass",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Trombone"
+  },
+  {
+    "id": "bass-trombone",
+    "name": "低音长号",
+    "category": "brass",
+    "clef": "bass",
+    "genres": [
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Bass Trombone"
+  },
+  {
+    "id": "euphonium",
+    "name": "上低音号",
+    "category": "brass",
+    "clef": "bass",
+    "genres": [
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Euphonium"
+  },
+  {
+    "id": "euphonium-treble",
+    "name": "降 B 调上低音号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Euphonium in Bb"
+  },
+  {
+    "id": "tuba",
+    "name": "大号",
+    "category": "brass",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Tuba"
+  },
+  {
+    "id": "bb-tuba",
+    "name": "降 B 调低音大号",
+    "category": "brass",
+    "clef": "bass",
+    "genres": [
+      "orchestra"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Contrabass Tuba in Bb"
+  },
+  {
+    "id": "bb-cornet",
+    "name": "降 B 调短号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "concertBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Cornet in Bb"
+  },
+  {
+    "id": "flugelhorn",
+    "name": "富鲁格号",
+    "category": "brass",
+    "clef": "treble",
+    "genres": [
+      "jazz",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "Bb 调移调",
+    "englishName": "Flugelhorn"
+  },
+  {
+    "id": "timpani",
+    "name": "定音鼓",
+    "category": "pitchedPercussion",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Timpani"
+  },
+  {
+    "id": "glockenspiel",
+    "name": "钟琴",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand",
+      "classroom"
+    ],
+    "detail": "八度移调",
+    "englishName": "Glockenspiel"
+  },
+  {
+    "id": "xylophone",
+    "name": "木琴",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand",
+      "classroom"
+    ],
+    "detail": "八度移调",
+    "englishName": "Xylophone"
+  },
+  {
+    "id": "vibraphone",
+    "name": "颤音琴",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Vibraphone"
+  },
+  {
+    "id": "marimba",
+    "name": "马林巴",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Marimba"
+  },
+  {
+    "id": "tubular-bells",
+    "name": "管钟",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "",
+    "englishName": "Chimes"
+  },
+  {
+    "id": "crotales",
+    "name": "古钹",
+    "category": "pitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Crotales"
+  },
+  {
+    "id": "drumset",
+    "name": "架子鼓",
+    "category": "unpitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Drum Kit"
+  },
+  {
+    "id": "snare-drum",
+    "name": "小军鼓",
+    "category": "unpitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "choral",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Snare Drum"
+  },
+  {
+    "id": "bass-drum",
+    "name": "大鼓",
+    "category": "unpitchedPercussion",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Bass Drum"
+  },
+  {
+    "id": "cymbal",
+    "name": "钹",
+    "category": "unpitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand",
+      "marchingBand",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Cymbals"
+  },
+  {
+    "id": "bongos",
+    "name": "邦戈鼓",
+    "category": "unpitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Bongos"
+  },
+  {
+    "id": "congas",
+    "name": "康加鼓",
+    "category": "unpitchedPercussion",
+    "clef": "treble",
+    "genres": [
+      "popular",
+      "jazz",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Congas"
+  },
+  {
+    "id": "snare-drum",
+    "name": "行进小军鼓",
+    "category": "marchingPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "choral",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Marching Snare Drum"
+  },
+  {
+    "id": "bass-drum",
+    "name": "行进大鼓",
+    "category": "marchingPercussion",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Marching Bass Drum"
+  },
+  {
+    "id": "tom-toms",
+    "name": "次中音鼓",
+    "category": "marchingPercussion",
+    "clef": "treble",
+    "genres": [
+      "orchestra",
+      "concertBand",
+      "marchingBand"
+    ],
+    "detail": "",
+    "englishName": "Tenor Drums"
+  },
+  {
+    "id": "hand-clap",
+    "name": "拍手",
+    "category": "bodyPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "choral",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Hand Clap"
+  },
+  {
+    "id": "finger-snap",
+    "name": "响指",
+    "category": "bodyPercussion",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "choral",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Finger Snap"
+  },
+  {
+    "id": "stamp",
+    "name": "跺脚",
+    "category": "bodyPercussion",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "popular",
+      "choral",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Stamp"
+  },
+  {
+    "id": "voice",
+    "name": "人声",
+    "category": "vocals",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "choral"
+    ],
+    "detail": "",
+    "englishName": "Voice"
+  },
+  {
+    "id": "soprano",
+    "name": "女高音",
+    "category": "vocals",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Soprano"
+  },
+  {
+    "id": "mezzo-soprano",
+    "name": "女中音",
+    "category": "vocals",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Mezzo-soprano"
+  },
+  {
+    "id": "alto",
+    "name": "女低音",
+    "category": "vocals",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Alto"
+  },
+  {
+    "id": "tenor",
+    "name": "男高音",
+    "category": "vocals",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "jazz",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Tenor"
+  },
+  {
+    "id": "baritone",
+    "name": "男中音",
+    "category": "vocals",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "jazz",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Baritone"
+  },
+  {
+    "id": "bass",
+    "name": "男低音",
+    "category": "vocals",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "jazz",
+      "choral",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Bass"
+  },
+  {
+    "id": "piano",
+    "name": "钢琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "choral",
+      "orchestra",
+      "classroom"
+    ],
+    "detail": "",
+    "englishName": "Piano"
+  },
+  {
+    "id": "grand-piano",
+    "name": "三角钢琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "",
+    "englishName": "Grand Piano"
+  },
+  {
+    "id": "electric-piano",
+    "name": "电钢琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "popular",
+      "jazz"
+    ],
+    "detail": "",
+    "englishName": "Electric Piano"
+  },
+  {
+    "id": "harpsichord",
+    "name": "羽管键琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra",
+      "earlyMusic"
+    ],
+    "detail": "",
+    "englishName": "Harpsichord"
+  },
+  {
+    "id": "celesta",
+    "name": "钢片琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "orchestra"
+    ],
+    "detail": "八度移调",
+    "englishName": "Celesta"
+  },
+  {
+    "id": "organ",
+    "name": "管风琴",
+    "category": "keyboards",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Organ"
+  },
+  {
+    "id": "poly-synth",
+    "name": "合成器",
+    "category": "electronic",
+    "clef": "treble",
+    "genres": [
+      "popular",
+      "marchingBand",
+      "electronic"
+    ],
+    "detail": "",
+    "englishName": "Synthesizer"
+  },
+  {
+    "id": "bass-synthesizer",
+    "name": "低音合成器",
+    "category": "electronic",
+    "clef": "bass",
+    "genres": [
+      "popular",
+      "marchingBand",
+      "electronic"
+    ],
+    "detail": "",
+    "englishName": "Bass Synthesizer"
+  },
+  {
+    "id": "guitar-nylon",
+    "name": "古典吉他",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular"
+    ],
+    "detail": "八度移调",
+    "englishName": "Classical Guitar"
+  },
+  {
+    "id": "guitar-steel",
+    "name": "原声吉他",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "classroom"
+    ],
+    "detail": "八度移调",
+    "englishName": "Acoustic Guitar"
+  },
+  {
+    "id": "electric-guitar",
+    "name": "电吉他",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "marchingBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Electric Guitar"
+  },
+  {
+    "id": "bass-guitar",
+    "name": "贝斯",
+    "category": "pluckedStrings",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "marchingBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Bass Guitar"
+  },
+  {
+    "id": "acoustic-bass",
+    "name": "原声低音提琴",
+    "category": "pluckedStrings",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "jazz"
+    ],
+    "detail": "八度移调",
+    "englishName": "Acoustic Bass"
+  },
+  {
+    "id": "electric-bass",
+    "name": "电贝斯",
+    "category": "pluckedStrings",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "popular",
+      "jazz"
+    ],
+    "detail": "八度移调",
+    "englishName": "Electric Bass"
+  },
+  {
+    "id": "mandolin",
+    "name": "曼陀林",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "popular"
+    ],
+    "detail": "",
+    "englishName": "Mandolin"
+  },
+  {
+    "id": "banjo",
+    "name": "班卓琴",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz"
+    ],
+    "detail": "",
+    "englishName": "Banjo"
+  },
+  {
+    "id": "ukulele",
+    "name": "尤克里里",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "classroom"
+    ],
+    "detail": "八度移调",
+    "englishName": "Ukulele"
+  },
+  {
+    "id": "harp",
+    "name": "竖琴",
+    "category": "pluckedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Harp"
+  },
+  {
+    "id": "violin",
+    "name": "小提琴",
+    "category": "bowedStrings",
+    "clef": "treble",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Violin"
+  },
+  {
+    "id": "viola",
+    "name": "中提琴",
+    "category": "bowedStrings",
+    "clef": "alto",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Viola"
+  },
+  {
+    "id": "violoncello",
+    "name": "大提琴",
+    "category": "bowedStrings",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "popular",
+      "jazz",
+      "orchestra"
+    ],
+    "detail": "",
+    "englishName": "Cello"
+  },
+  {
+    "id": "contrabass",
+    "name": "低音提琴",
+    "category": "bowedStrings",
+    "clef": "bass",
+    "genres": [
+      "common",
+      "jazz",
+      "orchestra",
+      "concertBand"
+    ],
+    "detail": "八度移调",
+    "englishName": "Contrabass"
+  }
+]

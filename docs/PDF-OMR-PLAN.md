@@ -1,7 +1,19 @@
 # PDF → MusicXML → MSCZ → 原 PDF 同步播放
 
-日期：2026-11-14。依据项目根目录《PDF识别播放_所需技术清单.md》及当前 MuseTab 实现。
-状态：实现方案，尚未集成识别模型；当前 PDF 仍是原图看谱和批注，不能直接播放。
+日期：2026-11-15。依据项目根目录《PDF识别播放_所需技术清单.md》及当前 MuseTab 实现。
+状态：已实现离线桌面识别基线，见 `omr/` 与下方实测。Android App 尚未集成识别服务；当前 App 的原始 PDF 仍用于看谱和批注。
+
+## 已完成的识别基线
+
+- 固定 Andromr 提交 `d8005852211026c5a67f6fededb6d4cede6680d5` 和三个量化模型，下载时校验原始 ZIP 的 SHA-256，运行时再次校验解压后模型。
+- `omr/prepare.py` 只提取 homr 识别代码，用无界面的运行状态替代 Kivy，不导入原 App 的 `globals.py`，也不执行其存储迁移或清理逻辑。
+- `omr/recognize.py` 在单独任务目录逐页渲染 PDF、识别并生成 MusicXML；保留原文件，返回页码、音符数、可取消的阶段进度和需要复核的状态。
+- 自建真实 PDF：钢琴双谱表，4 小节、32 个四分音符。Windows CPU 基线识别耗时 **11.228 秒**；逐个比较小节、谱表、起始拍点、MIDI 音高和有理数时值，**32 / 32 完全一致**。这是一个简单单页样本，不能外推为复杂曲谱准确率。
+- 识别输出已通过现有 MuseScore 核心导入、保存 MSCZ、重新打开与实际 PCM 播放测试：两次播放进度均超过 1.5 秒，PCM 峰值约 0.0786，未报告音频错误。不另建 MIDI 合成器。
+
+下一步是把前后处理与 Java LiteRT / ONNX 推理放入 Android 独立识别进程，验证实机断网运行、峰值内存、任务取消与恢复，再接入 PDF 的“识别”入口。当前模型输出不提供可靠的逐音符原图坐标，因此暂不承诺原 PDF 上的精确音符光标；多页暂分开输出，尚不自动拼接声部。
+
+桌面复现实验：先克隆固定提交到 `D:/MuseTabSDK/omr/andromr-d800585`，在 Python 3.11 环境安装 `omr/requirements-desktop.txt`，运行 `omr/prepare.py --download-models`，再运行 `omr/recognize.py 文件.pdf --pages 1`。模型准备好后，识别过程不需要网络。`tools/create-omr-fixture.mjs` 创建自有测试谱 PDF，`tools/verify-omr-result.py` 对照真值，`tools/verify-omr-playback.mjs` 验证 MSCZ 保存、重新打开与实际 PCM 播放。
 
 ## 目标和边界
 

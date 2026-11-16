@@ -1,0 +1,476 @@
+//
+//  ScoreReaderExportPanel.swift
+//  MuseReaderiOS
+//
+
+import SwiftUI
+import UIKit
+import UniformTypeIdentifiers
+
+struct ScoreReaderExportPanel: View {
+    @AppStorage(ScoreReaderVideoExportSheet.openedKey) var hasOpenedVideoExport = false
+    let scoreTitle: String
+    let sharingDescription: String
+    let parts: [ScorePart]
+    let isShowingTemporaryTransposedView: Bool
+    @Binding var draft: ScoreReaderExportDraft
+    let isPreparingExport: Bool
+    let cancelAction: () -> Void
+    let exportAction: () -> Void
+    /// Rendering progress for exports that take a while, such as video.
+    var exportProgress: Double? = nil
+    var exportErrorMessage: String? = nil
+    /// Opens the video sheet. The reader presents it, not this popover, so it
+    /// can take the full height of the screen on iPad.
+    var openVideoSettingsAction: () -> Void = {}
+
+    var body: some View {
+        panelBody
+            .font(.system(size: isPhone ? 13 : 14, weight: .medium))
+            .foregroundStyle(Color.black.opacity(0.86))
+            .popoverPanelCard(width: panelWidth, maxHeight: panelMaxHeight, cornerRadius: 18,
+                              stroke: Color.white.opacity(0.62), shadowOpacity: 0.18, shadowY: 16)
+            .onAppear {
+                if draft.fileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    draft.fileName = scoreTitle
+                }
+                if draft.selectedPartIDs.isEmpty {
+                    draft.selectedPartIDs = Set(parts.map(\.id))
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var panelBody: some View {
+        #if os(Android)
+        // Android: the sheet is at most 88% of the screen, so on a shorter phone the
+        // buttons at the end of the scrolling content were below the edge. They stay at
+        // the bottom of the sheet instead.
+        VStack(spacing: 0) {
+            ScrollView(.vertical, showsIndicators: false) {
+                panelContent(includesFooter: false)
+                    .padding(isPhone ? 14 : 22)
+                    .popoverPanelScrollContent()
+            }
+            footerButtons
+                .padding(.horizontal, isPhone ? 14 : 22)
+                .padding(.vertical, 10)
+                .popoverPanelFixedFooter()
+        }
+        #else
+        ScrollView(.vertical, showsIndicators: false) {
+            panelContent(includesFooter: true)
+                .padding(isPhone ? 14 : 22)
+                .popoverPanelScrollContent()
+        }
+        #endif
+    }
+
+    private func panelContent(includesFooter: Bool) -> some View {
+        VStack(alignment: .leading, spacing: isPhone ? 10 : 18) {
+            VStack(alignment: .leading, spacing: isPhone ? 2 : 4) {
+                Text("Export Score")
+                    .font(.system(size: isPhone ? 18 : 20, weight: .semibold))
+                if !isPhone {
+                    Text("Choose content and format")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.black.opacity(0.52))
+                }
+                Text("Sharing: \(sharingDescription)")
+                    .font(.system(size: isPhone ? 12 : 13, weight: .semibold))
+                    .foregroundStyle(Color.blue.opacity(0.86))
+            }
+
+            VStack(alignment: .leading, spacing: isPhone ? 5 : 8) {
+                sectionTitle("What to export")
+                VStack(spacing: 0) {
+                    exportContentRow(
+                        title: "Full Score",
+                        isSelected: draft.includesFullScore,
+                        isRequiredSelection: !draft.includesParts
+                    ) {
+                        if draft.includesFullScore && !draft.includesParts {
+                            return
+                        }
+                        draft.includesFullScore.toggle()
+                    }
+                    Divider().padding(.leading, 40)
+                    exportContentRow(
+                        title: "Parts",
+                        isSelected: draft.includesParts,
+                        isRequiredSelection: !draft.includesFullScore
+                    ) {
+                        if draft.includesParts && !draft.includesFullScore {
+                            return
+                        }
+                        draft.includesParts.toggle()
+                    }
+                    if draft.includesParts, !parts.isEmpty {
+                        Divider().padding(.leading, 40)
+                        partSelector
+                    }
+                }
+                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(panelBorder)
+            }
+
+            VStack(alignment: .leading, spacing: isPhone ? 5 : 8) {
+                sectionTitle("Format")
+                VStack(spacing: 0) {
+                    ForEach(Array(ScoreReaderExportFormat.allCases.enumerated()), id: \.element.id) { index, format in
+                        if index > 0 {
+                            Divider().padding(.leading, 54)
+                        }
+                        formatRow(format)
+                    }
+                }
+                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(panelBorder)
+            }
+
+            if draft.format == .video {
+                videoSettingsRow
+            }
+
+            if showsExportPartsInConcertRow {
+                exportPartsInConcertRow
+            }
+
+            if showsExportPartsInOriginalKeyRow {
+                exportPartsInOriginalKeyRow
+            }
+
+            filenameRow
+
+            if includesFooter {
+                footerButtons
+            }
+        }
+    }
+
+    private var footerButtons: some View {
+        HStack(spacing: isPhone ? 8 : 10) {
+            Button(action: cancelAction) {
+                Text("Cancel")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(ScoreReaderExportFooterButtonStyle(isPrimary: false, isCompact: isPhone))
+
+            Button {
+                if draft.format == .video {
+                    openVideoSettingsAction()
+                } else {
+                    exportAction()
+                }
+            } label: {
+                if isPreparingExport, let exportProgress {
+                    Text("Rendering \(Int((exportProgress * 100).rounded()))%")
+                        .monospacedDigit()
+                        .frame(maxWidth: .infinity)
+                } else if isPreparingExport {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Text(draft.format == .video ? "Video Export" : "Export")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(ScoreReaderExportFooterButtonStyle(isPrimary: true, isCompact: isPhone))
+            .disabled(isPreparingExport || !draft.format.isAvailable || !draft.hasExportContent)
+        }
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: isPhone ? 12 : 15, weight: .semibold))
+            .foregroundStyle(Color.black.opacity(isPhone ? 0.58 : 0.86))
+    }
+
+    private var panelWidth: CGFloat {
+        let phoneWidth: CGFloat = AriaWindowLayout.shared.isLandscape ? 360 : 332
+        return min(isPhone ? phoneWidth : 380, max(AriaWindowLayout.shared.windowSize.width - 24, 300))
+    }
+
+    private var panelMaxHeight: CGFloat {
+        isPhone ? min(AriaWindowLayout.shared.windowSize.height - 72, 720) : min(AriaWindowLayout.shared.windowSize.height - 80, 940)
+    }
+
+    private var isPhone: Bool {
+        AriaWindowLayout.shared.usesPhoneLayout
+    }
+
+    private func exportContentRow(
+        title: String,
+        isSelected: Bool,
+        isRequiredSelection: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(isSelected ? Color.blue : Color.black.opacity(0.34))
+                    .font(.system(size: isPhone ? 17 : 20, weight: .semibold))
+                Text(title)
+                Spacer()
+                if isRequiredSelection && !isPhone {
+                    Text("Required")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.black.opacity(0.38))
+                }
+            }
+            .frame(height: isPhone ? 36 : 44)
+            .padding(.horizontal, isPhone ? 11 : 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var partSelector: some View {
+        VStack(alignment: .leading, spacing: isPhone ? 6 : 9) {
+            Text("Select Parts")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.black.opacity(0.64))
+
+            MobileHintingHorizontalScrollView(hintHeight: 25) {
+                HStack(spacing: 7) {
+                    ForEach(parts) { part in
+                        Button {
+                            togglePart(part.id)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: draft.selectedPartIDs.contains(part.id) ? "checkmark.square.fill" : "square")
+                                Text(part.name)
+                                    .lineLimit(1)
+                            }
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.blue)
+                            .padding(.horizontal, 7)
+                            .frame(height: 25)
+                            .background(Color.blue.opacity(0.09), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, isPhone ? 11 : 14)
+        .padding(.vertical, isPhone ? 8 : 12)
+    }
+
+    private func formatRow(_ format: ScoreReaderExportFormat) -> some View {
+        Button {
+            guard format.isAvailable else {
+                return
+            }
+            draft.format = format
+            if format == .video {
+                openVideoSettingsAction()
+            }
+        } label: {
+            HStack(spacing: isPhone ? 9 : 12) {
+                Image(systemName: format.systemImage)
+                    .font(.system(size: isPhone ? 16 : 20, weight: .semibold))
+                    .foregroundStyle(format.tint)
+                    .frame(width: isPhone ? 26 : 32, height: isPhone ? 26 : 32)
+                    .background(format.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: isPhone ? 6 : 7, style: .continuous))
+
+                VStack(alignment: .leading, spacing: isPhone ? 1 : 3) {
+                    HStack(spacing: 6) {
+                        Text(format.title)
+                        if showsTransposedLabel(for: format) {
+                            Text("(Transposed)")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color.blue.opacity(0.82))
+                        }
+                        if !format.isAvailable {
+                            Text("Soon")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.black.opacity(0.42))
+                        }
+                        // Until the video sheet has been opened once.
+                        if format == .video && !hasOpenedVideoExport {
+                            Text("New")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.accentColor, in: Capsule())
+                        }
+                    }
+                    if !isPhone {
+                        Text(format.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(Color.black.opacity(0.50))
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: draft.format == format ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(draft.format == format ? Color.blue : Color.black.opacity(0.32))
+                    .font(.system(size: isPhone ? 17 : 20, weight: .semibold))
+            }
+            .padding(.horizontal, isPhone ? 11 : 14)
+            .frame(height: isPhone ? 42 : 62)
+            .contentShape(Rectangle())
+            .opacity(format.isAvailable ? 1 : 0.44)
+        }
+        .buttonStyle(.plain)
+        .disabled(!format.isAvailable)
+    }
+
+    private var filenameRow: some View {
+        HStack {
+            Text("Filename")
+            #if os(Android)
+            // Android's field scrolls a long name to its end and clips it mid-letter, so
+            // it takes the row's spare width (with a Spacer beside it, Skip's HStack
+            // wouldn't share the width).
+            TextField(scoreTitle, text: $draft.fileName)
+                .multilineTextAlignment(.trailing)
+                .textFieldStyle(.plain)
+                .frame(maxWidth: .infinity)
+            #else
+            Spacer()
+            TextField(scoreTitle, text: $draft.fileName)
+                .multilineTextAlignment(.trailing)
+                .textFieldStyle(.plain)
+                .frame(maxWidth: isPhone ? 160 : 190)
+            #endif
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.black.opacity(0.32))
+        }
+        .padding(.horizontal, isPhone ? 12 : 16)
+        .frame(height: isPhone ? 42 : 54)
+        .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(panelBorder)
+    }
+
+    private var showsExportPartsInConcertRow: Bool {
+        draft.format == .pdf && !parts.isEmpty
+    }
+
+    private func showsTransposedLabel(for format: ScoreReaderExportFormat) -> Bool {
+        guard isShowingTemporaryTransposedView, format.exportsDisplayedView else {
+            return false
+        }
+
+        return draft.includesFullScore || !draft.exportPartsInOriginalKey
+    }
+
+    private var showsExportPartsInOriginalKeyRow: Bool {
+        isShowingTemporaryTransposedView && draft.format.exportsDisplayedView && !parts.isEmpty
+    }
+
+    private var videoSettingsRow: some View {
+        Button {
+            openVideoSettingsAction()
+        } label: {
+            HStack {
+                Text("Video settings")
+                Spacer()
+                Text(draft.videoStyle.title + (draft.videoVertical ? " · 9:16" : ""))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, isPhone ? 12 : 16)
+            .frame(height: isPhone ? 42 : 54)
+            .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9))
+            .overlay(panelBorder)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isPreparingExport)
+    }
+
+    private var exportPartsInConcertRow: some View {
+        Button {
+            draft.exportPartsInConcertPitch.toggle()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: draft.exportPartsInConcertPitch ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(draft.exportPartsInConcertPitch ? Color.blue : Color.black.opacity(0.34))
+                    .font(.system(size: isPhone ? 17 : 20, weight: .semibold))
+                Text("Export parts in concert")
+                Spacer()
+            }
+            .padding(.horizontal, isPhone ? 12 : 16)
+            .frame(height: isPhone ? 42 : 54)
+            .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(panelBorder)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!draft.includesParts)
+        .opacity(draft.includesParts ? 1 : 0.46)
+    }
+
+    private var exportPartsInOriginalKeyRow: some View {
+        Button {
+            draft.exportPartsInOriginalKey.toggle()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: draft.exportPartsInOriginalKey ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(draft.exportPartsInOriginalKey ? Color.blue : Color.black.opacity(0.34))
+                    .font(.system(size: isPhone ? 17 : 20, weight: .semibold))
+                Text("Export parts in Original Key")
+                Spacer()
+            }
+            .padding(.horizontal, isPhone ? 12 : 16)
+            .frame(height: isPhone ? 42 : 54)
+            .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(panelBorder)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!draft.includesParts)
+        .opacity(draft.includesParts ? 1 : 0.46)
+    }
+
+    private var panelBorder: some View {
+        RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .stroke(Color.black.opacity(0.08), lineWidth: 1)
+    }
+
+    private func togglePart(_ id: String) {
+        if draft.selectedPartIDs.contains(id) {
+            if draft.selectedPartIDs.count > 1 {
+                draft.selectedPartIDs.remove(id)
+            }
+        } else {
+            draft.selectedPartIDs.insert(id)
+        }
+    }
+}
+
+/// Nature photos bundled for photo backgrounds. All are CC0 (free for any use,
+/// no attribution); sources are listed in VIDEO_EXPORT_HANDOFF.md.
+
+struct ScoreReaderExportFooterButtonStyle: AriaLabelButtonStyle {
+    let isPrimary: Bool
+    var isCompact = false
+
+    func styled(_ label: AnyView, isPressed: Bool) -> some View {
+        label
+            .font(.system(size: isCompact ? 14 : 15, weight: .semibold))
+            .foregroundStyle(isPrimary ? Color.white : Color.black.opacity(0.86))
+            .frame(height: isCompact ? 42 : 52)
+            .background(
+                isPrimary
+                    ? Color.blue.opacity(isPressed ? 0.82 : 1)
+                    : Color.white.opacity(isPressed ? 0.64 : 0.86),
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(Color.black.opacity(isPrimary ? 0 : 0.08), lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+    }
+}

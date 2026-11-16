@@ -7,6 +7,8 @@
   import SearchBar from './zerafun/SearchBar.svelte';
   import PhoneNavigation from './zerafun/PhoneNavigation.svelte';
   import Personal from './zerafun/Personal.svelte';
+  import NewScore from '../composer/NewScore.svelte';
+  let creating=$state(false);
   import ManageScore from './ManageScore.svelte';
   import CloudDetail from './CloudDetail.svelte';
   import IconButton from '../ui/IconButton.svelte';
@@ -98,7 +100,7 @@
 
 {#snippet pageActions()}
   {#if tab === 'cloud'}<IconButton label="刷新曲库" icon="refresh" disabled={cloud.refreshing} onclick={() => cloud.refresh()} />
-  {:else}<IconButton label="导入乐谱" icon="plus" onclick={() => picker.click()} />{/if}
+    {:else}<IconButton label="新建乐谱" icon="plus" onclick={()=>creating=true}/><IconButton label="导入乐谱" icon="download" onclick={() => picker.click()} />{/if}
 {/snippet}
 {#snippet pageSearch()}
   <SearchBar bind:value={query} active={filter !== 'all'}>
@@ -176,6 +178,7 @@
   {#if tab==='cloud'&&detail}<CloudDetail score={detail} onclose={closeDetail}/>{/if}
 </div>
 
+{#if creating}<NewScore onclose={()=>creating=false}/>{/if}
 <style>
   .cloud-score-main{display:block;width:100%;text-align:left;color:inherit;background:transparent;}
   /* Music-specific layout only. Catalogue/search/phone chrome use source.css. */

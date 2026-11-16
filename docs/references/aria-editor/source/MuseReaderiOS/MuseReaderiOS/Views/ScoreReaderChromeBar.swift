@@ -1,0 +1,1333 @@
+//
+//  ScoreReaderChromeBar.swift
+//  MuseReaderiOS
+//
+
+import SwiftUI
+import UIKit
+
+struct ScoreReaderHeaderLayoutPolicy: Equatable {
+    let usesCompactTabletControls: Bool
+    let usesCondensedTabletPlayback: Bool
+
+    init(availableWidth: CGFloat) {
+        // Text-labelled utility controls fit comfortably only on wider iPad layouts.
+        usesCompactTabletControls = availableWidth < 1_180
+        // Portrait iPads need the tighter playback buttons to keep the centered
+        // island clear of both the leading and trailing islands.
+        usesCondensedTabletPlayback = availableWidth < 900
+    }
+}
+
+struct ScoreReaderPhoneHeaderLayoutPolicy: Equatable {
+    let playbackHorizontalOffset: CGFloat
+
+    init(availableWidth: CGFloat, isLandscape: Bool, hasParts: Bool) {
+        guard hasParts else {
+            playbackHorizontalOffset = 0
+            return
+        }
+
+        let outerHorizontalPadding: CGFloat = isLandscape ? 10 : 12
+        let contentWidth = max(availableWidth - (outerHorizontalPadding * 2), 0)
+        let compactPlaybackWidth: CGFloat = 126
+        let partsShareAndEditWidth: CGFloat = 168
+        let minimumIslandSpacing: CGFloat = 8
+        let centeredPlaybackRightEdge = (contentWidth + compactPlaybackWidth) / 2
+        let unobstructedRightEdge = contentWidth - partsShareAndEditWidth - minimumIslandSpacing
+
+        playbackHorizontalOffset = min(0, unobstructedRightEdge - centeredPlaybackRightEdge)
+    }
+}
+
+struct ScoreReaderChromeBar: View {
+    @State var isMetronomeSettingsPresented = false
+
+    let scoreTitle: String
+    let parts: [ScorePart]
+    @Binding var selectedPartID: String
+    @Binding var isPartsPanelPresented: Bool
+    @Binding var isExportPanelPresented: Bool
+    let supportsEditing: Bool
+    let interactionMode: ScoreReaderInteractionMode
+    @Binding var readingStyle: ScoreReaderReadingStyle
+    @Binding var playbackFollowEnabled: Bool
+    let supportsPlayback: Bool
+    let playbackState: ScorePlaybackState
+    let metronomeEnabled: Bool
+    let countInEnabled: Bool
+    let isCountingIn: Bool
+    let isEditingBusy: Bool
+    let isPlaybackBusy: Bool
+    let isExportBusy: Bool
+    let supportsAnnotations: Bool
+    let annotationModeActive: Bool
+    let playbackPreparationMessage: String?
+    let closeAction: () -> Void
+    let selectModeAction: () -> Void
+    let noteInputModeAction: () -> Void
+    let togglePlaybackAction: () -> Void
+    let stopPlaybackAction: () -> Void
+    let toggleMetronomeAction: () -> Void
+    let toggleCountInAction: () -> Void
+    var practiceSpeed: Double = 1
+    var writtenTempoBpm: Double = 0
+    var countInBars: Int = 1
+    var setMetronomeEnabledAction: (Bool) -> Void = { _ in }
+    var setPracticeSpeedAction: (Double) -> Void = { _ in }
+    var setCountInBarsAction: (Int) -> Void = { _ in }
+    var resetPracticeAction: () -> Void = {}
+    let toggleMixerAction: () -> Void
+    let isMixerPresented: Bool
+    let exportAction: () -> Void
+    let annotationAction: () -> Void
+    let editDoneAction: () -> Void
+    let selectPartAction: (Int?) -> Void
+    let managePartsAction: () -> Void
+    let allowsManagingParts: Bool
+    /// An iPhone Duo's fold, in window x coordinates, when it runs top to bottom. The
+    /// header then keeps clear of it: the back button over the left page, the rest
+    /// over the right.
+    var duoFold: ClosedRange<CGFloat>? = nil
+    /// False while an iPhone Duo shows its big playback card instead.
+    var showsHeaderPlayback = true
+    /// Extra room from the screen's edges, so the Duo's rounded corners don't clip the
+    /// outermost buttons.
+    var edgeInset: CGFloat = 0
+    let exportPanelContent: () -> AnyView
+
+    var body: some View {
+        #if os(Android) && ARIA_PHONE_AUDIT
+        let _ = AndroidPhoneAuditGeometry.evaluate("chrome")
+        #endif
+        GeometryReader { proxy in
+            let isPhoneHeader = AriaWindowLayout.shared.usesPhoneLayout
+            let isPhoneLandscape = isPhoneHeader && proxy.size.width > proxy.size.height
+            let isTightPhoneLandscape = isPhoneLandscape && proxy.size.width < 780
+            let tabletLayout = ScoreReaderHeaderLayoutPolicy(availableWidth: proxy.size.width)
+            let isCompactHeader = tabletLayout.usesCompactTabletControls
+            // iPhone and iPad share separated floating islands; phone uses tighter controls.
+            let usesPhoneFloatingIslands = isPhoneHeader
+            let showsPlaybackTimeOnPhone = !isPhoneLandscape || proxy.size.width >= 780
+
+            Group {
+                if let duoFold {
+                    let originX = proxy.frame(in: .global).minX
+                    duoFoldHeader(
+                        availableWidth: proxy.size.width,
+                        foldMinX: duoFold.lowerBound - originX,
+                        foldMaxX: duoFold.upperBound - originX
+                    )
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+                } else if usesPhoneFloatingIslands {
+                    phoneFloatingIslandHeader(
+                        availableWidth: proxy.size.width,
+                        isPhoneLandscape: isPhoneLandscape,
+                        showsPlaybackTime: showsPlaybackTimeOnPhone
+                    )
+                        .padding(.horizontal, isPhoneLandscape ? 10 : 12)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
+                } else {
+                    floatingIslandHeader(
+                        isCompactHeader: isCompactHeader,
+                        isPhoneLandscape: isPhoneLandscape,
+                        isTightPhoneLandscape: isTightPhoneLandscape,
+                        usesCondensedTabletPlayback: tabletLayout.usesCondensedTabletPlayback
+                    )
+                        .padding(.horizontal, isPhoneLandscape ? 10 : (isCompactHeader ? 10 : 18))
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+                }
+            }
+        }
+        .padding(.horizontal, edgeInset)
+        .padding(.top, edgeInset / 2)
+        .frame(height: 62 + edgeInset / 2)
+        #if os(Android) && ARIA_PHONE_AUDIT
+        let _ = AndroidInteractionTrace.point("evaluate_chrome_end")
+        #endif
+    }
+
+    private func floatingIslandHeader(
+        isCompactHeader: Bool,
+        isPhoneLandscape: Bool,
+        isTightPhoneLandscape: Bool,
+        usesCondensedTabletPlayback: Bool
+    ) -> some View {
+        Group {
+            if isPhoneLandscape {
+                phoneLandscapeFloatingHeader(
+                    isCompactHeader: isCompactHeader,
+                    showsPlaybackTime: !isTightPhoneLandscape
+                )
+            } else {
+                tabletStyleFloatingIslandHeader(
+                    isCompactHeader: isCompactHeader,
+                    usesCondensedPlayback: usesCondensedTabletPlayback
+                )
+            }
+        }
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.black.opacity(0.84))
+    }
+
+    /// iPhone landscape: HStack keeps islands from overlapping in the ZStack center layer.
+    private func phoneLandscapeFloatingHeader(isCompactHeader: Bool, showsPlaybackTime: Bool) -> some View {
+        HStack(spacing: 8) {
+            floatingIsland(horizontalPadding: 8) {
+                Button(action: closeAction) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text(scoreTitle)
+                            .font(.system(size: 15, weight: .semibold))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .scoreReaderChromeTapTarget(minWidth: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+            }
+            .layoutPriority(1)
+
+            if supportsPlayback {
+                floatingIsland(horizontalPadding: 6) {
+                    playbackIslandControls(isCompactHeader: true, showsElapsedTime: showsPlaybackTime)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+
+            Spacer(minLength: 4)
+
+            if parts.count > 1 {
+                floatingIsland(horizontalPadding: 6) {
+                    partsIslandButton(iconOnly: true)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+
+            floatingIsland(horizontalPadding: 5) {
+                exportIslandButton(fontSize: 18, minWidth: 40)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            if supportsEditing {
+                floatingIsland(horizontalPadding: 5) {
+                    editModeIslandButton(iconOnly: true)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+    }
+
+    private func tabletStyleFloatingIslandHeader(
+        isCompactHeader: Bool,
+        usesCondensedPlayback: Bool
+    ) -> some View {
+        ZStack {
+            HStack {
+                floatingIsland(horizontalPadding: 10) {
+                    Button(action: closeAction) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .semibold))
+                            Text(scoreTitle)
+                                .font(.system(size: 16, weight: .semibold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .layoutPriority(1)
+                        }
+                        .scoreReaderChromeTapTarget(minWidth: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                .frame(maxWidth: isCompactHeader ? 220 : 340, alignment: .leading)
+
+                Spacer(minLength: 0)
+            }
+
+            if supportsPlayback {
+                floatingIsland(horizontalPadding: usesCondensedPlayback ? 10 : 14) {
+                    if usesCondensedPlayback {
+                        compactPlaybackControls(showsElapsedTime: false)
+                    } else {
+                        playbackIslandControls(isCompactHeader: isCompactHeader)
+                    }
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+
+            HStack(spacing: 12) {
+                Spacer(minLength: 0)
+
+                if parts.count > 1 {
+                    floatingIsland(horizontalPadding: 8) {
+                        partsIslandButton()
+                    }
+                    .naturalWidthOnAndroid()
+                }
+
+                if supportsAnnotations {
+                    annotationModeIslandButton
+                        .naturalWidthOnAndroid()
+                }
+
+                floatingIsland(horizontalPadding: 5) {
+                    exportIslandButton(fontSize: 21, minWidth: 44)
+                }
+                .naturalWidthOnAndroid()
+
+                if supportsEditing {
+                    floatingIsland(horizontalPadding: 5) {
+                        editModeIslandButton(iconOnly: false)
+                    }
+                    .naturalWidthOnAndroid()
+                }
+            }
+        }
+    }
+
+    private func playbackIslandControls(isCompactHeader: Bool, showsElapsedTime: Bool = true) -> some View {
+        HStack(spacing: isCompactHeader ? 0 : 2) {
+            Button(action: togglePlaybackAction) {
+                Group {
+                    if isPlaybackBusy {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 18, weight: .bold))
+                    }
+                }
+                .scoreReaderChromeTapTarget(minWidth: 44)
+            }
+            .disabled(!supportsPlayback || !playbackState.isAvailable || playbackState.isPlaying || isPlaybackBusy)
+            .opacity(supportsPlayback && playbackState.isAvailable && !playbackState.isPlaying ? 1 : 0.36)
+            .accessibilityLabel("Play")
+
+            Button(action: togglePlaybackAction) {
+                Image(systemName: "pause.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .scoreReaderChromeTapTarget(minWidth: 44)
+            }
+            .disabled(!playbackState.isAvailable || !playbackState.isPlaying || isPlaybackBusy)
+            .opacity(playbackState.isAvailable && playbackState.isPlaying ? 0.92 : 0.36)
+            .accessibilityLabel("Pause playback")
+
+            Button(action: stopPlaybackAction) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .scoreReaderChromeTapTarget(minWidth: 44)
+            }
+            .disabled(!playbackState.isAvailable || playbackState.status == .stopped || isPlaybackBusy)
+            .opacity(playbackState.isAvailable && playbackState.status != .stopped ? 0.92 : 0.36)
+            .accessibilityLabel("Stop playback")
+
+            metronomeButton(compact: false, iconSize: isCompactHeader ? 22 : 24)
+
+            mixerButton
+
+            if showsElapsedTime {
+                #if os(Android)
+                AndroidPlaybackTimeLabel(fallback: playbackState, isCountingIn: isCountingIn,
+                                         preparationMessage: playbackPreparationMessage,
+                                         practiceSpeed: practiceSpeed)
+                    .font(.system(size: isCompactHeader ? 11 : 13, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: true, vertical: false)
+                #else
+                Text(playbackTimeLabel)
+                    .font(.system(size: isCompactHeader ? 11 : 13, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: true, vertical: false)
+                #endif
+            }
+        }
+    }
+
+    private var mixerButton: some View {
+        Button(action: toggleMixerAction) {
+            Image(systemName: "slider.vertical.3")
+                .font(.system(size: 18, weight: .medium))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isMixerPresented ? Color.blue : Color.black.opacity(0.84))
+        .disabled(!supportsPlayback)
+        .accessibilityLabel("Mixer")
+        .accessibilityValue(isMixerPresented ? "Open" : "Closed")
+    }
+
+    private var playbackTimeLabel: String {
+        if isCountingIn { return "Count-in" }
+        let speed = abs(practiceSpeed - 1) > 0.001 ? " · \(ScoreReaderPracticePanel.percent(practiceSpeed))" : ""
+        return playbackPreparationMessage ?? "\(playbackState.currentTimeLabel) / \(playbackState.durationLabel)\(speed)"
+    }
+
+    private func metronomeIcon(compact: Bool, iconSize: CGFloat) -> some View {
+        Image(systemName: "metronome")
+            .font(.system(size: iconSize, weight: .medium))
+            #if !os(Android)
+            // Android's glyph is drawn at the right width (generate-symbols.py).
+            .scaleEffect(x: 0.86, y: 1.0, anchor: .center)
+            #endif
+            .overlay(alignment: .topTrailing) {
+                if countInEnabled {
+                    Text("\(countInBars)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 14, height: 14)
+                        .background(Color.blue, in: Circle())
+                        .offset(x: 7, y: -5)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(width: compact ? 24 : 44, height: compact ? 30 : 44)
+    }
+
+    private func presentMetronomeSettings() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        isMetronomeSettingsPresented = true
+    }
+
+    private func metronomeButton(compact: Bool, iconSize: CGFloat) -> some View {
+        let isEnabled = playbackState.isAvailable && !isPlaybackBusy
+        // A tap opens Playback & Practice (metronome, practice speed, count-in). It replaces
+        // tap-to-toggle and hold-for-count-in.
+        let button = Button(action: presentMetronomeSettings) {
+            metronomeIcon(compact: compact, iconSize: iconSize)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(metronomeEnabled || abs(practiceSpeed - 1) > 0.001
+            ? Color(red: 0.12, green: 0.45, blue: 0.92) : Color.black.opacity(0.84))
+        .disabled(!isEnabled)
+        .opacity(playbackState.isAvailable ? 1 : 0.45)
+        .accessibilityLabel("Playback and practice")
+        .accessibilityValue(metronomeAccessibilityValue)
+
+        #if os(Android)
+        // Sized to the panel's measured content, like the parts and export panels: two
+        // detents let Skip open at either one and switch between them as the panel redraws.
+        return button.sheet(isPresented: $isMetronomeSettingsPresented) {
+            ScrollView(.vertical, showsIndicators: false) {
+                metronomeSettingsPopover
+                    .padding(.bottom, 12)
+                    .popoverPanelScrollContent()
+            }
+            .presentationCompactPopoverWhenAvailable()
+        }
+        #else
+        return button.popover(isPresented: $isMetronomeSettingsPresented, arrowEdge: .top) {
+            metronomeSettingsPopover
+                .presentationCompactPopoverWhenAvailable()
+        }
+        #endif
+    }
+
+    private var metronomeAccessibilityValue: String {
+        var parts: [String] = []
+        parts.append(metronomeEnabled ? "Metronome on" : "Metronome off")
+        if abs(practiceSpeed - 1) > 0.001 { parts.append("Speed \(ScoreReaderPracticePanel.percent(practiceSpeed))") }
+        if countInEnabled { parts.append(countInBars == 2 ? "Two-bar count-in" : "One-bar count-in") }
+        return parts.joined(separator: ", ")
+    }
+
+    private var metronomeSettingsPopover: some View {
+        ScoreReaderPracticePanel(
+            metronomeEnabled: metronomeEnabled,
+            practiceSpeed: practiceSpeed,
+            countInEnabled: countInEnabled,
+            countInBars: countInBars,
+            writtenTempoBpm: writtenTempoBpm,
+            setMetronomeEnabledAction: setMetronomeEnabledAction,
+            setPracticeSpeedAction: setPracticeSpeedAction,
+            setCountInBarsAction: setCountInBarsAction,
+            resetAction: resetPracticeAction
+        )
+    }
+
+    private var compactMixerButton: some View {
+        Button(action: toggleMixerAction) {
+            Image(systemName: "slider.vertical.3")
+                .font(.system(size: 17, weight: .medium))
+                .frame(width: 24, height: 30)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isMixerPresented ? Color.blue : Color.black.opacity(0.84))
+        .disabled(!supportsPlayback)
+        .accessibilityLabel("Mixer")
+        .accessibilityValue(isMixerPresented ? "Open" : "Closed")
+    }
+
+    private func partsIslandButton(iconOnly: Bool = false) -> some View {
+        Button(action: togglePartsPanel) {
+            Group {
+                if iconOnly {
+                    Image(systemName: "list.bullet.indent")
+                        .font(.system(size: 16, weight: .semibold))
+                } else {
+                    HStack(spacing: 7) {
+                        Image(systemName: "list.bullet.indent")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Parts")
+                            .font(.system(size: 14, weight: .semibold))
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .foregroundStyle(isPartsPanelPresented ? Color.blue : Color.black.opacity(0.82))
+            .scoreReaderChromeTapTarget(minWidth: iconOnly ? 40 : 76)
+        }
+        .buttonStyle(.plain)
+        .disabled(isEditingBusy)
+        .opacity(isEditingBusy ? 0.45 : 1)
+        .accessibilityLabel("Parts")
+        .popover(isPresented: $isPartsPanelPresented, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+            partsPanelContent
+        }
+    }
+
+    private func exportIslandButton(fontSize: CGFloat, minWidth: CGFloat) -> some View {
+        Button(action: exportAction) {
+            Group {
+                if isExportBusy {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: fontSize, weight: .medium))
+                }
+            }
+            .scoreReaderChromeTapTarget(minWidth: minWidth)
+        }
+        .buttonStyle(.plain)
+        .disabled(isExportBusy)
+        .accessibilityLabel(isExportBusy ? "Preparing Share" : "Share Score")
+        .popover(isPresented: $isExportPanelPresented, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+            exportPanelContent()
+                .presentationCompactPopoverWhenAvailable()
+        }
+    }
+
+    private func editModeIslandButton(iconOnly: Bool) -> some View {
+        Button(action: editDoneAction) {
+            Group {
+                if interactionMode == .leavingEdit {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if iconOnly {
+                    if interactionMode == .edit {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 17, weight: .semibold))
+                    } else {
+                        Text("Edit")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                } else {
+                    HStack(spacing: 7) {
+                        if interactionMode == .edit {
+                            Image(systemName: "checkmark")
+                        } else {
+                            Image(systemName: "pencil")
+                        }
+                        Text(interactionMode == .edit ? "Done" : "Edit")
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                }
+            }
+            .foregroundStyle(
+                !iconOnly && interactionMode == .edit
+                    ? Color.black.opacity(0.84)
+                    : Color.blue
+            )
+            .scoreReaderChromeTapTarget(minWidth: iconOnly ? 40 : 72)
+        }
+        .buttonStyle(.plain)
+        .disabled(!supportsEditing || isEditingBusy || interactionMode == .leavingEdit)
+        .opacity(supportsEditing ? 1 : 0.42)
+        .accessibilityLabel(interactionMode == .edit ? "Done editing" : "Edit score")
+    }
+
+    private var annotationModeIslandButton: some View {
+        Button(action: annotationAction) {
+            Image(systemName: "pencil.tip")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(annotationModeActive ? Color.white : Color.black.opacity(0.78))
+                .frame(width: 54, height: 44)
+                .scoreReaderChromeIslandBackground(cornerRadius: 18, isSelected: annotationModeActive)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isEditingBusy || interactionMode != .view)
+        .accessibilityLabel(annotationModeActive ? "Exit annotation mode" : "Annotate score")
+        .accessibilitySelected(annotationModeActive)
+    }
+
+    private var partsPanelContent: some View {
+        ScoreReaderPartsPanel(
+            parts: parts,
+            selectedPartID: $selectedPartID,
+            isPresented: $isPartsPanelPresented,
+            selectPartAction: selectPartAction,
+            managePartsAction: managePartsAction,
+            allowsManagingParts: allowsManagingParts
+        )
+        .presentationCompactPopoverWhenAvailable()
+    }
+
+    private func togglePartsPanel() {
+        if !isPartsPanelPresented {
+            isExportPanelPresented = false
+        }
+        isPartsPanelPresented.toggle()
+    }
+
+    private func floatingIsland<Content: View>(
+        horizontalPadding: CGFloat = 14,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .padding(.horizontal, horizontalPadding)
+            .frame(height: 44)
+            .scoreReaderChromeIslandBackground(cornerRadius: 18)
+    }
+
+    private func phoneFloatingIslandHeader(availableWidth: CGFloat, isPhoneLandscape: Bool, showsPlaybackTime: Bool) -> some View {
+        let hasTrailingExtras = parts.count > 1
+        let showsCenteredPlaybackTime = showsPlaybackTime && (!hasTrailingExtras || availableWidth >= 620)
+        let showsTitle = isPhoneLandscape && availableWidth >= 620
+        let phoneLayout = ScoreReaderPhoneHeaderLayoutPolicy(
+            availableWidth: availableWidth,
+            isLandscape: isPhoneLandscape,
+            hasParts: hasTrailingExtras
+        )
+
+        return ZStack {
+            HStack {
+                floatingIsland(horizontalPadding: showsTitle ? 8 : 5) {
+                    Button(action: closeAction) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+
+                            if showsTitle {
+                                Text(scoreTitle)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                        }
+                        .scoreReaderChromeTapTarget(minWidth: showsTitle ? 44 : 40)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                .frame(maxWidth: showsTitle ? max(96, availableWidth * 0.28) : nil, alignment: .leading)
+                .fixedSize(horizontal: !showsTitle, vertical: false)
+
+                Spacer(minLength: 0)
+            }
+
+            if supportsPlayback && showsHeaderPlayback {
+                floatingIsland(horizontalPadding: 10) {
+                    compactPlaybackControls(showsElapsedTime: showsCenteredPlaybackTime)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                .offset(x: phoneLayout.playbackHorizontalOffset)
+            }
+
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+
+                if hasTrailingExtras {
+                    floatingIsland(horizontalPadding: 6) {
+                        partsIslandButton(iconOnly: true)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                floatingIsland(horizontalPadding: 5) {
+                    exportIslandButton(fontSize: 18, minWidth: 40)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                if supportsEditing {
+                    floatingIsland(horizontalPadding: 5) {
+                        editModeIslandButton(iconOnly: true)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+        }
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.black.opacity(0.84))
+    }
+
+    /// An iPhone Duo with its fold running top to bottom: the back button over the left page,
+    /// playback and the other buttons over the right, nothing on the fold.
+    private func duoFoldHeader(availableWidth: CGFloat, foldMinX: CGFloat, foldMaxX: CGFloat) -> some View {
+        let leadingWidth = min(max(foldMinX, 0), availableWidth)
+        let gapWidth = min(max(foldMaxX - leadingWidth, 0), availableWidth - leadingWidth)
+        let trailingWidth = max(availableWidth - leadingWidth - gapWidth, 0)
+        let hasTrailingExtras = parts.count > 1
+
+        return HStack(spacing: 0) {
+            HStack {
+                floatingIsland(horizontalPadding: 8) {
+                    Button(action: closeAction) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                            Text(scoreTitle)
+                                .font(.system(size: 15, weight: .semibold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        .scoreReaderChromeTapTarget(minWidth: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Back")
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .frame(width: leadingWidth)
+
+            Color.clear
+                .frame(width: gapWidth)
+                .allowsHitTesting(false)
+
+            HStack(spacing: 8) {
+                if supportsPlayback && showsHeaderPlayback {
+                    floatingIsland(horizontalPadding: 10) {
+                        compactPlaybackControls(showsElapsedTime: trailingWidth >= 400)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                Spacer(minLength: 4)
+
+                if hasTrailingExtras {
+                    floatingIsland(horizontalPadding: 6) {
+                        partsIslandButton(iconOnly: true)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                floatingIsland(horizontalPadding: 5) {
+                    exportIslandButton(fontSize: 18, minWidth: 40)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                if supportsEditing {
+                    floatingIsland(horizontalPadding: 5) {
+                        editModeIslandButton(iconOnly: true)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(width: trailingWidth)
+        }
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.black.opacity(0.84))
+    }
+
+    private func compactPlaybackControls(showsElapsedTime: Bool) -> some View {
+        HStack(spacing: 4) {
+            Button(action: togglePlaybackAction) {
+                Group {
+                    if isPlaybackBusy {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: playbackState.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: playbackState.isPlaying ? 12 : 15, weight: .bold))
+                    }
+                }
+                .frame(width: 24, height: 30)
+            }
+            .disabled(!supportsPlayback || !playbackState.isAvailable || isPlaybackBusy)
+            .accessibilityLabel(playbackState.isPlaying ? "Pause playback" : "Play playback")
+
+            Button(action: stopPlaybackAction) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 22, height: 30)
+            }
+            .disabled(!playbackState.isAvailable || playbackState.status == .stopped || isPlaybackBusy)
+            .opacity(playbackState.isAvailable && playbackState.status != .stopped ? 0.92 : 0.36)
+
+            metronomeButton(compact: true, iconSize: 19)
+
+            compactMixerButton
+
+            if showsElapsedTime {
+                #if os(Android)
+                AndroidPlaybackTimeLabel(fallback: playbackState, isCountingIn: isCountingIn,
+                                         preparationMessage: playbackPreparationMessage,
+                                         practiceSpeed: practiceSpeed)
+                    .font(.system(size: 10, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .fixedSize(horizontal: true, vertical: false)
+                #else
+                Text(playbackTimeLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .fixedSize(horizontal: true, vertical: false)
+                #endif
+            }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func scoreReaderTopBarBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .background(Color.white.opacity(0.20))
+                .glassEffect(.regular.interactive(true))
+                .shadow(color: Color.black.opacity(0.08), radius: 16, y: 6)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.34))
+                        .frame(height: 0.7)
+                        .allowsHitTesting(false)
+                }
+        } else {
+            self
+                .background(.ultraThinMaterial)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.10))
+                        .frame(height: 1)
+                        .allowsHitTesting(false)
+                }
+        }
+    }
+
+    func scoreReaderChromeTapTarget(minWidth: CGFloat = 44) -> some View {
+        self
+            .frame(minWidth: minWidth, minHeight: 44)
+            .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    func scoreReaderChromeIslandBackground(cornerRadius: CGFloat, isSelected: Bool = false) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        if isSelected {
+            self
+                .background(Color.blue, in: shape)
+                .shadow(color: Color.black.opacity(0.09), radius: 18, y: 8)
+        } else if #available(iOS 26.0, *) {
+            self
+                .background(Color.white.opacity(0.26), in: shape)
+                .glassEffect(.regular.interactive(true), in: shape)
+                .overlay {
+                    shape
+                        .stroke(Color.white.opacity(0.36), lineWidth: 0.8)
+                        .allowsHitTesting(false)
+                }
+                .shadow(color: Color.black.opacity(0.09), radius: 18, y: 8)
+        } else {
+            self
+                .background(.ultraThinMaterial, in: shape)
+                .overlay {
+                    shape
+                        .stroke(Color.black.opacity(0.07), lineWidth: 0.7)
+                        .allowsHitTesting(false)
+                }
+        }
+    }
+
+}
+
+/// Playback for an iPhone Duo held like a book while editing: big controls on the right
+/// page, just above the editing deck, in place of the header's small ones.
+struct ScoreReaderDuoPlaybackCard: View {
+    let playbackState: ScorePlaybackState
+    let supportsPlayback: Bool
+    let isPlaybackBusy: Bool
+    let isCountingIn: Bool
+    let playbackPreparationMessage: String?
+    let metronomeEnabled: Bool
+    let countInEnabled: Bool
+    let isMixerPresented: Bool
+    let togglePlaybackAction: () -> Void
+    let stopPlaybackAction: () -> Void
+    let toggleMetronomeAction: () -> Void
+    let toggleCountInAction: () -> Void
+    let toggleMixerAction: () -> Void
+
+    private static let accentColor = Color(red: 0.12, green: 0.45, blue: 0.92)
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 14) {
+                playButton
+                stopButton
+                mixerButton
+
+                Spacer(minLength: 8)
+
+                Text(playbackTimeLabel)
+                    .font(.system(size: 20, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(Color.black.opacity(0.84))
+            }
+
+            HStack(spacing: 10) {
+                toggleButton(title: "Metronome", systemImage: "metronome",
+                             isOn: metronomeEnabled, action: toggleMetronomeAction)
+                toggleButton(title: "Count-in", systemImage: "timer",
+                             isOn: countInEnabled, action: toggleCountInAction)
+            }
+        }
+        .padding(12)
+        .scoreReaderChromeIslandBackground(cornerRadius: 24)
+    }
+
+    private var playbackTimeLabel: String {
+        if isCountingIn { return "Count-in" }
+        return playbackPreparationMessage ?? "\(playbackState.currentTimeLabel) / \(playbackState.durationLabel)"
+    }
+
+    private var playButton: some View {
+        Button(action: togglePlaybackAction) {
+            Group {
+                if isPlaybackBusy {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: playbackState.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 54, height: 54)
+            .background(Self.accentColor, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!supportsPlayback || !playbackState.isAvailable || isPlaybackBusy)
+        .opacity(supportsPlayback && playbackState.isAvailable ? 1 : 0.45)
+        .accessibilityLabel(playbackState.isPlaying ? "Pause playback" : "Play playback")
+    }
+
+    private var stopButton: some View {
+        let canStop = playbackState.isAvailable && playbackState.status != .stopped && !isPlaybackBusy
+        return Button(action: stopPlaybackAction) {
+            Image(systemName: "stop.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.black.opacity(0.84))
+                .frame(width: 44, height: 44)
+                .background(Color.black.opacity(0.06), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!canStop)
+        .opacity(canStop ? 1 : 0.4)
+        .accessibilityLabel("Stop playback")
+    }
+
+    private var mixerButton: some View {
+        Button(action: toggleMixerAction) {
+            Image(systemName: "slider.vertical.3")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(isMixerPresented ? Self.accentColor : Color.black.opacity(0.84))
+                .frame(width: 44, height: 44)
+                .background(isMixerPresented ? Self.accentColor.opacity(0.14) : Color.black.opacity(0.06), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!supportsPlayback)
+        .accessibilityLabel("Mixer")
+        .accessibilityValue(isMixerPresented ? "Open" : "Closed")
+    }
+
+    private func toggleButton(title: String, systemImage: String, isOn: Bool,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .medium))
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(isOn ? Self.accentColor : Color.black.opacity(0.84))
+            .frame(maxWidth: .infinity, minHeight: 42)
+            .background(isOn ? Self.accentColor.opacity(0.14) : Color.black.opacity(0.05),
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(!playbackState.isAvailable || isPlaybackBusy)
+        .opacity(playbackState.isAvailable ? 1 : 0.45)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn ? "On" : "Off")
+    }
+}
+
+/// Playback on a folded Duo: a column of buttons in the system strip down the screen's side.
+struct ScoreReaderDuoSideTransport: View {
+    let playbackState: ScorePlaybackState
+    let supportsPlayback: Bool
+    let isPlaybackBusy: Bool
+    let metronomeEnabled: Bool
+    let countInEnabled: Bool
+    let isMixerPresented: Bool
+    let togglePlaybackAction: () -> Void
+    let stopPlaybackAction: () -> Void
+    let toggleMetronomeAction: () -> Void
+    let toggleCountInAction: () -> Void
+    let toggleMixerAction: () -> Void
+
+    private static let accentColor = Color(red: 0.12, green: 0.45, blue: 0.92)
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Button(action: togglePlaybackAction) {
+                Group {
+                    if isPlaybackBusy {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: playbackState.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 19, weight: .bold))
+                    }
+                }
+                .frame(width: 44, height: 44)
+            }
+            .disabled(!supportsPlayback || !playbackState.isAvailable || isPlaybackBusy)
+            .accessibilityLabel(playbackState.isPlaying ? "Pause playback" : "Play playback")
+
+            sideButton(systemImage: "stop.fill", isOn: false,
+                       isEnabled: playbackState.isAvailable && playbackState.status != .stopped && !isPlaybackBusy,
+                       label: "Stop playback", action: stopPlaybackAction)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.10))
+                .frame(width: 26, height: 1)
+                .padding(.vertical, 4)
+
+            sideButton(systemImage: "metronome", isOn: metronomeEnabled,
+                       isEnabled: playbackState.isAvailable && !isPlaybackBusy,
+                       label: "Metronome", action: toggleMetronomeAction)
+            sideButton(systemImage: "timer", isOn: countInEnabled,
+                       isEnabled: playbackState.isAvailable && !isPlaybackBusy,
+                       label: "Count-in", action: toggleCountInAction)
+            sideButton(systemImage: "slider.vertical.3", isOn: isMixerPresented,
+                       isEnabled: supportsPlayback,
+                       label: "Mixer", action: toggleMixerAction)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.black.opacity(0.84))
+        .padding(.vertical, 8)
+        .frame(width: 56)
+        .scoreReaderChromeIslandBackground(cornerRadius: 28)
+    }
+
+    private func sideButton(systemImage: String, isOn: Bool, isEnabled: Bool, label: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isOn ? Self.accentColor : Color.black.opacity(0.84))
+                .frame(width: 44, height: 40)
+        }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.4)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn ? "On" : "Off")
+    }
+}
+
+struct ScoreReaderPlaybackPreparationHUD: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(message)
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Preparing live playback stream")
+                    .font(.caption2)
+                    .foregroundStyle(Color.black.opacity(0.56))
+            }
+        }
+        .foregroundStyle(Color.black.opacity(0.84))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.12), radius: 18, y: 8)
+    }
+}
+
+struct ScoreReaderPartsPanel: View {
+    let parts: [ScorePart]
+    @Binding var selectedPartID: String
+    @Binding var isPresented: Bool
+    let selectPartAction: (Int?) -> Void
+    let managePartsAction: () -> Void
+    let allowsManagingParts: Bool
+
+    var body: some View {
+        #if os(Android)
+        // Android sizes the sheet to the panel's content: one scroll view around the whole
+        // panel, whose content is measured. The rows' own scroll view took whatever height
+        // the sheet had, so the sheet's height kept changing.
+        ScrollView(.vertical, showsIndicators: false) {
+            panelContent(scrollsRows: false)
+                .popoverPanelScrollContent()
+        }
+        .modifier(ScoreReaderPartsPanelCard(panelMaxHeight: panelMaxHeight))
+        #else
+        panelContent(scrollsRows: true)
+            .modifier(ScoreReaderPartsPanelCard(panelMaxHeight: panelMaxHeight))
+        #endif
+    }
+
+    private func panelContent(scrollsRows: Bool) -> some View {
+        VStack(spacing: isPhone ? 8 : 12) {
+            Capsule()
+                .fill(Color.black.opacity(0.16))
+                .frame(width: isPhone ? 36 : 44, height: 4)
+                .padding(.top, isPhone ? 2 : 4)
+
+            Text("Parts")
+                .font(.system(size: isPhone ? 17 : 20, weight: .semibold))
+                .foregroundStyle(Color.black.opacity(0.88))
+                .padding(.bottom, isPhone ? 0 : 4)
+
+            if !isPhone {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "link")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(width: 28, height: 28)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Linked Parts")
+                            .font(.headline.weight(.semibold))
+
+                        Text("Changes you make to notes, text and articulations will appear in all parts.")
+                            .font(.caption)
+                            .foregroundStyle(Color.black.opacity(0.52))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 2)
+            }
+
+            if scrollsRows {
+                ScrollView(.vertical, showsIndicators: false) {
+                    partRows
+                }
+                .frame(maxHeight: isPhone ? min(AriaWindowLayout.shared.windowSize.height * 0.66, 470) : min(AriaWindowLayout.shared.windowSize.height * 0.66, 640))
+            } else {
+                partRows
+            }
+
+            if !isPhone {
+                VStack(spacing: 9) {
+                    if allowsManagingParts {
+                        partsActionButton(title: "Manage Parts", systemImage: "gearshape", action: managePartsAction)
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(isPhone ? 12 : 18)
+    }
+
+    private var partRows: some View {
+        VStack(spacing: isPhone ? 6 : 9) {
+            partRow(
+                id: "full-score",
+                title: "Full Score",
+                partIndex: nil,
+                clefSymbol: nil,
+                systemImage: "list.bullet.indent",
+                showsChevron: false
+            )
+
+            ForEach(parts) { part in
+                partRow(
+                    id: part.id,
+                    title: part.name,
+                    partIndex: part.index,
+                    clefSymbol: part.clef.symbol,
+                    systemImage: nil,
+                    showsChevron: true
+                )
+            }
+        }
+    }
+
+    private var panelMaxHeight: CGFloat {
+        isPhone ? min(AriaWindowLayout.shared.windowSize.height - 72, 560) : min(AriaWindowLayout.shared.windowSize.height - 110, 760)
+    }
+
+    private func partRow(id: String, title: String, partIndex: Int?, clefSymbol: String?, systemImage: String?, showsChevron: Bool) -> some View {
+        let isSelected = selectedPartID == id
+
+        return Button {
+            selectedPartID = id
+            selectPartAction(partIndex)
+            isPresented = false
+        } label: {
+            HStack(spacing: isPhone ? 10 : 14) {
+                Group {
+                    if let clefSymbol {
+                        ScoreReaderClefIcon(symbol: clefSymbol, isCompact: isPhone)
+                    } else if let systemImage {
+                        Image(systemName: systemImage)
+                            .font(.system(size: isPhone ? 18 : 24, weight: .semibold))
+                            .symbolVariant(isSelected ? .fill : .none)
+                    }
+                }
+                .foregroundStyle(isSelected ? Self.selectedPartAccentColor : Color.black.opacity(0.82))
+                .frame(width: isPhone ? 34 : 56, height: isPhone ? 42 : 60)
+
+                Text(title)
+                    .font(.system(size: isPhone ? 14 : 17, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? Self.selectedPartAccentColor : Color.black.opacity(0.84))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 0)
+
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: isPhone ? 11 : 14, weight: .semibold))
+                        .foregroundStyle(Color.black.opacity(isSelected ? 0.42 : 0.34))
+                }
+            }
+            .padding(.horizontal, isPhone ? 10 : 14)
+            .frame(height: isPhone ? 46 : 68)
+            .background(rowBackground(isSelected: isSelected), in: RoundedRectangle(cornerRadius: isPhone ? 8 : 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: isPhone ? 8 : 10, style: .continuous)
+                    .stroke(
+                        isSelected ? Self.selectedPartAccentColor.opacity(0.42) : Color.black.opacity(0.08),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func partsActionButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Spacer()
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                Spacer()
+            }
+            .foregroundStyle(Color.black.opacity(0.76))
+            .frame(height: 48)
+            .background(Color.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func rowBackground(isSelected: Bool) -> Color {
+        isSelected ? Self.selectedPartFillColor : Color.white.opacity(0.72)
+    }
+
+    private static let selectedPartAccentColor = Color(red: 0.0, green: 0.48, blue: 1.0)
+    private static let selectedPartFillColor = Color(red: 0.86, green: 0.93, blue: 1.0)
+
+    private var isPhone: Bool {
+        AriaWindowLayout.shared.usesPhoneLayout
+    }
+}
+
+struct ScoreReaderClefIcon: View {
+    let symbol: String
+    var isCompact = false
+
+    var body: some View {
+        Image(uiImage: ScoreReaderClefImage.image(for: symbol))
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: isCompact ? 24 : 38, height: isCompact ? 30 : 46)
+            .frame(width: isCompact ? 34 : 56, height: isCompact ? 42 : 60)
+    }
+}
+
+struct ScoreReaderTopToolButton: View {
+    let title: String
+    let systemImage: String
+    let isActive: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(height: 22)
+
+                Text(title)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(isActive ? .white : Color.white.opacity(0.78))
+            .frame(minWidth: 54, minHeight: 50)
+            .background(
+                isActive ? Color(red: 0.20, green: 0.35, blue: 0.55).opacity(0.92) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.42)
+    }
+}
+
+/// The parts panel's card (`popoverPanelCard`): a popover card on iOS, the sheet on Android.
+struct ScoreReaderPartsPanelCard: ViewModifier {
+    let panelMaxHeight: CGFloat
+
+    private var isPhone: Bool {
+        AriaWindowLayout.shared.usesPhoneLayout
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .popoverPanelCard(width: min(isPhone ? 300 : 330, max(AriaWindowLayout.shared.windowSize.width - 24, 284)),
+                              maxHeight: panelMaxHeight, alignment: .top, cornerRadius: isPhone ? 18 : 22,
+                              stroke: Color.black.opacity(0.08), shadowOpacity: 0.16, shadowY: 14)
+    }
+}

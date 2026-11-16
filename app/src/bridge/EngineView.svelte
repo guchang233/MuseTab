@@ -46,6 +46,8 @@
 
 <style>
   .engine {
+    min-width:160px;
+    min-height:120px;
     position: fixed;
     z-index: 0;
     background: var(--parchment-deep);

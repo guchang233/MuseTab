@@ -1,6 +1,9 @@
 let fullscreen = $state(false);
 let header = $state(57);
+let page = $state(0);
 export const reading = {
+  get page(){return page;},
+  setPage(value:number){page=Math.max(0,value);},
   get fullscreen() { return fullscreen; },
   get top() { return fullscreen ? 0 : header; },
   setHeader(height: number) { header = height; },

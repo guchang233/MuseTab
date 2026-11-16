@@ -1,0 +1,941 @@
+{
+  "repository": "https://github.com/hdi200/aria",
+  "commit": "9dffd7f3feea6d5af068723d5cfff47e7283a69c",
+  "files": [
+    {
+      "source": "LICENSE.txt",
+      "destination": "docs/references/aria-editor/source/LICENSE.txt",
+      "sha256": "73e75f61f0dfce4fd83ad1f3f45d1d6f9ea8cdfd21a92d7a9216d47e5b3bbb88"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidMusicNotationFont.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidMusicNotationFont.swift",
+      "sha256": "64a2ce94187166fbfc98116226c032a475d1cf3fefd94b851c3cc718430bbddd"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidPlatformTypes.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidPlatformTypes.swift",
+      "sha256": "da5cb831cfa82587e4ab1552ff7edf953c90c2b89265fcdfe038b6da43d48bef"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSelectionCommandPresentation.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSelectionCommandPresentation.swift",
+      "sha256": "b27946b17d260ee215412381215e0b544f42aeadc6faabfb73c0605d850ca80a"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSelectionOverlayPosition.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSelectionOverlayPosition.swift",
+      "sha256": "c0b337d5db606a72b8e3bd040628ba3e15e19c3ad9873da1b3a997a792f53b20"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSwiftUIShims.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidSwiftUIShims.swift",
+      "sha256": "19894632df0aebc55fd30fe36fd01bc682b13a3366b0d81a47a32395f37b1318"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidTextInputFields.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/Aria/Sources/AriaSkip/AndroidTextInputFields.swift",
+      "sha256": "362da52aa4ad03f7880ab6c49e0b7bc8b0010719f71f67ecdb0607e3dc8b2329"
+    },
+    {
+      "source": "MuseReaderAndroid/scripts/generate-symbols.py",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/scripts/generate-symbols.py",
+      "sha256": "1e3e45caa4b10637be4f4bd0f638c97f74827c46d6043bc53264e42a25a2ca0a"
+    },
+    {
+      "source": "MuseReaderAndroid/THIRD_PARTY_NOTICES.md",
+      "destination": "docs/references/aria-editor/source/MuseReaderAndroid/THIRD_PARTY_NOTICES.md",
+      "sha256": "a939fe7e7f41dcf291c3f47e1648e5c7c1cf6475637a4271f237f918dcb9130d"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/AriaWindowLayout.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/AriaWindowLayout.swift",
+      "sha256": "ddef663e05a0ff2e59e2996f2c0c0148a61478bb88b4e9625bc0ff4b0d1062d7"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/NewScoreDraft.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/NewScoreDraft.swift",
+      "sha256": "83e58ac08dfcba6e7f276242286178732c78a949a760a116e50eb1a60c1685eb"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/NewScoreInstrumentCatalog.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/NewScoreInstrumentCatalog.swift",
+      "sha256": "bcfa16dd77369c5fec655dbd7d4a25239eabac5dd2a2b4ab0c742c5ab1dba505"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreExportModels.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreExportModels.swift",
+      "sha256": "4e76f42282dc1b44ee07636af7b7f68535139156322da7b972a8927bed6d3117"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderChordDraft.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderChordDraft.swift",
+      "sha256": "7a904a5c09e61c773fb7ec1f4f444582ce2c75031c108062abead7a5e13a936e"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderNotationModels.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderNotationModels.swift",
+      "sha256": "8739d957f2bad6c7cb0368601cc61b8620b260349290d1767d92a09125ff654a"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderState.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderState.swift",
+      "sha256": "3bc3107161166986671d0194fcf44d146e636251cc7e83ee0c0fab27d40f6e14"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStateAutosave.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStateAutosave.swift",
+      "sha256": "c3f368f3f1d96a6bf9d741c5ab9548919b2da5db0bc850a6c07a0a32643ef0f0"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStateEditing.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStateEditing.swift",
+      "sha256": "db67eaa85f592ed9af598fdba28194ddd594725958a3746463ad747570f5be48"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStatePages.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStatePages.swift",
+      "sha256": "56a2532593930dd3e59fb6cf6120f7bd81223b14d3678aa4f92c5875bcc77e07"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStatePlayback.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderStatePlayback.swift",
+      "sha256": "3ad735ec07a3501cdaeb129457520ef54d2a9916a9b85c78bc36ec6306e5bc93"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderZoomModels.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Models/ScoreReaderZoomModels.swift",
+      "sha256": "f5da85be52bf5bc8b8b02ad426c28d89c981f39092b0aea2c0656151430bf888"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Services/LiveScoreRenderSession.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Services/LiveScoreRenderSession.swift",
+      "sha256": "fa484cb5a58ba6ebc4f05411af350ec325bff091581e3aaaf57e3c98ec7a12ac"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/CreateNewScoreView.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/CreateNewScoreView.swift",
+      "sha256": "4f44bab72390db91534551d3da79ba5f3b1dde7da60d95c7ab3075b3fdc9aa74"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderAnnotationControls.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderAnnotationControls.swift",
+      "sha256": "51ed84e52442d968ba679e09247f74ded5ef4be20010a1247814c5568eebe7ee"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderChordEntry.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderChordEntry.swift",
+      "sha256": "c1c7b79d91835b7223389823b545d408b18eb98f90ea51acc56df8602f09d5d6"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderChromeBar.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderChromeBar.swift",
+      "sha256": "da79b0c62357379bda122095e8ce752ce8d32a72a801dec74f55640ae9e19fbb"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderClefImage.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderClefImage.swift",
+      "sha256": "0fc819f1d6ec3df7f82de555431a9e2d0d0a621504b3d997562d19404eed67fe"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderContextToolbars.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderContextToolbars.swift",
+      "sha256": "b77e5be13dc3bdafa0014690f9312d2b23df862c87a2d99baa1343c826f5398c"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderDuoStandPanel.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderDuoStandPanel.swift",
+      "sha256": "3f0e8e31044c69f35bf0f045eea961713b8df93dc3b8857d9af3147eacda052b"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderEditingDeck.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderEditingDeck.swift",
+      "sha256": "454ecf71f521607871257b79a455eb969d4751809c1c7ce4130894923dbf2834"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderExportPanel.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderExportPanel.swift",
+      "sha256": "2f88947a408598ceb41f464d4694c2ee1d16b36aeb7d73dc0978a00a582cb639"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderFloatingPalette.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderFloatingPalette.swift",
+      "sha256": "0581434dcc24314beb1099f0ff10fe4c215055f72bd6c340cf6138ac4902f88d"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderInstrumentReplacementSheet.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderInstrumentReplacementSheet.swift",
+      "sha256": "7bd55bbff5fd95cba611a24003caef6c5219eea69fcdbc0d2f0b54e59f019e15"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderKeyboardShortcuts.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderKeyboardShortcuts.swift",
+      "sha256": "1670d7bf006b7fb5a668d9e63b6b9b84fd35bf5356f199f42f04418674e146c9"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderMixerPanel.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderMixerPanel.swift",
+      "sha256": "4777f8b1ad120a68317a7e9d55f6bdfa4606881394b1eee2c2b5d39f948df72f"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderMoreEditors.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderMoreEditors.swift",
+      "sha256": "c1fbcd2b8a72f250c12168a1649652b3c9daf1bc274ffd911c59b44215ac56ac"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderNoteEntrySurface.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderNoteEntrySurface.swift",
+      "sha256": "2c7d4c499879b67fb41a438a07eb554c0f17e0f384fe3c7faceeb6ab09709b9a"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPageCanvas.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPageCanvas.swift",
+      "sha256": "bf7b15fc05312e8789705d49dcc3eb5e1a89622a9edbb0129973ccf94b2a5451"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPageScrubber.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPageScrubber.swift",
+      "sha256": "a80790570af166d69c0fc0251128c9d6caaee4978ae6a20892399cbe5ff9c830"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPickupEditor.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPickupEditor.swift",
+      "sha256": "cbb765f32eb5158ee8ee8f6d9aa031ece5b12be5cec7a596e46b6857b6e9df1a"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPitchKeyboard.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPitchKeyboard.swift",
+      "sha256": "7f5ec62d4d886dd5088c2567eb5b2a2bba5c4feb5cbfdf0be9745c27c4b8632d"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPracticePanel.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderPracticePanel.swift",
+      "sha256": "47291ca57b863f301005db94228ff1a455bd9bcef0bf479d06a82a6b743401e7"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTempoRampSheet.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTempoRampSheet.swift",
+      "sha256": "1f691eb010e0ec964956f6013f0f82d86e82763a77d69909dcdfc3ef5ad44a1f"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTextEditing.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTextEditing.swift",
+      "sha256": "0f4873c179864505fd654307d301aeb6ba49a787a5e3d4ba6145f8cdca188eb5"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTextInputFields.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderTextInputFields.swift",
+      "sha256": "a6b70a60560aed506e86ba9ba87eeac1cc08ad0b2e8d0ab509f1e9d853c6b3bd"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderToolButtons.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderToolButtons.swift",
+      "sha256": "d5d05c5b351c41d83f5da066238774a059d6b4454a5f603dc414d63de970c825"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderVideoExportSheet.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderVideoExportSheet.swift",
+      "sha256": "03ad3bf2efe17b15721508ebcd8be3518b657071908e8ab765195d57fa43b9c9"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderVideoPlatformViews.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderVideoPlatformViews.swift",
+      "sha256": "2cc941e0bd5980d9f95958afdf90795198f8a12cd8682687e955bd3527058cc7"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderView.swift",
+      "destination": "docs/references/aria-editor/source/MuseReaderiOS/MuseReaderiOS/Views/ScoreReaderView.swift",
+      "sha256": "65bc6847ac0fa47748e26fc276e19f261f476b8aafaa1d24e617e8bb2b4e88bc"
+    },
+    {
+      "source": "sandbox/engraving/score_render_edit_commands.cpp",
+      "destination": "docs/references/aria-editor/source/sandbox/engraving/score_render_edit_commands.cpp",
+      "sha256": "23448c4f91e9c3b6da488fda80e5e6687601a449d5ab7eca3e493ffa71bee0f8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/accordion.symbolset/accordion.svg",
+      "destination": "app/public/aria-symbols/accordion.svg",
+      "sha256": "3aeffa8f7b92dd8b1b7af8023d1a004b3dda704700afeae39901094e77a9e28c"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.counterclockwise.symbolset/arrow.counterclockwise.svg",
+      "destination": "app/public/aria-symbols/arrow.counterclockwise.svg",
+      "sha256": "717471b38cf4ff7e5329c6feb5a978c48050d107e86e770a84cddb96cd75ed76"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.down.circle.symbolset/arrow.down.circle.svg",
+      "destination": "app/public/aria-symbols/arrow.down.circle.svg",
+      "sha256": "953117e178a241bdca443b500a29c98dcaa4bf6ab3bf18b94ca10f2b6a39f715"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.down.symbolset/arrow.down.svg",
+      "destination": "app/public/aria-symbols/arrow.down.svg",
+      "sha256": "4d25ddae99d87a3c2e53ca0abe0d593c752dee89ecb93a6fa00b9b8a4cabf7cd"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.left.symbolset/arrow.left.svg",
+      "destination": "app/public/aria-symbols/arrow.left.svg",
+      "sha256": "0fce02969de9f023fb6f3085e6a292510b5d9d1320c81bcef24214c7e15499ec"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.right.symbolset/arrow.right.svg",
+      "destination": "app/public/aria-symbols/arrow.right.svg",
+      "sha256": "df73d4a1682f49ff43cec31eafbab2441a92bbfd355acad5872116481bf76b61"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.up.arrow.down.symbolset/arrow.up.arrow.down.svg",
+      "destination": "app/public/aria-symbols/arrow.up.arrow.down.svg",
+      "sha256": "0716051ea50dfd454e15dfa3a1bbb5bcb5c8bc7d8694741128958c5602071999"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.up.left.and.arrow.down.right.symbolset/arrow.up.left.and.arrow.down.right.svg",
+      "destination": "app/public/aria-symbols/arrow.up.left.and.arrow.down.right.svg",
+      "sha256": "163091805042d1d0046d8cabeb389c78af05030df82ddf22fb3ecb01e6e3d129"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.up.right.square.symbolset/arrow.up.right.square.svg",
+      "destination": "app/public/aria-symbols/arrow.up.right.square.svg",
+      "sha256": "501933c7f4700b4e6ca3a08db233a5b4b02b97f9cdec4ebad147765fc51c3b26"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.up.symbolset/arrow.up.svg",
+      "destination": "app/public/aria-symbols/arrow.up.svg",
+      "sha256": "ae35b119bb00484dfbb678e7c5683962eac4918182401f9d8be5032e5a2ff6ca"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.uturn.backward.symbolset/arrow.uturn.backward.svg",
+      "destination": "app/public/aria-symbols/arrow.uturn.backward.svg",
+      "sha256": "dec681d130bb93c0fcb45792f72617eff6e944f159458cb0143d1c43511d26c9"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrow.uturn.forward.symbolset/arrow.uturn.forward.svg",
+      "destination": "app/public/aria-symbols/arrow.uturn.forward.svg",
+      "sha256": "bb52fa5b540864a950fef203e64fd58475b10d013f2add9393e3cf3f339dc199"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrowtriangle.down.fill.symbolset/arrowtriangle.down.fill.svg",
+      "destination": "app/public/aria-symbols/arrowtriangle.down.fill.svg",
+      "sha256": "454c9e066d15484deb44b3c098570e054ee38c8b754a1842353139dc8eaf7e1d"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/arrowtriangle.up.fill.symbolset/arrowtriangle.up.fill.svg",
+      "destination": "app/public/aria-symbols/arrowtriangle.up.fill.svg",
+      "sha256": "638f4839ddadb15ebc8ac8a088d797af351c32775609e0a51613e87e68e7ff13"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/book.pages.symbolset/book.pages.svg",
+      "destination": "app/public/aria-symbols/book.pages.svg",
+      "sha256": "3318df34d056aed33a0242dc3126fbfaca28231e10d1c8116a5456b0d67c5ef3"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chart.line.uptrend.xyaxis.symbolset/chart.line.uptrend.xyaxis.svg",
+      "destination": "app/public/aria-symbols/chart.line.uptrend.xyaxis.svg",
+      "sha256": "8cfbbe8d4475103824a9b051f3ce8cedc0ee5fd29f838a8bf1a4846e5229094d"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/checkmark.circle.fill.symbolset/checkmark.circle.fill.svg",
+      "destination": "app/public/aria-symbols/checkmark.circle.fill.svg",
+      "sha256": "306b0282ee7c2b8a59f888bb0e0d0013edc92e33c3266369be3889aad1db7a44"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/checkmark.circle.symbolset/checkmark.circle.svg",
+      "destination": "app/public/aria-symbols/checkmark.circle.svg",
+      "sha256": "63eafd9fb4c7f85f0f572fb99a5434108ff43153aa8d0fecc9b2162821fa29f8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/checkmark.square.fill.symbolset/checkmark.square.fill.svg",
+      "destination": "app/public/aria-symbols/checkmark.square.fill.svg",
+      "sha256": "c62d35ef754c2de3f2920837ceb1c95f2d1db86aa345d6dc265b2e57682fdeef"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/checkmark.symbolset/checkmark.svg",
+      "destination": "app/public/aria-symbols/checkmark.svg",
+      "sha256": "ac282c29630928b0f46876d2c65d2d92ccf87dc393f5f32b26d778d5d99e4b6b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.down.2.symbolset/chevron.down.2.svg",
+      "destination": "app/public/aria-symbols/chevron.down.2.svg",
+      "sha256": "6598ad939cb98becd472b777bb85c6fb518e674a77774aae0ee2cf883f4a8565"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.down.symbolset/chevron.down.svg",
+      "destination": "app/public/aria-symbols/chevron.down.svg",
+      "sha256": "e6d4821c9c8f905beb5b7fa19d040c5b740d46f0c26226944b7d5758bcd25a9d"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.left.symbolset/chevron.left.svg",
+      "destination": "app/public/aria-symbols/chevron.left.svg",
+      "sha256": "3d76f4cbc8737d8505af62a7ea377ec5bee052d8a16b886ad6f08012ccd21399"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.right.symbolset/chevron.right.svg",
+      "destination": "app/public/aria-symbols/chevron.right.svg",
+      "sha256": "bf7185ece7c3355623cc6bb076dc80afb58245db501c08b143ca2b28a0de10e8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.up.2.symbolset/chevron.up.2.svg",
+      "destination": "app/public/aria-symbols/chevron.up.2.svg",
+      "sha256": "33d95b4328c167a285a110d807a96dc2de23e7337a5d68ec1dec6edccae64c21"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.up.chevron.down.symbolset/chevron.up.chevron.down.svg",
+      "destination": "app/public/aria-symbols/chevron.up.chevron.down.svg",
+      "sha256": "7f812d4c9295ee5dd83580d133b9e42945acf378dcbaa48cec2dbe595769bb80"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/chevron.up.symbolset/chevron.up.svg",
+      "destination": "app/public/aria-symbols/chevron.up.svg",
+      "sha256": "060b9b7153098323cc0b729481f0a4c9f81e188a67173921a01ab05a9c42e424"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/circle.grid.3x3.fill.symbolset/circle.grid.3x3.fill.svg",
+      "destination": "app/public/aria-symbols/circle.grid.3x3.fill.svg",
+      "sha256": "5ae6822ab49faa7b7cc96a470776d3dbe28682e636d36e31816ad24bf97178cb"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/circle.grid.cross.symbolset/circle.grid.cross.svg",
+      "destination": "app/public/aria-symbols/circle.grid.cross.svg",
+      "sha256": "9283ba84620384bb3e5c9795b8414776db9c5d4fc7d39efda5409824e7b8356a"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/circle.symbolset/circle.svg",
+      "destination": "app/public/aria-symbols/circle.svg",
+      "sha256": "f03fc8e7d9b2a7d8a2aef5bf4497339b2fc9fb0b730714522fb4a3836a70d91b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/clock.arrow.circlepath.symbolset/clock.arrow.circlepath.svg",
+      "destination": "app/public/aria-symbols/clock.arrow.circlepath.svg",
+      "sha256": "9d27b4039f6d707bf89023fae6dbb569e6ea8d2aec5d661aa957744b6f78336a"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/clock.symbolset/clock.svg",
+      "destination": "app/public/aria-symbols/clock.svg",
+      "sha256": "f7a2231fcbeadf2a10aeec977039709cda15a7dbec5c6b6f895217de9ecbe709"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/cursorarrow.symbolset/cursorarrow.svg",
+      "destination": "app/public/aria-symbols/cursorarrow.svg",
+      "sha256": "238b82eff07b626336d3731945f1bf49c0ca82ba5c1bbeb07d0019eecee95630"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/delete.left.symbolset/delete.left.svg",
+      "destination": "app/public/aria-symbols/delete.left.svg",
+      "sha256": "385b13b4c310f20215f42aac36a0fdc5d91e0a80a1a40380d865b20f0fc157c3"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.badge.gearshape.symbolset/doc.badge.gearshape.svg",
+      "destination": "app/public/aria-symbols/doc.badge.gearshape.svg",
+      "sha256": "b7cc4e2c3cd4c8b9b956c899f5ed6fd9bde8f74fb794526bcd449c014d03848e"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.badge.plus.symbolset/doc.badge.plus.svg",
+      "destination": "app/public/aria-symbols/doc.badge.plus.svg",
+      "sha256": "aeb8177436de63003caf031cf660799364ad687e5f5bbd59c04ec106a05a4d1b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.on.clipboard.symbolset/doc.on.clipboard.svg",
+      "destination": "app/public/aria-symbols/doc.on.clipboard.svg",
+      "sha256": "0eafee7b80adf2cfbc574b1d661ce570995a2be242631972e0b6a787cb0d7525"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.on.doc.symbolset/doc.on.doc.svg",
+      "destination": "app/public/aria-symbols/doc.on.doc.svg",
+      "sha256": "8d8e756cc7a543d48e9f62f0887e29e3d794c5ef78127bc6422673900ba0fa42"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.richtext.symbolset/doc.richtext.svg",
+      "destination": "app/public/aria-symbols/doc.richtext.svg",
+      "sha256": "f103cb56f7f486850e6b78eaaa389b497d7af90902be8d053e01d14f2c532313"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.symbolset/doc.svg",
+      "destination": "app/public/aria-symbols/doc.svg",
+      "sha256": "f16bfd0ce5237e9a8e346a320736d0fc58c8f05234df10774d37e3d8fb8029e6"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.text.magnifyingglass.symbolset/doc.text.magnifyingglass.svg",
+      "destination": "app/public/aria-symbols/doc.text.magnifyingglass.svg",
+      "sha256": "f629300f78b3371819d1be4ff5884f52074105f5c00e23de234e447b0dd9e910"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/doc.text.symbolset/doc.text.svg",
+      "destination": "app/public/aria-symbols/doc.text.svg",
+      "sha256": "a8d68e4cea4f4e5ada899dfddf9e1a133b41fdaf9e09091c57e5cd9a84c6d263"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/drum.symbolset/drum.svg",
+      "destination": "app/public/aria-symbols/drum.svg",
+      "sha256": "9c0ef9efe9b749ded5f3570ee2c5f2452bd8dab3f5f84b03be14dc0fe078d189"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/ellipsis.symbolset/ellipsis.svg",
+      "destination": "app/public/aria-symbols/ellipsis.svg",
+      "sha256": "0e3f7714b34c3d6fcda988862657a36a59b9aca7e0748fc5c758af8f0ad3baa8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/eraser.symbolset/eraser.svg",
+      "destination": "app/public/aria-symbols/eraser.svg",
+      "sha256": "f251b23fb7257526b296dbde8c3618940142c752cd9f0741801266f830412043"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/exclamationmark.triangle.fill.symbolset/exclamationmark.triangle.fill.svg",
+      "destination": "app/public/aria-symbols/exclamationmark.triangle.fill.svg",
+      "sha256": "1631b06af1035f691c84cfe1931ed3e8a62af9985a60709c93e3fa3d9e12502c"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/exclamationmark.triangle.symbolset/exclamationmark.triangle.svg",
+      "destination": "app/public/aria-symbols/exclamationmark.triangle.svg",
+      "sha256": "1631b06af1035f691c84cfe1931ed3e8a62af9985a60709c93e3fa3d9e12502c"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/eye.slash.symbolset/eye.slash.svg",
+      "destination": "app/public/aria-symbols/eye.slash.svg",
+      "sha256": "b89aeaaa556585b12ef196a744a29b21534fe3eea56bdec9db13ae412fca75ed"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/eye.symbolset/eye.svg",
+      "destination": "app/public/aria-symbols/eye.svg",
+      "sha256": "a39071f2ddcac4756944a5f6823aed58629650b592be9ac8f03b431fe52d45db"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/film.symbolset/film.svg",
+      "destination": "app/public/aria-symbols/film.svg",
+      "sha256": "6027d9e74d562a9e5c9a8296bf796d20e15ff5f493437ce40820298c9377d675"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/forward.end.symbolset/forward.end.svg",
+      "destination": "app/public/aria-symbols/forward.end.svg",
+      "sha256": "8ea6f68a66a06bc63f06e5a1904b715fb7dd51f6ef0b6fe26ac56ce1dccaa499"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/gearshape.symbolset/gearshape.svg",
+      "destination": "app/public/aria-symbols/gearshape.svg",
+      "sha256": "e412417d831260a7016c0e4d2321a89274aa049059771eb8447d75f6b139c185"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/guitars.symbolset/guitars.svg",
+      "destination": "app/public/aria-symbols/guitars.svg",
+      "sha256": "25e2b0eed96762ae63cefaf28e188592c0376943f37823cd63081ff8f3b7e6a8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/hand.point.up.left.symbolset/hand.point.up.left.svg",
+      "destination": "app/public/aria-symbols/hand.point.up.left.svg",
+      "sha256": "f8dfe17c73a07d49297c9384b079a5c0ace43f4e704351a09a87a09c0d801f84"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/hand.raised.symbolset/hand.raised.svg",
+      "destination": "app/public/aria-symbols/hand.raised.svg",
+      "sha256": "67fcb7ea5460b0d7a543ab07ef989021f47943b24034b2da1a364c8ef9e75775"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/hand.tap.symbolset/hand.tap.svg",
+      "destination": "app/public/aria-symbols/hand.tap.svg",
+      "sha256": "f8dfe17c73a07d49297c9384b079a5c0ace43f4e704351a09a87a09c0d801f84"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/hands.clap.symbolset/hands.clap.svg",
+      "destination": "app/public/aria-symbols/hands.clap.svg",
+      "sha256": "cf877cbfc7ecd7854f91d10df6725bf79d04e735bf87fc125914efe6f123cad8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/highlighter.symbolset/highlighter.svg",
+      "destination": "app/public/aria-symbols/highlighter.svg",
+      "sha256": "9471d741454842d7f5cc7b2fe90559b8d829ebac71e4ab4319b3cb9652fd781b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/infinity.circle.fill.symbolset/infinity.circle.fill.svg",
+      "destination": "app/public/aria-symbols/infinity.circle.fill.svg",
+      "sha256": "bdde2d5daa9de865b87622c826f39977dc327a72bd6a6acf8ce12c2d6636b3fa"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/info.circle.fill.symbolset/info.circle.fill.svg",
+      "destination": "app/public/aria-symbols/info.circle.fill.svg",
+      "sha256": "e103e01607351a913b09fcbd4d60e94a94337d7db579eb2e909abebf4a36564f"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/info.circle.symbolset/info.circle.svg",
+      "destination": "app/public/aria-symbols/info.circle.svg",
+      "sha256": "275a37d10ecee705a44baee477638f1168eb6c0d9de0f63490f7c6f3a78b20d4"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/laptopcomputer.and.iphone.symbolset/laptopcomputer.and.iphone.svg",
+      "destination": "app/public/aria-symbols/laptopcomputer.and.iphone.svg",
+      "sha256": "96a37878e6ada6bbf98dadfecb4335ad0bbcc6be15d8f657ddd55ff16feb6f70"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/largecircle.fill.circle.symbolset/largecircle.fill.circle.svg",
+      "destination": "app/public/aria-symbols/largecircle.fill.circle.svg",
+      "sha256": "f0594d5abfaf7505a5e0798b8d239875fde7d6df0f3e662b08851a357729277b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/lasso.symbolset/lasso.svg",
+      "destination": "app/public/aria-symbols/lasso.svg",
+      "sha256": "e326582790117a9981efb64f218eff0a49a6b08df8af5da6a0f6d3b18c5f32c8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/line.3.horizontal.symbolset/line.3.horizontal.svg",
+      "destination": "app/public/aria-symbols/line.3.horizontal.svg",
+      "sha256": "11b985dab0f76f959df6bf0ae7e8e526cd6f1ad5e877d043e537660ee248cfa9"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/link.symbolset/link.svg",
+      "destination": "app/public/aria-symbols/link.svg",
+      "sha256": "1c8b9b7386657cfc94f5a2b26640d50efb098a27f7516de74e5d3ad7712f5ae4"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/list.bullet.indent.symbolset/list.bullet.indent.svg",
+      "destination": "app/public/aria-symbols/list.bullet.indent.svg",
+      "sha256": "aa5d36972cdf380aa78b1df3542ae3dad473be43c28914e77faad2b244ec38ed"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/list.bullet.symbolset/list.bullet.svg",
+      "destination": "app/public/aria-symbols/list.bullet.svg",
+      "sha256": "e665d460dd4b9289f7e712648b92fe2db473d358d125b0f4f8820563cdad48be"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/location.fill.symbolset/location.fill.svg",
+      "destination": "app/public/aria-symbols/location.fill.svg",
+      "sha256": "116babcb041893a408e0980e5b2a3a3a446b6d75cde6227eb02c66212a5f57fe"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/location.symbolset/location.svg",
+      "destination": "app/public/aria-symbols/location.svg",
+      "sha256": "238b82eff07b626336d3731945f1bf49c0ca82ba5c1bbeb07d0019eecee95630"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/lock.fill.symbolset/lock.fill.svg",
+      "destination": "app/public/aria-symbols/lock.fill.svg",
+      "sha256": "ae4771cff1b9eec7a1961942e5808011ea294702fe51decf587d8510a2547050"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/lock.rectangle.stack.symbolset/lock.rectangle.stack.svg",
+      "destination": "app/public/aria-symbols/lock.rectangle.stack.svg",
+      "sha256": "17456d1c219d193dc0ab658444d266a1b3991199da5cb59bbfc629113264d0cf"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/magnifyingglass.symbolset/magnifyingglass.svg",
+      "destination": "app/public/aria-symbols/magnifyingglass.svg",
+      "sha256": "8e6727ae0a3c123746d3ebfa71c838180706bce49596d08f88472ec8ca59e0cb"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/metronome.symbolset/metronome.svg",
+      "destination": "app/public/aria-symbols/metronome.svg",
+      "sha256": "4af5a40cbba097b9dedead3f734bf2b53b8ec25628b37416d3b2b1b50f07d6db"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/minus.circle.symbolset/minus.circle.svg",
+      "destination": "app/public/aria-symbols/minus.circle.svg",
+      "sha256": "517d0387989e0b89ee5404fcd2cd6adc23240e662b1eb0480330c8263925cbc5"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/minus.magnifyingglass.symbolset/minus.magnifyingglass.svg",
+      "destination": "app/public/aria-symbols/minus.magnifyingglass.svg",
+      "sha256": "5de1c66c9d31ed7a637dc3b20f55d4c7ef8ee01991820b260641d912b236a3ae"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/minus.symbolset/minus.svg",
+      "destination": "app/public/aria-symbols/minus.svg",
+      "sha256": "59e3daf117b77420658239d31a881b440a0c4ccbe1c9c2347dd15173b173e218"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/music.note.house.symbolset/music.note.house.svg",
+      "destination": "app/public/aria-symbols/music.note.house.svg",
+      "sha256": "7b93a0df5247a67d83f86386b5cd8bb1706252b8b1ed6960f0a864aaa6360bd6"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/music.note.list.symbolset/music.note.list.svg",
+      "destination": "app/public/aria-symbols/music.note.list.svg",
+      "sha256": "88c899816f07d89f11ecaa5d9865f840ab68df501bfba4bd6b7f662c85a09a1b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/music.note.symbolset/music.note.svg",
+      "destination": "app/public/aria-symbols/music.note.svg",
+      "sha256": "25e2b0eed96762ae63cefaf28e188592c0376943f37823cd63081ff8f3b7e6a8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/music.quarternote.3.symbolset/music.quarternote.3.svg",
+      "destination": "app/public/aria-symbols/music.quarternote.3.svg",
+      "sha256": "25e2b0eed96762ae63cefaf28e188592c0376943f37823cd63081ff8f3b7e6a8"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pause.fill.symbolset/pause.fill.svg",
+      "destination": "app/public/aria-symbols/pause.fill.svg",
+      "sha256": "fe25c72dd621f4dd35a39dc8f939a33731576cf6e945ca0c9377f2fd36b97381"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pause.rectangle.fill.symbolset/pause.rectangle.fill.svg",
+      "destination": "app/public/aria-symbols/pause.rectangle.fill.svg",
+      "sha256": "49d85f268ed62aea8363e432a2ee17a1cef9bc100ced4c4363504706d43f92e7"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pause.symbolset/pause.svg",
+      "destination": "app/public/aria-symbols/pause.svg",
+      "sha256": "fe25c72dd621f4dd35a39dc8f939a33731576cf6e945ca0c9377f2fd36b97381"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pencil.symbolset/pencil.svg",
+      "destination": "app/public/aria-symbols/pencil.svg",
+      "sha256": "83c10f210ef491a70e254db18d8f1a506634386c7e1b152bd51e849eecc7e007"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pencil.tip.crop.circle.badge.plus.symbolset/pencil.tip.crop.circle.badge.plus.svg",
+      "destination": "app/public/aria-symbols/pencil.tip.crop.circle.badge.plus.svg",
+      "sha256": "adf890166b1a23440a255ade4e6fc7afe4d6fd86cd768fe23031bd0e7cb4f8b3"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pencil.tip.crop.circle.symbolset/pencil.tip.crop.circle.svg",
+      "destination": "app/public/aria-symbols/pencil.tip.crop.circle.svg",
+      "sha256": "150a44dd827e9231612faaa6e4e85d7b2f3ab98088722c7ef5050508ccf684a9"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pencil.tip.symbolset/pencil.tip.svg",
+      "destination": "app/public/aria-symbols/pencil.tip.svg",
+      "sha256": "150a44dd827e9231612faaa6e4e85d7b2f3ab98088722c7ef5050508ccf684a9"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/person.2.symbolset/person.2.svg",
+      "destination": "app/public/aria-symbols/person.2.svg",
+      "sha256": "d08fc8e55b58af9f2bd2c8e501190110ba404f151cd0828cd575cbb379073574"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/person.3.fill.symbolset/person.3.fill.svg",
+      "destination": "app/public/aria-symbols/person.3.fill.svg",
+      "sha256": "f0291d0ebade00e50e35593b70ed6a3b8b5119e3136a2232a5e39ed679d1e366"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/person.wave.2.symbolset/person.wave.2.svg",
+      "destination": "app/public/aria-symbols/person.wave.2.svg",
+      "sha256": "9c7c15e225bb1ef2a04ddcb27f72667f22844b1ca14624865d0f735b3e9998ad"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/photo.badge.plus.symbolset/photo.badge.plus.svg",
+      "destination": "app/public/aria-symbols/photo.badge.plus.svg",
+      "sha256": "7a038b826a7f4a162ac543f74b647cf5b83341ff8600ad3181d842e22ccc8670"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/photo.on.rectangle.symbolset/photo.on.rectangle.svg",
+      "destination": "app/public/aria-symbols/photo.on.rectangle.svg",
+      "sha256": "c5af49b00255b70fc141e7e06c6b8781adc5019f8177e7cf7d71abe65c993789"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/pianokeys.symbolset/pianokeys.svg",
+      "destination": "app/public/aria-symbols/pianokeys.svg",
+      "sha256": "3aeffa8f7b92dd8b1b7af8023d1a004b3dda704700afeae39901094e77a9e28c"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/play.circle.fill.symbolset/play.circle.fill.svg",
+      "destination": "app/public/aria-symbols/play.circle.fill.svg",
+      "sha256": "c928fa675bf9cfe78638409fc3491db459fe2fcf42cec273bf6bcfd3785bdf35"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/play.circle.symbolset/play.circle.svg",
+      "destination": "app/public/aria-symbols/play.circle.svg",
+      "sha256": "4464df0b74f5033789f0ac1669a3ca9b8b91d105d6775939210b84cdc3ef92c4"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/play.fill.symbolset/play.fill.svg",
+      "destination": "app/public/aria-symbols/play.fill.svg",
+      "sha256": "e4f15611092f06cf37ab0469b537a19f03ea72bc98e7d95645d1d432dab523b6"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/play.rectangle.symbolset/play.rectangle.svg",
+      "destination": "app/public/aria-symbols/play.rectangle.svg",
+      "sha256": "c4126a56027e3ca3acade9ab70c2fb8ec5dc05715df2b1a2e3398e1b1ff17975"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/plus.circle.fill.symbolset/plus.circle.fill.svg",
+      "destination": "app/public/aria-symbols/plus.circle.fill.svg",
+      "sha256": "c761bc4956529625ba2887b5695f32029108db749dda33b3039f80c6c74f61b9"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/plus.circle.symbolset/plus.circle.svg",
+      "destination": "app/public/aria-symbols/plus.circle.svg",
+      "sha256": "dd6de9546c75c0c3f7446d1273b2b450163fb6f29bd81d713a0ae1aebb3e9542"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/plus.magnifyingglass.symbolset/plus.magnifyingglass.svg",
+      "destination": "app/public/aria-symbols/plus.magnifyingglass.svg",
+      "sha256": "bf78c90eb7561703dd8bddc9635507eb82f9661c48c2aa00dac0e3397b587d31"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/plus.symbolset/plus.svg",
+      "destination": "app/public/aria-symbols/plus.svg",
+      "sha256": "cafc537d47545e7be18e9651cf6eb2674e22d91fd98103ca3b9cc30c99b90524"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/rectangle.grid.1x2.symbolset/rectangle.grid.1x2.svg",
+      "destination": "app/public/aria-symbols/rectangle.grid.1x2.svg",
+      "sha256": "13caefef955fca930c3618b2012b7c158ee74808f687e6b900f9185b3728a698"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/rectangle.portrait.on.rectangle.portrait.symbolset/rectangle.portrait.on.rectangle.portrait.svg",
+      "destination": "app/public/aria-symbols/rectangle.portrait.on.rectangle.portrait.svg",
+      "sha256": "c59774cc7be882488a7ef36b66aa7c5188efe3c4466a854883e9ad2213aec99a"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/repeat.circle.fill.symbolset/repeat.circle.fill.svg",
+      "destination": "app/public/aria-symbols/repeat.circle.fill.svg",
+      "sha256": "8ff68df00dff963078a44815f32c3952a861fb29cf9f8ebad73b78ed3a2e369b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/repeat.symbolset/repeat.svg",
+      "destination": "app/public/aria-symbols/repeat.svg",
+      "sha256": "b69df870dde821a0821cbd698cad75200e20755a9a6f2b727a118ed243187baf"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/scissors.symbolset/scissors.svg",
+      "destination": "app/public/aria-symbols/scissors.svg",
+      "sha256": "4bef2d3ac0a889f5687e1ea2c5a526ed81412969caf6f97910087cb9765d6415"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/scope.symbolset/scope.svg",
+      "destination": "app/public/aria-symbols/scope.svg",
+      "sha256": "9b99958ab0f80d0a0901d9a4eb55f24a2a12a2d41ce9d828923bac72f60ad11b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/scroll.symbolset/scroll.svg",
+      "destination": "app/public/aria-symbols/scroll.svg",
+      "sha256": "704de4f11c12627b64ecab5f0c47eaaa6d4a82a8477f296de91386ab3da2b29b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/slider.horizontal.3.symbolset/slider.horizontal.3.svg",
+      "destination": "app/public/aria-symbols/slider.horizontal.3.svg",
+      "sha256": "dd703cd5709a66d7daf76a9b86e4427ec9c6e014b699f72d9d0f5c2f07de6be3"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/slider.vertical.3.symbolset/slider.vertical.3.svg",
+      "destination": "app/public/aria-symbols/slider.vertical.3.svg",
+      "sha256": "640dbbc89c3e8cddc971dd7c551efb3af03326878e640c71738d857277f59366"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/sparkles.rectangle.stack.symbolset/sparkles.rectangle.stack.svg",
+      "destination": "app/public/aria-symbols/sparkles.rectangle.stack.svg",
+      "sha256": "657fe1aed2bbf069797cefd24d3f50021b0889f5308b80271fe945ae992d1e8b"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/sparkles.symbolset/sparkles.svg",
+      "destination": "app/public/aria-symbols/sparkles.svg",
+      "sha256": "948f1bb9cd15b40da2e14cf9a9516124874fe1bf215d1226e4b129956bec82c0"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/speedometer.symbolset/speedometer.svg",
+      "destination": "app/public/aria-symbols/speedometer.svg",
+      "sha256": "0f559f2eb8bdacf8b70b9d8d67fba6dd12466332bcb0a96e4cb316b3c30fea99"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.and.arrow.down.symbolset/square.and.arrow.down.svg",
+      "destination": "app/public/aria-symbols/square.and.arrow.down.svg",
+      "sha256": "d3d9ba61660b89cf02d780abf2251fa0bcc25c31fa498f135b896a89b092e07f"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.and.arrow.up.symbolset/square.and.arrow.up.svg",
+      "destination": "app/public/aria-symbols/square.and.arrow.up.svg",
+      "sha256": "648e175faf70906933a3acce5519d48b03f2bfca0d62acdea240183bdb580da4"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.and.pencil.symbolset/square.and.pencil.svg",
+      "destination": "app/public/aria-symbols/square.and.pencil.svg",
+      "sha256": "adf890166b1a23440a255ade4e6fc7afe4d6fd86cd768fe23031bd0e7cb4f8b3"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.grid.2x2.fill.symbolset/square.grid.2x2.fill.svg",
+      "destination": "app/public/aria-symbols/square.grid.2x2.fill.svg",
+      "sha256": "30ed0cb234ec22d148278ef292244ab7b6fafd79a6210ba03079e9e68783a6bf"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.grid.2x2.symbolset/square.grid.2x2.svg",
+      "destination": "app/public/aria-symbols/square.grid.2x2.svg",
+      "sha256": "70890ca429151f2771f4af391eae34855cd6850de1ae53919cc42aa21cf1a36d"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.grid.3x3.symbolset/square.grid.3x3.svg",
+      "destination": "app/public/aria-symbols/square.grid.3x3.svg",
+      "sha256": "5ae6822ab49faa7b7cc96a470776d3dbe28682e636d36e31816ad24bf97178cb"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/square.symbolset/square.svg",
+      "destination": "app/public/aria-symbols/square.svg",
+      "sha256": "67866c67f9657703dba9cf30357b47263d0abb4c40295fd07ee0631bbede0ca7"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/star.symbolset/star.svg",
+      "destination": "app/public/aria-symbols/star.svg",
+      "sha256": "0a118d23d87876bb7eea62f5fdb3461bf1744b1e3b89a7c25e3e73fdb9e84bc7"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/stop.fill.symbolset/stop.fill.svg",
+      "destination": "app/public/aria-symbols/stop.fill.svg",
+      "sha256": "484c1ff663d0e34773f6eb72b27614d5650056277cd4ed51932901f44581e51e"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/text.alignleft.symbolset/text.alignleft.svg",
+      "destination": "app/public/aria-symbols/text.alignleft.svg",
+      "sha256": "1335fb32150274d1ad1fdf1ba43b4ab983c5ed2616a7be8c791f923ac90fdbde"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/text.badge.minus.symbolset/text.badge.minus.svg",
+      "destination": "app/public/aria-symbols/text.badge.minus.svg",
+      "sha256": "ad98e3f6300439c139f795f94b49ccf23538a33281b241e5ae29d6dec4980894"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/text.badge.plus.symbolset/text.badge.plus.svg",
+      "destination": "app/public/aria-symbols/text.badge.plus.svg",
+      "sha256": "0541447b7cbdf6f3dbc63cc5bb672199e4b48db48e5dbbadd14286419a4c80a6"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/textformat.abc.symbolset/textformat.abc.svg",
+      "destination": "app/public/aria-symbols/textformat.abc.svg",
+      "sha256": "a8dee924be7fe312d667d3ff43b61842eaf2b9eb8c0f67ab01ca5229bc0413df"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/textformat.symbolset/textformat.svg",
+      "destination": "app/public/aria-symbols/textformat.svg",
+      "sha256": "9f5b35417725bef48f4e9b1f7ccb0eff555ae1e0b6762cb4968d4d245b6db8e4"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/timer.symbolset/timer.svg",
+      "destination": "app/public/aria-symbols/timer.svg",
+      "sha256": "1c5f9620cdc7a7753a0b8a50a26a7fa9f63e96a51156f533875a193a9f25fe48"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/trash.symbolset/trash.svg",
+      "destination": "app/public/aria-symbols/trash.svg",
+      "sha256": "d427d62ec8f1f1bf52921687c367a234d4a513c26ea6dfd5405e189d8a5b8516"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/waveform.symbolset/waveform.svg",
+      "destination": "app/public/aria-symbols/waveform.svg",
+      "sha256": "7314f287ec7d2c1821d665bf3d9b46d11bdfc271df918d48ac677f145942746c"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/xmark.circle.fill.symbolset/xmark.circle.fill.svg",
+      "destination": "app/public/aria-symbols/xmark.circle.fill.svg",
+      "sha256": "c08bf80ce12ea78025a52d7f776d936c84197a56c366406165a223fa28055cde"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Android/app/symbol-assets/aria/skip/Resources/Module.xcassets/xmark.symbolset/xmark.svg",
+      "destination": "app/public/aria-symbols/xmark.svg",
+      "sha256": "d72fba366f46b9685ff6a9f544e851603aa293037a823f4f153b89c81e923725"
+    },
+    {
+      "source": "MuseReaderAndroid/Aria/Vendor/swift-jni/LICENSE.txt",
+      "destination": "app/public/aria-symbols/LICENSE-APACHE-2.0.txt",
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55"
+    },
+    {
+      "source": "fonts/bravura/BravuraText.otf",
+      "destination": "app/public/fonts/aria/BravuraText.otf",
+      "sha256": "bd5b1d0a43853e32eaa0851afe9a37e5967f88153270225890c32ae73d2a4942"
+    },
+    {
+      "source": "fonts/bravura/OFL.txt",
+      "destination": "app/public/fonts/aria/OFL.txt",
+      "sha256": "c24929be7028026a65ee8894da1e3c36d2a4ccce0548d9ba8ba64509f46319ee"
+    },
+    {
+      "source": "MuseReaderiOS/MuseReaderiOS/Assets.xcassets/ScoreReaderStackedChord.imageset/ScoreReaderStackedChord.png",
+      "destination": "app/public/aria-symbols/ScoreReaderStackedChord.png",
+      "sha256": "c2a5752938b75ad72be7411ac1d6e9cad6ccaf415182d763ba054273f08954d9"
+    }
+  ]
+}

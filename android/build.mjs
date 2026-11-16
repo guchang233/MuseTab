@@ -67,7 +67,7 @@ for (const rel of await walk(dist)) {
   copied++;
 }
 console.log(`assets: ${copied} files`);
-for (const need of ['index.html', 'engine/host.html', 'engine/MuseScoreStudio.wasm', 'engine/MuseAudio.js', 'engine/sound/MS Basic.sf3']) {
+for (const need of ['index.html', 'engine/host.html', 'engine/ComposerWorkspace.qml', 'fonts/NotoSansCJKsc-Regular.otf', 'engine/MuseScoreStudio.wasm', 'engine/MuseAudio.js', 'engine/sound/MS Basic.sf3']) {
   await fs.access(path.join(BUILD, 'assets', need)).catch(() => {
     throw new Error(`missing asset: ${need} (run engine/stage.sh first)`);
   });

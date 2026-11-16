@@ -5,6 +5,7 @@
   import { nav } from '../ui/nav.svelte';
   import { engine } from '../bridge/engine.svelte';
   import { workspace } from '../library/workspace.svelte';
+  import ModeSwitch from '../workspace/ModeSwitch.svelte';
   let { title, onedit, editLabel = '编辑', active = false }: { title: string; onedit?: () => void; editLabel?: string; active?: boolean } = $props();
   let height = $state(57);
   $effect(() => { if (!reading.fullscreen) reading.setHeader(height); });
@@ -23,7 +24,7 @@
     <IconButton label="返回谱匣" icon="back" onclick={() => leave('library')} />
     <div class="title"><span class="display">{title}</span><small>看谱{editLabel === '批注' ? ' · PDF' : ''}</small></div>
     <IconButton label="全屏看谱" icon="fullscreen" onclick={() => reading.setFullscreen(true)} />
-    <button class="edit" class:on={active} onclick={onedit || (() => leave('editor'))}><Icon name="pen" size={20} /><span>{editLabel}</span></button>
+    {#if onedit}<button class="edit" class:on={active} onclick={onedit}><Icon name="pen" size={20} /><span>{editLabel}</span></button>{:else}<ModeSwitch value="reader"/>{/if}
   </header>
 {/if}
 
@@ -90,7 +91,10 @@
     @media(max-width:600px) {
     .reading-header {
       gap:2px;
+      flex-wrap:wrap;
     }
+    .reading-header :global(.mode-switch){flex-basis:100%;justify-content:center;margin-top:4px;}
+    .reading-header :global(.mode-switch button){flex:1;}
     .title {
       padding:0 4px;
     }

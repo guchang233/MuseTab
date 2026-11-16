@@ -10,6 +10,8 @@
 
 工作流验证 tag、Web 包版本和 Android 版本一致。它在 Windows runner 上安装 Node、pnpm、JDK、Python、Android SDK，下载 SHA-256 锁定的原生依赖后构建 App，不需要开发机在线。先创建草稿并上传全部附件，再发布为 latest，防止客户端读到没有 APK 的版本。
 
+带版本后缀的 tag（如 `v0.7.0-dev.1`）发布为 prerelease，并明确设置 `latest=false`。正式版客户端不会自动读到这些开发测试包。
+
 `ANDROID_KEYSTORE_BASE64` 在仓库 Actions secret 中，内容为此前开发包的签名密钥，密钥不进入源码或产物。此项目继续使用已有开发签名以保持覆盖安装兼容；后续若更换签名必须单独处理 Android 签名迁移，不能直接换 key。
 
 ## 原生依赖

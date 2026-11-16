@@ -1,0 +1,1768 @@
+//
+//  LiveScoreRenderSession.swift
+//  MuseReaderiOS
+//
+//
+
+import Foundation
+#if !os(Android)
+import CoreGraphics
+#endif
+
+enum LiveScoreRenderSessionError: LocalizedError {
+    case missingEditState
+    case unsupportedTimeSignatureDenominator(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingEditState:
+            return "The MuseScore render core repaired the score but did not return an editing state."
+        case .unsupportedTimeSignatureDenominator(let denominator):
+            return "Time signature denominator \(denominator) is unsupported. Use 1, 2, 4, 8, or 16."
+        }
+    }
+}
+
+actor LiveScoreRenderSession {
+    /// Every call into the MuseScore engine runs on the app-wide render-core lane, so this
+    /// score never touches the engine's shared state while another score is being opened
+    /// or saved (see RenderCoreWorkGate).
+    nonisolated var unownedExecutor: UnownedSerialExecutor {
+        RenderCoreWorkGate.queue.asUnownedSerialExecutor()
+    }
+
+    private let bridgeSession: MSRRenderSession
+    private var cachedPlaybackMIDIData: Data?
+    private var cachedPlaybackMeasureRegions: [ScorePlaybackMeasureRegion]?
+    private var cachedPlaybackNotes: [ScoreVideoPianoNote]?
+    private var cachedPlaybackSoundFontURL: URL?
+    private var playbackRevision = 0
+
+    let totalPageCount: Int
+    let supportsPlayback: Bool
+    let supportsEditing: Bool
+    //! NOTE Read synchronously from nonisolated contexts (session construction, autosave),
+    //! so it cannot become actor-isolated; the instrument-editing methods below refresh it
+    //! after the core reports a new part list.
+    nonisolated(unsafe) var parts: [ScorePart]
+
+    init(bridgeSession: MSRRenderSession) {
+        self.bridgeSession = bridgeSession
+        self.totalPageCount = bridgeSession.totalPageCount
+        self.supportsPlayback = bridgeSession.supportsPlayback
+        self.supportsEditing = bridgeSession.supportsEditing
+        self.parts = Self.makeScoreParts(from: bridgeSession.scoreParts)
+    }
+
+    private static func makeScoreParts(from bridgeParts: [MSRScorePartInfo]) -> [ScorePart] {
+        bridgeParts.map { part in
+            let name = part.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let displayName = name.isEmpty ? "Part \(part.index + 1)" : name
+            return ScorePart(
+                id: part.partID,
+                index: part.index,
+                name: displayName,
+                clef: ScorePartClef.inferred(for: displayName),
+                isVisible: part.visible
+            )
+        }
+    }
+
+    func renderPage(at index: Int, dpi: Int) throws -> ScorePage {
+        if Task.isCancelled {
+            print("Aria live page render canceled before bridge: page=\(index + 1) dpi=\(dpi)")
+        }
+        try Task.checkCancellation()
+        let startedAt = Date()
+        let sessionID = ObjectIdentifier(self).hashValue
+        print("Aria live page render begin: session=\(sessionID) page=\(index + 1) dpi=\(dpi)")
+        #if os(Android) && ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("pdf_start", value: index)
+        defer { AndroidPhoneAuditLog.mark("pdf_end", value: index) }
+        #endif
+        let renderedPage = try RenderCoreWorkGate.sync {
+            try bridgeSession.renderPage(index: index, dpi: dpi)
+        }
+        if Task.isCancelled {
+            print(String(format: "Aria live page render canceled after bridge: session=%d page=%d elapsed=%.3fs",
+                         sessionID,
+                         index + 1,
+                         Date().timeIntervalSince(startedAt)))
+        }
+        try Task.checkCancellation()
+        print(String(format: "Aria live page render finished: session=%d page=%d pngBytes=%d pdfBytes=%d elapsed=%.3fs", sessionID, renderedPage.pageIndex + 1, renderedPage.imageData.count, renderedPage.pdfData.count, Date().timeIntervalSince(startedAt)))
+        let layoutMarkers = renderedPage.layoutBreakMarkers.compactMap { marker -> ScoreLayoutMarker? in
+            guard let kind = ScoreLayoutMarkerKind(rawValue: marker.kind) else {
+                return nil
+            }
+
+            return ScoreLayoutMarker(
+                kind: kind,
+                normalizedRect: ScoreNormalizedRect(
+                    x: marker.normalizedX,
+                    y: marker.normalizedY,
+                    width: marker.normalizedWidth,
+                    height: marker.normalizedHeight
+                )
+            )
+        }
+
+        return ScorePage(
+            index: renderedPage.pageIndex,
+            title: "Page \(renderedPage.pageIndex + 1)",
+            sourcePath: "render://page-\(renderedPage.pageIndex + 1)",
+            source: .liveMuseScoreRenderer,
+            imageData: renderedPage.imageData.isEmpty ? nil : renderedPage.imageData,
+            pdfData: renderedPage.pdfData.isEmpty ? nil : renderedPage.pdfData,
+            renderedSize: CGSize(width: renderedPage.pixelWidth, height: renderedPage.pixelHeight),
+            layoutMarkers: layoutMarkers
+        )
+    }
+
+    func setFullScoreView() throws -> Int {
+        var pageCount = 0
+        try bridgeSession.setFullScoreView(totalPageCount: &pageCount)
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    /// Lays the displayed score out as one continuous line (one wide page), or back to pages.
+    func setContinuousLayout(_ enabled: Bool) throws -> Int {
+        var pageCount = 0
+        try RenderCoreWorkGate.sync {
+            try bridgeSession.setContinuousLayout(enabled, totalPageCount: &pageCount)
+        }
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    func setActivePart(index: Int) throws -> Int {
+        var pageCount = 0
+        try bridgeSession.setActivePart(index: index, totalPageCount: &pageCount)
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    func concertPitchEnabled() -> Bool {
+        bridgeSession.concertPitchEnabled
+    }
+
+    func hasConcertPitchRelevantTransposition() -> Bool {
+        bridgeSession.hasConcertPitchRelevantTransposition
+    }
+
+    func scoreStartKey() -> Int {
+        bridgeSession.scoreStartKey
+    }
+
+    func setViewTransposeKey(_ targetKey: Int) throws -> Int {
+        var pageCount = 0
+        try bridgeSession.setViewTransposeKey(targetKey, totalPageCount: &pageCount)
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    func clearViewTranspose() throws -> Int {
+        var pageCount = 0
+        try bridgeSession.clearViewTranspose(totalPageCount: &pageCount)
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    func setConcertPitchEnabled(_ enabled: Bool) throws -> Int {
+        var pageCount = 0
+        try bridgeSession.setConcertPitchEnabled(enabled, totalPageCount: &pageCount)
+        invalidateCachedPlaybackArtifacts()
+        return pageCount
+    }
+
+    func playbackMIDIData() throws -> Data {
+        guard supportsPlayback else {
+            return Data()
+        }
+
+        if let cachedPlaybackMIDIData {
+            return cachedPlaybackMIDIData
+        }
+
+        let midiData = try bridgeSession.playbackMIDIData()
+        cachedPlaybackMIDIData = midiData
+        return midiData
+    }
+
+    func musicXMLData() throws -> Data {
+        try bridgeSession.musicXMLData()
+    }
+
+    func pdfData() throws -> Data {
+        try bridgeSession.pdfData()
+    }
+
+    func playbackAudioChunk(startTimeSeconds: TimeInterval, durationSeconds: TimeInterval, metronomeEnabled: Bool, includePartSamples: Bool = true) throws -> MSRPlaybackAudioData {
+        guard let soundFontURL = playbackSoundFontURL() else {
+            throw NativePlaybackController.PlaybackError.soundBankUnavailable(
+                "Add `MuseScore_General.sf2` to the app bundle resources."
+            )
+        }
+
+        let audioData = try bridgeSession.playbackEventAudioData(
+            soundFontPath: soundFontURL.path,
+            startTimeSeconds: startTimeSeconds,
+            durationSeconds: durationSeconds,
+            metronomeEnabled: metronomeEnabled,
+            includePartSamples: includePartSamples
+        )
+        return audioData
+    }
+
+    func playbackExportAudioChunk(startTimeSeconds: TimeInterval, durationSeconds: TimeInterval, metronomeEnabled: Bool, mixerSettings: ScoreMixerSettings) throws -> MSRPlaybackAudioData {
+        guard let soundFontURL = playbackSoundFontURL() else {
+            throw NativePlaybackController.PlaybackError.soundBankUnavailable(
+                "Add `MuseScore_General.sf2` to the app bundle resources."
+            )
+        }
+
+        let audioData = try bridgeSession.playbackMixedAudioData(
+            soundFontPath: soundFontURL.path,
+            startTimeSeconds: startTimeSeconds,
+            durationSeconds: durationSeconds,
+            metronomeEnabled: metronomeEnabled,
+            partMixSettings: mixerSettings.parts.mapValues {
+                MSRPlaybackPartMix(volume: $0.volume, pan: $0.pan, muted: $0.muted, solo: $0.solo)
+            }
+        )
+        return audioData
+    }
+
+    /// The metronome count-in leading into playback at `startTimeSeconds`, or
+    /// nil when there is no bar to count in from.
+    /// Practice speed (1 = written tempo). Playback, count-in and measure timings follow it.
+    func setPlaybackSpeed(_ speed: Double) throws {
+        try bridgeSession.setPlaybackSpeed(speed)
+        invalidateCachedPlaybackArtifacts()
+    }
+
+    /// Written tempo (quarter notes per minute) at a playback measure index; 0 if unknown.
+    func writtenTempoBpm(measureIndex: Int) -> Double {
+        bridgeSession.writtenTempoBpm(measureIndex: measureIndex)
+    }
+
+    func playbackCountIn(startTimeSeconds: TimeInterval, bars: Int = 1) throws -> MSRPlaybackCountIn? {
+        guard let soundFontURL = playbackSoundFontURL() else {
+            throw NativePlaybackController.PlaybackError.soundBankUnavailable(
+                "Add `MuseScore_General.sf2` to the app bundle resources."
+            )
+        }
+
+        let countIn = try bridgeSession.playbackCountIn(
+            soundFontPath: soundFontURL.path,
+            startTimeSeconds: startTimeSeconds,
+            bars: bars
+        )
+        return countIn.clicks.isEmpty ? nil : countIn
+    }
+
+    private func playbackSoundFontURL() -> URL? {
+        if let cachedPlaybackSoundFontURL {
+            return cachedPlaybackSoundFontURL
+        }
+
+        let soundFontURL = AppResources.url(forResource: "MuseScore_General", withExtension: "sf2")
+        cachedPlaybackSoundFontURL = soundFontURL
+        return soundFontURL
+    }
+
+    func playbackAudioExportDurationSeconds() throws -> TimeInterval {
+        let regions = try playbackMeasureRegions()
+        return regions.map(\.endTimeSeconds).max() ?? 0
+    }
+
+    /// The pitched notes of playback, timed as the audio plays them.
+    func playbackNotes() throws -> [ScoreVideoPianoNote] {
+        guard supportsPlayback else {
+            return []
+        }
+        if let cachedPlaybackNotes {
+            return cachedPlaybackNotes
+        }
+        let bridgeNotes = try RenderCoreWorkGate.sync {
+            try bridgeSession.playbackNotes()
+        }
+        let notes = bridgeNotes.map { note in
+            ScoreVideoPianoNote(pitch: note.pitch, startSeconds: note.startTimeSeconds,
+                                endSeconds: note.endTimeSeconds, track: note.staffIndex)
+        }
+        cachedPlaybackNotes = notes
+        return notes
+    }
+
+    func playbackMeasureRegions() throws -> [ScorePlaybackMeasureRegion] {
+        guard supportsPlayback else {
+            return []
+        }
+
+        if let cachedPlaybackMeasureRegions {
+            return cachedPlaybackMeasureRegions
+        }
+
+        let bridgeRegions = try RenderCoreWorkGate.sync {
+            try bridgeSession.playbackMeasureRegions()
+        }
+        let regions = bridgeRegions.map { region in
+            ScorePlaybackMeasureRegion(
+                measureEID: region.measureEID,
+                measureIndex: region.measureIndex,
+                pageIndex: region.pageIndex,
+                startTimeSeconds: region.startTimeSeconds,
+                endTimeSeconds: region.endTimeSeconds,
+                normalizedRect: ScoreNormalizedRect(
+                    x: region.normalizedX,
+                    y: region.normalizedY,
+                    width: region.normalizedWidth,
+                    height: region.normalizedHeight
+                )
+            )
+        }
+
+        cachedPlaybackMeasureRegions = regions
+        return regions
+    }
+
+    /// Where each chord or rest sits and when it sounds, in playback order.
+    func playbackBeatPoints() throws -> [ScorePlaybackBeatPoint] {
+        guard supportsPlayback else {
+            return []
+        }
+        let bridgePoints = try RenderCoreWorkGate.sync {
+            try bridgeSession.playbackBeatPoints()
+        }
+        return bridgePoints.map { point in
+            ScorePlaybackBeatPoint(
+                pageIndex: point.pageIndex,
+                timeSeconds: point.timeSeconds,
+                normalizedX: point.normalizedX,
+                startsSegment: point.startsSegment
+            )
+        }
+    }
+
+    func corruptionReport() throws -> ScoreCorruptionReport {
+        try makeCorruptionReport(from: bridgeSession.scoreCorruptionReport())
+    }
+
+    func legacyRepairIssues() throws -> [ScoreLegacyRepairIssue] {
+        try RenderCoreWorkGate.sync {
+            try bridgeSession.legacyRepairIssues().map { issue in
+                ScoreLegacyRepairIssue(
+                    index: issue.index,
+                    measureNumber: issue.measureNumber,
+                    staffIndex: issue.staffIndex,
+                    kind: issue.kind,
+                    location: issue.location,
+                    message: issue.message
+                )
+            }
+        }
+    }
+
+    func applyLegacyRepairs(_ indexes: [Int]) throws -> ScoreEditingState {
+        let editState = try RenderCoreWorkGate.sync {
+            try bridgeSession.applyLegacyRepairs(indexes: indexes.map(NSNumber.init(value:)))
+        }
+        invalidateCachedPlaybackArtifacts()
+        return try makeEditingState(from: editState, refreshScope: .all)
+    }
+
+    func selectCorruptionIssue(_ issue: ScoreCorruptionIssue) throws -> ScoreEditingState {
+        try makeEditingState(from: bridgeSession.selectCorruptionIssue(index: issue.index))
+    }
+
+    func repairCorruptionIssue(_ issue: ScoreCorruptionIssue, repair: ScoreCorruptionRepair) throws -> (ScoreEditingState, ScoreCorruptionReport) {
+        var bridgeEditState: MSREditState?
+        let bridgeReport = try bridgeSession.repairCorruptionIssue(index: issue.index, action: repair.rawValue, editState: &bridgeEditState)
+        guard let bridgeEditState else {
+            throw LiveScoreRenderSessionError.missingEditState
+        }
+        invalidateCachedPlaybackArtifacts()
+        return (try makeEditingState(from: bridgeEditState, refreshScope: .all), makeCorruptionReport(from: bridgeReport))
+    }
+
+    func clearCorruptionIssue(_ issue: ScoreCorruptionIssue) throws -> (ScoreEditingState, ScoreCorruptionReport) {
+        var bridgeEditState: MSREditState?
+        let bridgeReport = try bridgeSession.clearCorruptionIssue(index: issue.index, editState: &bridgeEditState)
+        guard let bridgeEditState else {
+            throw LiveScoreRenderSessionError.missingEditState
+        }
+        invalidateCachedPlaybackArtifacts()
+        return (try makeEditingState(from: bridgeEditState, refreshScope: .nearby), makeCorruptionReport(from: bridgeReport))
+    }
+
+    #if os(Android)
+    /// One engine-lane transaction per accepted key. Preparation never yields
+    /// back to MainActor and an ordinary key queries no selection artwork.
+    func applyCapturedKeyboardPitch(intent: ScoreNoteInputIntent, pitchClass: Int,
+                                    midiPitch: Int?, preferFlats: Bool, exactMIDIPitch: Bool,
+                                    replaceSelection: Bool, addToChord: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else { return inactiveEditingState() }
+        #if ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("keyboard_transaction_worker_start")
+        defer { AndroidPhoneAuditLog.mark("keyboard_transaction_worker_end") }
+        #endif
+        var state: MSREditState
+        if replaceSelection {
+            if exactMIDIPitch, let midiPitch {
+                state = try bridgeSession.setSelectedMIDIPitch(midiPitch, preferFlats: preferFlats)
+            } else {
+                state = try bridgeSession.setSelectedPitchClass(pitchClass, preferFlats: preferFlats)
+            }
+            invalidateCachedPlaybackArtifacts()
+        } else {
+            // Read the current engine state, not a potentially older UI reply.
+            #if ARIA_PHONE_AUDIT
+            AndroidPhoneAuditLog.mark("input_query_worker_start")
+            #endif
+            state = try bridgeSession.currentNoteInputState()
+            #if ARIA_PHONE_AUDIT
+            AndroidPhoneAuditLog.mark("input_query_worker_end")
+            #endif
+        }
+        if !state.noteInputEnabled { state = try bridgeSession.setNoteInputEnabled(true) }
+        if state.currentVoice != intent.voice { state = try bridgeSession.setCurrentVoice(intent.voice) }
+        if state.durationCode != intent.duration.rawValue {
+            state = try bridgeSession.applyDuration(code: intent.duration.rawValue)
+            invalidateCachedPlaybackArtifacts()
+        }
+        if state.noteInputIsDotted != intent.dotted {
+            state = try bridgeSession.toggleDot()
+            invalidateCachedPlaybackArtifacts()
+        }
+        if state.noteInputIsDoubleDotted != intent.doubleDotted {
+            state = try bridgeSession.toggleDoubleDot()
+            invalidateCachedPlaybackArtifacts()
+        }
+        if state.noteInputInsertsRests != intent.rests {
+            state = try bridgeSession.toggleRest()
+            invalidateCachedPlaybackArtifacts()
+        }
+        if replaceSelection { return try makeEditingState(from: state) }
+        if exactMIDIPitch, let midiPitch {
+            return try insertMIDIPitchAtCursor(midiPitch, preferFlats: preferFlats,
+                addToCurrentChord: addToChord)
+        }
+        return try insertPitchAtCursor(pitchClass, preferFlats: preferFlats,
+            addToCurrentChord: addToChord)
+    }
+    #endif
+
+    func currentEditingState() throws -> ScoreEditingState {
+        #if os(Android) && ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("snapshot_worker_start")
+        defer { AndroidPhoneAuditLog.mark("snapshot_worker_end") }
+        #endif
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try RenderCoreWorkGate.sync {
+            try bridgeSession.currentEditState()
+        }
+        return try makeEditingState(from: editState)
+    }
+
+    func selectElement(pageIndex: Int, normalizedPoint: CGPoint, hitRadiusScale: Double = 1.0) throws -> ScoreEditingState {
+        #if os(Android) && ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("select_worker_start")
+        defer { AndroidPhoneAuditLog.mark("select_worker_end") }
+        #endif
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(
+            from: bridgeSession.selectElement(
+                pageIndex: pageIndex,
+                normalizedX: normalizedPoint.x,
+                normalizedY: normalizedPoint.y,
+                hitRadiusScale: hitRadiusScale
+            )
+        )
+    }
+
+    func extendSelection(pageIndex: Int, point: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(
+            from: bridgeSession.extendSelection(pageIndex: pageIndex, normalizedX: point.x, normalizedY: point.y)
+        )
+    }
+
+    func selectMeasureRange(pageIndex: Int, startPoint: CGPoint, endPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(
+            from: bridgeSession.selectMeasureRange(
+                pageIndex: pageIndex,
+                startNormalizedX: startPoint.x,
+                startNormalizedY: startPoint.y,
+                endNormalizedX: endPoint.x,
+                endNormalizedY: endPoint.y
+            )
+        )
+    }
+
+    func previewMeasureRange(pageIndex: Int, startPoint: CGPoint, endPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(
+            from: bridgeSession.previewMeasureRange(
+                pageIndex: pageIndex,
+                startNormalizedX: startPoint.x,
+                startNormalizedY: startPoint.y,
+                endNormalizedX: endPoint.x,
+                endNormalizedY: endPoint.y
+            )
+        )
+    }
+
+    func setNoteInputEnabled(_ enabled: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.setNoteInputEnabled(enabled))
+    }
+
+    func setCurrentVoice(_ voice: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.setCurrentVoice(voice))
+    }
+
+    func applyDuration(_ duration: ScoreNoteDuration) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.applyDuration(code: duration.rawValue))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func toggleDot() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.toggleDot())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func toggleDoubleDot() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.toggleDoubleDot())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addGraceNote(_ kind: ScoreGraceNoteKind) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addGraceNote(kind.rawValue))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func toggleRest() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.toggleRest())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func enterRestAtCursor() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.enterRestAtCursor())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func toggleTie() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.toggleTie())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addTuplet(_ tupletCount: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addTuplet(tupletCount), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addText(_ textKind: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addText(textKind))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setFingering(_ finger: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+        let editState = try makeEditingState(from: bridgeSession.setFingering(finger))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func selectAttachedChordText() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.selectAttachedChordText())
+    }
+
+    func selectAttachedLyrics() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.selectAttachedLyrics())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setSelectedText(_ text: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setSelectedText(text))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addLyricsText(_ text: String, advanceToNextChord: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addLyricsText(text, advanceToNextChord: advanceToNextChord))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addLyricsMelisma(_ text: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addLyricsMelisma(text))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addLyricsHyphen(_ text: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addLyricsHyphen(text))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func finishLyricsEntry() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.finishLyricsEntry())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addRepeatJump(_ repeatJumpKind: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addRepeatJump(repeatJumpKind))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addExpression(_ expressionKind: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addExpression(expressionKind))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func retargetSelectedExpressionEndpoint(start: Bool, pageIndex: Int, normalizedPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.retargetSelectedExpressionEndpoint(
+            start: start,
+            pageIndex: pageIndex,
+            normalizedX: normalizedPoint.x,
+            normalizedY: normalizedPoint.y
+        ))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func dragSelectedChordText(pageIndex: Int, normalizedPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.dragSelectedChordText(
+            pageIndex: pageIndex,
+            normalizedX: normalizedPoint.x,
+            normalizedY: normalizedPoint.y
+        ))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func dragSelectedMovableElement(pageIndex: Int, normalizedPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.dragSelectedMovableElement(
+                pageIndex: pageIndex,
+                normalizedX: normalizedPoint.x,
+                normalizedY: normalizedPoint.y
+            ),
+            refreshScope: .nearby
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addLayoutBreak(_ breakKind: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addLayoutBreak(breakKind), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func removeLayoutBreak() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.removeLayoutBreak(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func fillSelectionWithSlashes() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.fillSelectionWithSlashes(), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func replaceSelectionWithRhythmicSlashes() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.replaceSelectionWithRhythmicSlashes(), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func applyAutoSystemBreaks(_ request: ScoreAutoSystemBreaksRequest) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.applyAutoSystemBreaks(
+            measuresPerSystem: request.measuresPerSystem,
+            lockCurrentLayout: request.mode == .lockCurrentLayout,
+            removeExisting: request.mode == .removeExisting
+        ), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func resetTemplateMeasures(_ count: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.resetTemplateMeasures(count), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func updateStaffSpacing(_ staffDistanceSpatium: Double) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.updateStaffSpacing(staffDistanceSpatium), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func updatePageLayout(_ value: ScorePageSettingsValue) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.updatePageLayout(
+            pageWidthMillimeters: value.pageWidthMillimeters,
+            pageHeightMillimeters: value.pageHeightMillimeters,
+            marginMillimeters: value.marginMillimeters,
+            staffSizeMillimeters: value.staffSizeMillimeters,
+            staffSpacingSpatium: value.staffSpacingSpatium,
+            systemSpacingSpatium: value.systemSpacingSpatium
+        ), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func updateLayoutOptions(_ value: ScoreLayoutOptionsValue) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.updateLayoutOptions(
+            createMultiMeasureRests: value.createMultiMeasureRests,
+            hideEmptyStaves: value.hideEmptyStaves
+        ), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addTempo(beatUnit: TempoBeatUnit, bpm: Int, text: String = "") throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addTempo(beatUnit: beatUnit.rawValue, bpm: bpm, text: text))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func updateTimeSignature(_ value: ScoreTimeSignatureValue, fromStart: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+        guard value.hasAllowedDenominator else {
+            throw LiveScoreRenderSessionError.unsupportedTimeSignatureDenominator(value.denominator)
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.updateTimeSignature(
+            numerator: value.numerator,
+            denominator: value.denominator,
+            commonTime: value.style == .commonTime,
+            cutTime: value.style == .cutTime,
+            fromStart: fromStart
+        ), refreshScope: fromStart ? .all : .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func updateKeySignature(_ keyValue: Int, fromStart: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.updateKeySignature(keyValue, fromStart: fromStart),
+            refreshScope: fromStart ? .all : .nearby
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertNote(pageIndex: Int, normalizedPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.insertNote(
+                pageIndex: pageIndex,
+                normalizedX: normalizedPoint.x,
+                normalizedY: normalizedPoint.y
+            )
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertNote(pageIndex: Int, normalizedPoint: CGPoint, accidentalKind: ScoreAccidentalKind?) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        guard let accidentalKind else {
+            return try insertNote(pageIndex: pageIndex, normalizedPoint: normalizedPoint)
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.insertNote(
+                pageIndex: pageIndex,
+                normalizedX: normalizedPoint.x,
+                normalizedY: normalizedPoint.y,
+                accidentalKind: accidentalKind.rawValue
+            )
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertNote(pageIndex: Int, normalizedPoint: CGPoint, pitchClass: Int, preferFlats: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.insertNote(
+                pageIndex: pageIndex,
+                normalizedX: normalizedPoint.x,
+                normalizedY: normalizedPoint.y,
+                pitchClass: pitchClass,
+                preferFlats: preferFlats
+            )
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertPitchAtCursor(_ pitchClass: Int, preferFlats: Bool, addToCurrentChord: Bool = false) throws -> ScoreEditingState {
+        #if os(Android) && ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("insert_pitch_worker_start")
+        defer { AndroidPhoneAuditLog.mark("insert_pitch_worker_end") }
+        #endif
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.insertPitchAtCursor(pitchClass, preferFlats: preferFlats, addToCurrentChord: addToCurrentChord))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertMIDIPitchAtCursor(_ midiPitch: Int, preferFlats: Bool, addToCurrentChord: Bool = false) throws -> ScoreEditingState {
+        #if os(Android) && ARIA_PHONE_AUDIT
+        AndroidPhoneAuditLog.mark("insert_midi_worker_start")
+        defer { AndroidPhoneAuditLog.mark("insert_midi_worker_end") }
+        #endif
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.insertMIDIPitchAtCursor(midiPitch, preferFlats: preferFlats, addToCurrentChord: addToCurrentChord))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func insertMIDIChordAtCursor(_ midiPitches: [Int], preferFlats: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.insertMIDIChordAtCursor(midiPitches.map { NSNumber(value: $0) }, preferFlats: preferFlats))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func removeMIDIPitchFromCurrentChord(_ midiPitch: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.removeMIDIPitchFromCurrentChord(midiPitch))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func noteEntryPreview(pageIndex: Int, normalizedPoint: CGPoint, duration: ScoreNoteDuration, isRest: Bool, accidentalKind: ScoreAccidentalKind?) throws -> ScoreNoteEntryPreview? {
+        guard supportsEditing else {
+            return nil
+        }
+
+        let bridgePreview = try bridgeSession.noteEntryPreview(
+            pageIndex: pageIndex,
+            normalizedX: Double(normalizedPoint.x),
+            normalizedY: Double(normalizedPoint.y),
+            durationCode: duration.rawValue,
+            rest: isRest,
+            accidentalKind: accidentalKind?.rawValue ?? -1
+        )
+
+        guard !bridgePreview.overlayImageData.isEmpty else {
+            return nil
+        }
+
+        return ScoreNoteEntryPreview(
+            pageIndex: Int(bridgePreview.pageIndex),
+            overlayNormalizedRect: ScoreNormalizedRect(
+                x: bridgePreview.overlayNormalizedX,
+                y: bridgePreview.overlayNormalizedY,
+                width: bridgePreview.overlayNormalizedWidth,
+                height: bridgePreview.overlayNormalizedHeight
+            ),
+            overlayImageData: bridgePreview.overlayImageData
+        )
+    }
+
+    func deleteSelection() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.deleteSelection())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func clearSelectedMeasure() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.clearSelectedMeasure(), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func removeSelectedMeasure() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.removeSelectedMeasure(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addMeasures(_ count: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addMeasures(count), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setRegularMeasureCount(_ count: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setRegularMeasureCount(count), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func firstMeasurePickupState() throws -> ScorePickupMeasureState {
+        guard supportsEditing else {
+            return ScorePickupMeasureState(isPickup: false, actualNumerator: 0, actualDenominator: 0, nominalNumerator: 4, nominalDenominator: 4)
+        }
+
+        let info = try bridgeSession.firstMeasurePickupState()
+        return ScorePickupMeasureState(
+            isPickup: info.isPickup,
+            actualNumerator: Int(info.actualNumerator),
+            actualDenominator: Int(info.actualDenominator),
+            nominalNumerator: Int(info.nominalNumerator),
+            nominalDenominator: Int(info.nominalDenominator)
+        )
+    }
+
+    func setFirstMeasurePickup(numerator: Int, denominator: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.setFirstMeasurePickup(numerator: numerator, denominator: denominator),
+            refreshScope: .all
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func createFirstPickupMeasure(numerator: Int, denominator: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.createFirstPickupMeasure(numerator: numerator, denominator: denominator),
+            refreshScope: .all
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func clearFirstMeasurePickup() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.clearFirstMeasurePickup(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func copySelectedMeasureRange() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.copySelectedMeasureRange())
+    }
+
+    func cutSelectedMeasureRange() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.cutSelectedMeasureRange(), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func pasteMeasureRange() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.pasteMeasureRange(), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func selectAll() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.selectAll())
+    }
+
+    func selectSimilar(sameStaff: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.selectSimilar(sameStaff: sameStaff))
+    }
+
+    func clearSelection() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: bridgeSession.clearSelection())
+    }
+
+    func transposeSelectedMeasureRange(_ request: ScoreTransposeRequest) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.transposeSelectedMeasureRange(
+                mode: request.mode.rawValue,
+                direction: request.direction.rawValue,
+                interval: request.interval,
+                targetKey: request.targetKey
+            ),
+            refreshScope: .nearby
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func transposeScore(_ request: ScoreTransposeRequest) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.transposeScore(
+                mode: request.mode.rawValue,
+                direction: request.direction.rawValue,
+                interval: request.interval,
+                targetKey: request.targetKey
+            ),
+            refreshScope: .all
+        )
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func movePitch(up: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: up ? bridgeSession.moveSelectedPitchUp() : bridgeSession.moveSelectedPitchDown())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func shiftPitchBySemitones(_ semitoneDelta: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.shiftSelectedPitchBySemitones(semitoneDelta))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func shiftPitchByOctaves(_ octaveDelta: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.shiftSelectedPitchByOctaves(octaveDelta))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func changeSelectedEnharmonicSpelling() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.changeSelectedEnharmonicSpelling())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func changeSelectedAccidental(_ accidentalKind: ScoreAccidentalKind) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.changeSelectedAccidental(accidentalKind.rawValue))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    /// Engine accidental kinds 3 and 4; ScoreAccidentalKind keeps to the main row's three.
+    func changeSelectedDoubleAccidental(sharp: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.changeSelectedAccidental(sharp ? 3 : 4))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func flipSelectedStemDirection() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.flipSelectedStemDirection())
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setSelectedPitchClass(_ pitchClass: Int, preferFlats: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setSelectedPitchClass(pitchClass, preferFlats: preferFlats))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setSelectedMIDIPitch(_ midiPitch: Int, preferFlats: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setSelectedMIDIPitch(midiPitch, preferFlats: preferFlats))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func replaceInstruments(_ instrumentIds: [String]) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.replaceInstruments(instrumentIds), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func replacePartInstrument(partID: String, instrumentID: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.replacePartInstrument(partID: partID, instrumentID: instrumentID),
+            refreshScope: .all
+        )
+        parts = editState.scoreParts
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setInstrumentFromTick(partID: String, tick: Int64, instrumentID: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(
+            from: bridgeSession.setInstrumentFromTick(partID: partID, tick: tick, instrumentID: instrumentID),
+            refreshScope: .all
+        )
+        parts = editState.scoreParts
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func addInstrument(_ instrumentId: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.addInstrument(instrumentId), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func removeInstrument(at partIndex: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.removeInstrument(at: partIndex), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func moveInstrument(from sourceIndex: Int, to destinationIndex: Int) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.moveInstrument(from: sourceIndex, to: destinationIndex), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setInstrumentVisible(at partIndex: Int, visible: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setInstrument(at: partIndex, visible: visible), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func removeSelectedInstrument() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.removeSelectedInstrument(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func changeClef(_ clefKind: String) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.changeClef(clefKind), refreshScope: .nearby)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func setSelectedPitch(pageIndex: Int, normalizedPoint: CGPoint) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.setSelectedPitch(
+            pageIndex: pageIndex,
+            normalizedX: normalizedPoint.x,
+            normalizedY: normalizedPoint.y
+        ))
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func selectAdjacentElement(next: Bool) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        return try makeEditingState(from: next ? bridgeSession.selectNextElement() : bridgeSession.selectPreviousElement())
+    }
+
+    func undoEdit() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.undoEdit(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    func redoEdit() throws -> ScoreEditingState {
+        guard supportsEditing else {
+            return inactiveEditingState()
+        }
+
+        let editState = try makeEditingState(from: bridgeSession.redoEdit(), refreshScope: .all)
+        invalidateCachedPlaybackArtifacts()
+        return editState
+    }
+
+    @discardableResult
+    func updateMetadata(_ metadata: ScoreEditableMetadata) throws -> ScoreEditingState {
+        guard supportsEditing else {
+            throw ScoreDocumentServiceError.bridgeFailure("This score session does not support editing yet.")
+        }
+
+        try bridgeSession.updateMetadata(
+            title: metadata.title,
+            subtitle: metadata.subtitle,
+            composer: metadata.composer,
+            lyricist: metadata.lyricist,
+            arranger: metadata.arranger
+        )
+        invalidateCachedPlaybackArtifacts()
+        return try makeEditingState(from: bridgeSession.currentEditState(), refreshScope: .all)
+    }
+
+    func currentMetadata() -> ScoreEditableMetadata {
+        let bridgeMetadata = RenderCoreWorkGate.sync {
+            bridgeSession.currentMetadata
+        }
+        return ScoreEditableMetadata(
+            title: bridgeMetadata.title,
+            subtitle: bridgeMetadata.subtitle,
+            composer: bridgeMetadata.composer,
+            lyricist: bridgeMetadata.lyricist,
+            arranger: bridgeMetadata.arranger
+        )
+    }
+
+    func videoTextFonts() -> (title: ScoreVideoTextFont, composer: ScoreVideoTextFont) {
+        let metadata = RenderCoreWorkGate.sync {
+            bridgeSession.currentMetadata
+        }
+        return (
+            title: ScoreVideoTextFont(family: metadata.titleFontFamily,
+                                      bold: metadata.titleFontBold,
+                                      italic: metadata.titleFontItalic),
+            composer: ScoreVideoTextFont(family: metadata.composerFontFamily,
+                                         bold: metadata.composerFontBold,
+                                         italic: metadata.composerFontItalic)
+        )
+    }
+
+    func updateInitialKeySignature(_ keyValue: Int) throws {
+        guard supportsEditing else {
+            throw ScoreDocumentServiceError.bridgeFailure("This score session does not support editing yet.")
+        }
+
+        try bridgeSession.updateInitialKeySignature(keyValue)
+        invalidateCachedPlaybackArtifacts()
+    }
+
+    func save(to url: URL) throws {
+        guard supportsEditing else {
+            throw ScoreDocumentServiceError.bridgeFailure("This score session does not support saving yet.")
+        }
+
+        try RenderCoreWorkGate.sync {
+            try bridgeSession.save(to: url)
+        }
+    }
+
+    /// Confirms that removing every chord symbol was intended, so the next save goes ahead.
+    func acceptChordSymbolRemoval() {
+        RenderCoreWorkGate.sync {
+            bridgeSession.acceptChordSymbolRemoval()
+        }
+    }
+
+    private func makeEditingState(from editState: MSREditState, refreshScope: ScoreEditRefreshScope = .local) throws -> ScoreEditingState {
+        guard let duration = ScoreNoteDuration(rawValue: editState.durationCode) else {
+            throw ScoreDocumentServiceError.bridgeFailure("Aria received an unsupported note duration from the score engine.")
+        }
+
+        let selection: ScoreSelectedElement?
+        if let bridgeSelection = editState.selection {
+            let kind: ScoreSelectedElementKind
+            if bridgeSelection.isMeasure {
+                kind = .measure
+            } else if bridgeSelection.isTimeSignature {
+                kind = .timeSignature
+            } else if bridgeSelection.isKeySignature {
+                kind = .keySignature
+            } else if bridgeSelection.isTempo {
+                kind = .tempo
+            } else if bridgeSelection.isLayoutBreak {
+                kind = .layoutBreak
+            } else if bridgeSelection.isTie {
+                kind = .tie
+            } else if bridgeSelection.isExpressionSpanner {
+                kind = .expressionSpanner
+            } else if bridgeSelection.isBar {
+                kind = .bar
+            } else if bridgeSelection.isInstrumentChange {
+                kind = .instrumentChange
+            } else if bridgeSelection.isInstrumentName {
+                kind = .instrumentName
+            } else if bridgeSelection.isChordText {
+                kind = .chordText
+            } else if bridgeSelection.isEditableText && bridgeSelection.textKind == "Marker" {
+                kind = .marker
+            } else if bridgeSelection.isEditableText && bridgeSelection.textKind == "Dynamic" {
+                kind = .dynamic
+            } else if bridgeSelection.isEditableText {
+                kind = .text
+            } else if bridgeSelection.isRest {
+                kind = .rest
+            } else if bridgeSelection.isNote {
+                kind = .note
+            } else {
+                kind = .other
+            }
+            let selectionDuration = ScoreNoteDuration(rawValue: bridgeSelection.durationCode) ?? duration
+            let highlightRects = bridgeSelection.highlightRects.map {
+                ScoreNormalizedRect(
+                    x: $0.normalizedX,
+                    y: $0.normalizedY,
+                    width: $0.normalizedWidth,
+                    height: $0.normalizedHeight
+                )
+            }
+            var otherPageHighlightRects: [Int: [ScoreNormalizedRect]] = [:]
+            for (rect, otherPageIndex) in zip(bridgeSelection.otherPageHighlightRects, bridgeSelection.otherPageHighlightPageIndexes) {
+                otherPageHighlightRects[otherPageIndex.intValue, default: []].append(ScoreNormalizedRect(
+                    x: rect.normalizedX,
+                    y: rect.normalizedY,
+                    width: rect.normalizedWidth,
+                    height: rect.normalizedHeight
+                ))
+            }
+            let overlayImageData = bridgeSelection.overlayImageData.isEmpty ? nil : bridgeSelection.overlayImageData
+            let overlayPDFData = bridgeSelection.overlayPdfData.isEmpty ? nil : bridgeSelection.overlayPdfData
+            let overlayNormalizedRect = overlayImageData == nil && overlayPDFData == nil ? nil : ScoreNormalizedRect(
+                x: bridgeSelection.overlayNormalizedX,
+                y: bridgeSelection.overlayNormalizedY,
+                width: bridgeSelection.overlayNormalizedWidth,
+                height: bridgeSelection.overlayNormalizedHeight
+            )
+            selection = ScoreSelectedElement(
+                pageIndex: bridgeSelection.pageIndex,
+                kind: kind,
+                canDragMovableElement: bridgeSelection.canDragMovableElement,
+                isSingleMeasure: bridgeSelection.isSingleMeasure,
+                isFirstMeasure: bridgeSelection.isFirstMeasure,
+                isPickupMeasure: bridgeSelection.isPickupMeasure,
+                pickupNominalNumerator: Int(bridgeSelection.pickupNominalNumerator),
+                pickupNominalDenominator: Int(bridgeSelection.pickupNominalDenominator),
+                supportsBowingArticulations: bridgeSelection.supportsBowingArticulations,
+                canChangePitch: bridgeSelection.canChangePitch,
+                canFillWithSlashes: bridgeSelection.canFillWithSlashes,
+                isDotted: bridgeSelection.isDotted,
+                isDoubleDotted: bridgeSelection.isDoubleDotted,
+                isTiedForward: bridgeSelection.isTiedForward,
+                textContent: bridgeSelection.isEditableText ? bridgeSelection.textContent : nil,
+                textKind: bridgeSelection.isEditableText ? bridgeSelection.textKind : nil,
+                partID: bridgeSelection.partID.isEmpty ? nil : bridgeSelection.partID,
+                instrumentID: bridgeSelection.instrumentID.isEmpty ? nil : bridgeSelection.instrumentID,
+                instrumentName: bridgeSelection.instrumentName.isEmpty ? nil : bridgeSelection.instrumentName,
+                measureIndex: bridgeSelection.measureIndex >= 0 ? Int(bridgeSelection.measureIndex) : nil,
+                tick: bridgeSelection.tick >= 0 ? bridgeSelection.tick : nil,
+                midiPitch: bridgeSelection.midiPitch >= 0 ? Int(bridgeSelection.midiPitch) : nil,
+                chordMidiPitches: bridgeSelection.chordMidiPitches.map { Int(truncating: $0) },
+                playbackBank: Int(bridgeSelection.playbackBank),
+                playbackProgram: Int(bridgeSelection.playbackProgram),
+                playbackSetupData: bridgeSelection.playbackSetupData,
+                duration: selectionDuration,
+                accidentalKind: ScoreAccidentalKind(rawValue: bridgeSelection.accidentalKind),
+                diatonicStep: bridgeSelection.diatonicStep >= 0 ? Int(bridgeSelection.diatonicStep) : nil,
+                currentKey: Int(bridgeSelection.currentKey),
+                currentTimeSignatureNumerator: Int(bridgeSelection.currentTimeSignatureNumerator),
+                currentTimeSignatureDenominator: Int(bridgeSelection.currentTimeSignatureDenominator),
+                layoutBreakKind: ScoreLayoutMarkerKind(rawValue: bridgeSelection.layoutBreakType),
+                normalizedRect: ScoreNormalizedRect(
+                    x: bridgeSelection.normalizedX,
+                    y: bridgeSelection.normalizedY,
+                    width: bridgeSelection.normalizedWidth,
+                    height: bridgeSelection.normalizedHeight
+                ),
+                actionRect: ScoreNormalizedRect(
+                    x: bridgeSelection.actionNormalizedX,
+                    y: bridgeSelection.actionNormalizedY,
+                    width: bridgeSelection.actionNormalizedWidth,
+                    height: bridgeSelection.actionNormalizedHeight
+                ),
+                startHandlePoint: bridgeSelection.isExpressionSpanner ? CGPoint(
+                    x: bridgeSelection.startHandleNormalizedX,
+                    y: bridgeSelection.startHandleNormalizedY
+                ) : nil,
+                endHandlePoint: bridgeSelection.isExpressionSpanner ? CGPoint(
+                    x: bridgeSelection.endHandleNormalizedX,
+                    y: bridgeSelection.endHandleNormalizedY
+                ) : nil,
+                attachmentPoint: bridgeSelection.hasAttachmentPoint ? CGPoint(
+                    x: bridgeSelection.attachmentNormalizedX,
+                    y: bridgeSelection.attachmentNormalizedY
+                ) : nil,
+                attachmentTargets: bridgeSelection.attachmentTargets.map {
+                    CGPoint(x: $0.normalizedX, y: $0.normalizedY)
+                },
+                highlightRects: highlightRects,
+                overlayNormalizedRect: overlayNormalizedRect,
+                overlayImageData: overlayImageData,
+                overlayPDFData: overlayPDFData,
+                otherPageHighlightRects: otherPageHighlightRects
+            )
+        } else {
+            selection = nil
+        }
+
+        var refreshedPageCount = 0
+        try bridgeSession.refreshTotalPageCount(&refreshedPageCount)
+
+        return ScoreEditingState(
+            selection: selection,
+            noteInputEnabled: editState.noteInputEnabled,
+            noteInputInsertsRests: editState.noteInputInsertsRests,
+            noteInputIsDotted: editState.noteInputIsDotted,
+            noteInputIsDoubleDotted: editState.noteInputIsDoubleDotted,
+            duration: duration,
+            currentVoice: Int(editState.currentVoice),
+            canUndo: editState.canUndo,
+            canRedo: editState.canRedo,
+            activeStaffIsPercussion: editState.activeStaffIsPercussion,
+            createMultiMeasureRests: editState.createMultiMeasureRests,
+            hideEmptyStaves: editState.hideEmptyStaves,
+            staffSpacingSpatium: editState.staffSpacingSpatium,
+            pageSettings: ScorePageSettingsValue(
+                pageWidthMillimeters: editState.pageWidthMillimeters,
+                pageHeightMillimeters: editState.pageHeightMillimeters,
+                marginMillimeters: editState.pageMarginMillimeters,
+                staffSizeMillimeters: editState.staffSizeMillimeters,
+                staffSpacingSpatium: editState.staffSpacingSpatium,
+                systemSpacingSpatium: editState.systemSpacingSpatium
+            ),
+            refreshScope: refreshScope,
+            pageCount: refreshedPageCount,
+            scoreParts: Self.makeScoreParts(from: bridgeSession.scoreParts)
+        )
+    }
+
+    private func makeCorruptionReport(from bridgeReport: MSRScoreCorruptionReport) -> ScoreCorruptionReport {
+        ScoreCorruptionReport(
+            isCorrupted: bridgeReport.corrupted,
+            details: bridgeReport.details,
+            issues: bridgeReport.issues.map { issue in
+                ScoreCorruptionIssue(
+                    index: Int(issue.index),
+                    measureNumber: Int(issue.measureNumber),
+                    staffIndex: Int(issue.staffIndex),
+                    voice: Int(issue.voice),
+                    repairable: issue.repairable,
+                    kind: issue.kind,
+                    message: issue.message
+                )
+            }
+        )
+    }
+
+    private func invalidateCachedPlaybackArtifacts() {
+        cachedPlaybackMIDIData = nil
+        cachedPlaybackMeasureRegions = nil
+        cachedPlaybackNotes = nil
+        playbackRevision += 1
+        print("MuseReader playback invalidated: revision=\(playbackRevision)")
+    }
+
+    private func inactiveEditingState() -> ScoreEditingState {
+        ScoreEditingState(
+            selection: nil,
+            noteInputEnabled: false,
+            noteInputInsertsRests: false,
+            noteInputIsDotted: false,
+            duration: .quarter,
+            currentVoice: 0,
+            canUndo: false,
+            canRedo: false,
+            activeStaffIsPercussion: false,
+            createMultiMeasureRests: false,
+            hideEmptyStaves: false,
+            staffSpacingSpatium: ScorePageSettingsValue.a4.staffSpacingSpatium,
+            pageSettings: .a4,
+            refreshScope: .local,
+            pageCount: nil,
+            scoreParts: parts
+        )
+    }
+}

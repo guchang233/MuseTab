@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <QObject>
 
 #include "global/async/asyncable.h"
 #include "global/modularity/ioc.h"
@@ -36,8 +37,9 @@
 #include "draw/types/transform.h"
 
 namespace mu::appjs {
-class WebApi : public muse::async::Asyncable
+class WebApi : public QObject, public muse::async::Asyncable
 {
+    Q_OBJECT
 public:
 
     static WebApi* instance();
@@ -50,6 +52,14 @@ public:
     void open(const void* source, unsigned int len, const std::string& ext);
     //! Serializes the current score and hands it to Module.onEngineExport(ext, bytes, ok)
     void exportTo(const std::string& ext);
+    bool loadTextFont(const void* source, unsigned int len);
+    std::string composerState(const std::string& json);
+    std::string viewRect() const;
+    Q_INVOKABLE void composerEvent(const QString& kind);
+    Q_INVOKABLE void fitComposerView();
+protected:
+    bool eventFilter(QObject* object,QEvent* event) override;
+public:
 
     // --- actions ---
     void dispatch(const std::string& actionCode);
@@ -60,6 +70,9 @@ public:
     void addSoundFont(const std::string& uri);
     void startAudioProcessing();
     void setTempoMultiplier(double multiplier);
+    std::string playbackInfo() const;
+    bool seekSeconds(double seconds);
+    bool addPitch(int step, int octave, int accidental, bool chord);
 
     // --- symbol palettes (the same set MuseScore ships) ---
     //! JSON: [{ "name": ..., "id": ..., "cells": n }, ...]

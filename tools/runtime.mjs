@@ -7,7 +7,7 @@ const root=path.resolve(import.meta.dirname,'..'),dest=path.join(root,'app/publi
 const runtimeTag=process.argv.find(a=>a.startsWith('--tag='))?.slice(6)||'engine-runtime-v1';
 if(!/^engine-runtime-v\d+$/.test(runtimeTag))throw Error('Invalid runtime tag');
 if(process.argv.includes('--pack')){
-  const files=['MuseScoreStudio.js','MuseScoreStudio.wasm','MuseAudio.js','MuseAudio-simd.js','distr','sound','LICENSE.txt','MUSETAB_NOTICE.md','UPSTREAM_NOTICE.txt','host.html','reader-gestures.js'];
+  const files=['MuseScoreStudio.js','MuseScoreStudio.wasm','MuseAudio.js','MuseAudio-simd.js','distr','sound','LICENSE.txt','MUSETAB_NOTICE.md','UPSTREAM_NOTICE.txt','host.html','ComposerWorkspace.qml','reader-gestures.js'];
   await fs.mkdir(path.join(root,'release'),{recursive:true});
   const zip=path.join(root,'release/'+runtimeTag+'.zip');
   // tar is available on Windows developer/CI hosts. bsdtar emits zip with -a.
@@ -25,5 +25,6 @@ if(process.argv.includes('--pack')){
 // Current application glue always comes from the checked-out tag.
 await fs.cp(path.join(root,'engine/overrides/src/web/appjs/distr'),path.join(dest,'distr'),{recursive:true});
 await fs.copyFile(path.join(root,'engine/host/host.html'),path.join(dest,'host.html'));
+await fs.copyFile(path.join(root,'engine/shell/qml/MuseScore/AppShell/platform/web/ComposerWorkspace.qml'),path.join(dest,'ComposerWorkspace.qml'));
 await fs.copyFile(path.join(root,'app/src/reader/gestures.js'),path.join(dest,'reader-gestures.js'));
 await fs.copyFile(path.join(root,'THIRD_PARTY.md'),path.join(dest,'MUSETAB_NOTICE.md'));

@@ -4,7 +4,24 @@ const b=await chromium.launch({channel:'chrome',args:['--autoplay-policy=no-user
 const pose=()=>f.evaluate(()=>JSON.parse(musetabEngine.Module.ccall('mtGestureView','string',['number','number','number','number','number'],[1,0,0,0,0])).rect);
 async function tap(x,y){const r=await p.locator('iframe').boundingBox();await p.touchscreen.tap(x+r.x,y+r.y);await p.waitForTimeout(150);}
 async function swipe(delta){const c=await p.context().newCDPSession(p);await c.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:delta>0?650:150,y:600}]});await c.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:delta>0?150:650,y:600}]});await c.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await c.detach();}
-async function ensurePage(index){for(let i=0;i<16;i++){if(await p.locator('.gallery-page[data-page="'+index+'"]').count())break;const current=await p.locator('.gallery-page').first().getAttribute('data-page');await swipe(index>Number(current)?1:-1);await p.waitForTimeout(200);}await p.locator('.gallery-page[data-page="'+index+'"]').waitFor();await p.waitForFunction(()=>document.querySelector('.score-gallery')?.getAttribute('aria-busy')==='false');}
+async function ensurePage(index){
+ for(let i=0;i<16;i++){
+  await p.waitForFunction(()=>document.querySelector('.score-gallery')?.getAttribute('aria-busy')==='false');
+  if(await p.locator('.gallery-page[data-page="'+index+'"]').count()){
+   await p.waitForTimeout(250);
+   if(await p.locator('.gallery-page[data-page="'+index+'"]').count())return;
+   continue;
+  }
+  const current=await p.locator('.gallery-page').first().getAttribute('data-page');
+  console.log('TURN target',index,'current',current);
+  await swipe(index>Number(current)?1:-1);
+  await p.waitForFunction(old=>{
+   const gallery=document.querySelector('.score-gallery'),first=gallery?.querySelector('.gallery-page');
+   return gallery?.getAttribute('aria-busy')==='false'&&first?.getAttribute('data-page')!==old;
+  },current);
+ }
+ throw Error('Could not settle on page '+index);
+}
 try{
  await p.addInitScript(()=>localStorage.setItem('musetab.pageLayout','single'));await p.goto('http://127.0.0.1:5183');f=p.frames().find(x=>x.url().includes('/engine/host.html'));await f.waitForFunction(()=>musetabEngine?.ready,{},{timeout:60000});await f.evaluate(()=>{window.events=[];musetabEngine.on((name,data)=>events.push({name,data}));});
  const dir='D:/music/Context/2025/2025 7',name=(await fs.readdir(dir)).find(n=>n.includes('Frieren_ Beyond Journey')&&n.endsWith('.mscz')),fc=p.waitForEvent('filechooser');await p.getByRole('button',{name:'导入乐谱',exact:true}).click();await(await fc).setFiles(dir+'/'+name);await p.locator('.reader').waitFor();

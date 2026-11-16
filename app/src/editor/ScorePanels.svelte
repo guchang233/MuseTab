@@ -4,7 +4,7 @@
   import IconButton from '../ui/IconButton.svelte';
   import {registerBack} from '../ui/back';
   import {activity} from '../ui/activity.svelte';
-  let {kind,onclose,onsettings}:{kind:'mixer'|'parts';onclose:()=>void;onsettings:(kind:'page'|'style')=>void}=$props();
+  let {kind,onclose,onsettings,structure=true}:{kind:'mixer'|'parts';onclose:()=>void;onsettings:(kind:'page'|'style')=>void;structure?:boolean}=$props();
   let data=$state<ScorePanels>({parts:[],channels:[]}),error=$state('');
   const title=$derived(kind==='mixer'?'混音器':'声部');
   function refresh(){try{data=engine.scorePanels();}catch(e){error=String(e);}}
@@ -37,11 +37,12 @@
       <div class="settings-actions"><button onclick={()=>onsettings('page')}>页面设置</button><button onclick={()=>onsettings('style')}>谱面样式</button></div>
       {#each data.parts as p,index (p.id)}
         <section class="part">
-          <div class="row"><input aria-label={'显示乐器 '+p.name} type="checkbox" checked={p.visible} onchange={e=>part({op:'part-visible',id:p.id,visible:e.currentTarget.checked})}/><h3 title={p.name}>{p.name}</h3><IconButton label={'乐器 '+p.name+' 发声'} icon={p.audible?'speaker':'speaker-off'} aria-pressed={p.audible} onclick={()=>part({op:'part-audible',id:p.id,audible:!p.audible})}/><IconButton label={'上移乐器 '+p.name} icon="up" disabled={index===0} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index-1].id})}/><IconButton label={'下移乐器 '+p.name} icon="down" disabled={index===data.parts.length-1} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index+1].id,after:true})}/></div>
+          <div class="row"><input aria-label={'显示乐器 '+p.name} type="checkbox" checked={p.visible} onchange={e=>part({op:'part-visible',id:p.id,visible:e.currentTarget.checked})}/><h3 title={p.name}>{p.name}</h3><IconButton label={'乐器 '+p.name+' 发声'} icon={p.audible?'speaker':'speaker-off'} aria-pressed={p.audible} onclick={()=>part({op:'part-audible',id:p.id,audible:!p.audible})}/>{#if structure}<IconButton label={'上移乐器 '+p.name} icon="up" disabled={index===0} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index-1].id})}/><IconButton label={'下移乐器 '+p.name} icon="down" disabled={index===data.parts.length-1} onclick={()=>part({op:'move-part',id:p.id,target:data.parts[index+1].id,after:true})}/>{/if}</div>
           {#each p.staves as staff,i (staff.id)}
-            <div class="staff row"><input aria-label={'显示'+p.name+'谱表'+(i+1)} type="checkbox" checked={staff.visible} onchange={e=>part({op:'staff-visible',id:staff.id,visible:e.currentTarget.checked})}/><span>谱表 {i+1} · {staff.lines} 线</span><IconButton label={p.name+' 谱表 '+(i+1)+' 发声'} icon={staff.audible?'speaker':'speaker-off'} aria-pressed={staff.audible} onclick={()=>part({op:'staff-audible',id:staff.id,audible:!staff.audible})}/><IconButton label={'上移谱表'+(i+1)} icon="up" disabled={i===0} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i-1].id})}/><IconButton label={'下移谱表'+(i+1)} icon="down" disabled={i===p.staves.length-1} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i+1].id,after:true})}/></div>
+            <div class="staff row"><input aria-label={'显示'+p.name+'谱表'+(i+1)} type="checkbox" checked={staff.visible} onchange={e=>part({op:'staff-visible',id:staff.id,visible:e.currentTarget.checked})}/><span>谱表 {i+1} · {staff.lines} 线</span><IconButton label={p.name+' 谱表 '+(i+1)+' 发声'} icon={staff.audible?'speaker':'speaker-off'} aria-pressed={staff.audible} onclick={()=>part({op:'staff-audible',id:staff.id,audible:!staff.audible})}/>{#if structure}<IconButton label={'上移谱表'+(i+1)} icon="up" disabled={i===0} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i-1].id})}/><IconButton label={'下移谱表'+(i+1)} icon="down" disabled={i===p.staves.length-1} onclick={()=>part({op:'move-staff',id:staff.id,target:p.staves[i+1].id,after:true})}/>{/if}</div>
           {/each}
-          <button class="add" onclick={()=>part({op:'add-staff',id:p.id})}>＋ 添加空白谱表</button>
+          <!-- Structure changes belong to composition mode. -->
+          {#if structure}<button class="add" onclick={()=>part({op:'add-staff',id:p.id})}>＋ 添加空白谱表</button>{/if}
         </section>
       {/each}
       <p class="hint">显示与发声分别控制；乐器静音时，其下所有谱表均不发声。设置会自动保存。谱表开关、排序和添加可撤销。</p>

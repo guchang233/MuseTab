@@ -18,6 +18,7 @@ for script in "$HERE"/overrides/src/web/appjs/distr/*; do
   [ -f "$script" ] && cp "$script" "$OUT/distr/"
 done
 cp "$HERE/host/host.html" "$OUT/host.html"
+cp "$HERE/shell/qml/MuseScore/AppShell/platform/web/ComposerWorkspace.qml" "$OUT/ComposerWorkspace.qml"
 cp "$HERE/../app/src/reader/gestures.js" "$OUT/reader-gestures.js"
 
 [ -f "$ART/MuseAudio.js" ] || { echo "matching audio engine missing: run engine/build-audio.sh"; exit 1; }

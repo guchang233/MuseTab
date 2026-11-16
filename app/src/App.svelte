@@ -5,7 +5,8 @@
   import { ms } from './ui/motion';
   import Library from './library/Library.svelte';
   import Reader from './reader/Reader.svelte';
-  import Editor from './editor/Editor.svelte';
+  import Editor from './composer/aria/AriaEditor.svelte';
+  import Player from './player/Player.svelte';
   import EngineView from './bridge/EngineView.svelte';
   import { engine } from './bridge/engine.svelte';
   import { editorInset } from './editor/layout.svelte';
@@ -17,7 +18,15 @@
   import Spinner from './ui/Spinner.svelte';
   import {activity} from './ui/activity.svelte';
   import {registerBack} from './ui/back';
+  import {closeComposer} from './workspace/modes';
+  import {dispatchComposerAction,flushComposer} from './composer/session';
   const isPdf = $derived(library.current?.ext === 'pdf');
+  const baseScreen=$derived(nav.screen==='editor'?nav.composerParent:nav.screen);
+  $effect(()=>{if(nav.screen==='editor')return registerBack(()=>{void closeComposer();return true;},45);});
+  $effect(()=>{
+    const mode=nav.screen;if(engine.status!=='ready')return;
+    queueMicrotask(()=>{if(nav.screen!==mode)return;engine.setViewOnly(mode==='reader'||mode==='library');engine.setEditLocked(mode==='player');});
+  });
   $effect(()=>{if(activity.message)return registerBack(()=>true,200);});
   $effect(() => {
     const dark = theme.resolved === 'dark';
@@ -47,12 +56,12 @@
 
   function onkey(e:KeyboardEvent){
     if(!(e.ctrlKey||e.metaKey))return;
-    if(e.key.toLowerCase()==='s'){e.preventDefault();workspace.persist(true).catch(()=>{});}
+    if(e.key.toLowerCase()==='s'){e.preventDefault();void flushComposer().then(()=>workspace.persist(true)).catch(()=>{});}
     else if(!isPdf&&nav.screen==='editor'&&['z','y','c','x','v'].includes(e.key.toLowerCase())&&!(e.target instanceof HTMLElement&&e.target.closest('input,textarea,[contenteditable]'))){
       e.preventDefault();
       const key=e.key.toLowerCase();
       const action=({c:'copy',x:'cut',v:'paste'} as Record<string,string>)[key]||(e.shiftKey||key==='y'?'redo':'undo');
-      engine.dispatch('action://notation/'+action);
+      if(!dispatchComposerAction('action://notation/'+action))engine.dispatch('action://notation/'+action);
     }
   }
 
@@ -60,7 +69,8 @@
   $effect(() => {
     if (engine.status !== 'ready') return;
     const dark = theme.resolved === 'dark';
-    engine.setCanvasTheme(dark, theme.paper ? '#fbf8ef':'none', dark ? '#18130e' : '#e9e0cc');
+    const composer=nav.screen==='editor';
+    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?'#ffffff':'#fbf8ef'):'none', composer?'#3b3b40':dark ? '#18130e' : '#e9e0cc');
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -75,21 +85,22 @@
 
 <!-- 引擎画布常驻在各屏之下 -->
 <svelte:window onkeydown={onkey}/>
-<EngineView visible={nav.screen !== 'library' && !isPdf} inset={nav.screen === 'editor' ? editorInset.value : nav.screen === 'reader' ? { ...NONE, top: reading.top } : NONE} />
+<EngineView visible={nav.screen !== 'library' && !isPdf} inset={nav.screen === 'editor'||nav.screen==='player' ? editorInset.value : nav.screen === 'reader' ? { ...NONE, top: reading.top } : NONE} />
 
-{#key nav.screen}
-  <div class="screen" class:over={nav.screen !== 'library'}>
-    {#if nav.screen !== 'library' && isPdf}
+{#key baseScreen}
+  <div class="screen" class:over={baseScreen !== 'library'} class:underlay={nav.screen==='editor'} inert={nav.screen==='editor'}>
+    {#if baseScreen !== 'library' && isPdf}
       <PdfReader />
-    {:else if nav.screen === 'reader'}
-      <Reader />
-    {:else if nav.screen === 'editor'}
-      <Editor />
+    {:else if baseScreen === 'reader'}
+      <Reader active={nav.screen!=='editor'} />
+    {:else if baseScreen === 'player'}
+      <Player active={nav.screen!=='editor'} />
     {:else}
       <Library />
     {/if}
   </div>
 {/key}
+{#if nav.screen==='editor'}<div class="composer-layer"><Editor/></div>{/if}
 
 {#if activity.message}
   <div class="busy-layer"><div class="busy-message" role="status" aria-live="polite"><Spinner/><span>{activity.message}</span></div></div>
@@ -104,6 +115,7 @@
 {/if}
 
 <style>
+  .underlay{visibility:hidden;}.composer-layer{position:absolute;inset:0;z-index:10;pointer-events:none;}
   .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:999px;box-shadow:var(--lift);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);font-size:13px;pointer-events:none;white-space:nowrap;}
   .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100;max-width:90%;padding:12px 18px;background:var(--sheet);color:var(--rubric);border:1px solid currentColor;border-radius:8px;}
   .save-error button{min-height:44px;margin-left:12px;text-decoration:underline;}
