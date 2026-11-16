@@ -1,11 +1,11 @@
 <script lang="ts">
- import {untrack,tick} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {readerGestures} from './gestures.js';import {pageArrival} from './page-motion';
+ import {untrack,tick} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {pageArrival} from './page-motion';
  import {library} from '../library/store.svelte';import {pageCache} from './page-cache';import pkg from '../../package.json';
  import Spinner from '../ui/Spinner.svelte';
  export type PageLayout='auto'|'single'|'double';
  type Rect={x:number;y:number;w:number;h:number};type PageBitmap={src:string;image:HTMLImageElement};type Visible={page:number;bitmap:PageBitmap;rect:Rect};
- let {mode='auto',autoTurn=true,index=$bindable(0),count=$bindable(0),last=$bindable(0),selectionRect=$bindable<Rect|undefined>(),onerror,ongesture}:{mode?:PageLayout;autoTurn?:boolean;index?:number;count?:number;last?:number;selectionRect?:Rect;onerror?:(message:string)=>void;ongesture?:()=>void}=$props();
- let surface:HTMLDivElement,width=$state(0),height=$state(0),metrics=$state<{w:number;h:number}[]>([]),pages=$state<Visible[]>([]),zoom=$state(1),dx=$state(0),dy=$state(0),focusPage=0,generation=0,cacheVersion=0;
+ let {mode='auto',autoTurn=true,index=$bindable(0),count=$bindable(0),last=$bindable(0),selectionRect=$bindable<Rect|undefined>(),onerror}:{mode?:PageLayout;autoTurn?:boolean;index?:number;count?:number;last?:number;selectionRect?:Rect;onerror?:(message:string)=>void}=$props();
+ let surface:HTMLDivElement,width=$state(0),height=$state(0),metrics=$state<{w:number;h:number}[]>([]),pages=$state<Visible[]>([]),focusPage=0,generation=0,cacheVersion=0;
  let selected=$state<{page:number;rect:Rect;src:string}|null>(null),loaded=$state(false),busy=$state(false);
  const columns=$derived(mode==='double'?2:mode==='single'?1:(width>=900&&height>=480&&width>height*1.15?2:1));
  const documentKey=$derived(`${pkg.version}:page3:${library.current?.id}:${library.current?.editedAt||library.current?.addedAt||0}`);
@@ -16,7 +16,7 @@
   const pixels=rasterWidth(),paper=theme.paper,key=page+':'+pixels+':'+paper;if(!images.has(key)){
    const version=cacheVersion,persistentKey=documentKey+':'+key;images.set(key,(async()=>{
     const cached=await pageCache.get(persistentKey);if(version!==cacheVersion)throw Error('Page generation changed');
-    engine.setCanvasTheme(theme.resolved==='dark',paper?'#fbf8ef':'none',theme.resolved==='dark'?'#18130e':'#e9e0cc');
+    // 不在这里改 live canvas 主题：会冲掉 App 的编谱/看谱设定。
     const src=cached?URL.createObjectURL(cached):engine.renderPage(page,pixels),image=new Image();image.src=src;await image.decode();
     if(!cached)void pageCache.put(persistentKey,src);const value={src,image};if(version===cacheVersion)decoded.set(key,value);else if(src.startsWith('blob:'))URL.revokeObjectURL(src);return value;
    })());
@@ -41,28 +41,16 @@
   if(!metrics.length||!width||!height)return;
   focusPage=Math.max(0,Math.min(count-1,page));const start=Math.floor(focusPage/columns)*columns,end=Math.min(count-1,start+columns-1),version=++generation;busy=true;
   try{
+   // 与引擎当前页对齐，iframe 点选/翻页才和页图一致。
+   try{engine.pageView(start,innerWidth,innerHeight);}catch{}
    const wanted=Array.from({length:end-start+1},(_,i)=>start+i),bitmaps=await Promise.all(wanted.map(imageFor));if(version!==generation)return;
-   const turning=loaded&&start!==index;pages=wanted.map((p,i)=>layoutPage(p,start,bitmaps[i]));index=start;last=end;zoom=1;dx=dy=0;busy=false;loaded=true;scheduleWarm();
+   const turning=loaded&&start!==index;pages=wanted.map((p,i)=>layoutPage(p,start,bitmaps[i]));index=start;last=end;busy=false;loaded=true;scheduleWarm();
    if(turning){await tick();if(version===generation)surface.querySelectorAll<HTMLImageElement>('.gallery-page').forEach(pageArrival);}
   }catch(e){if(version===generation){busy=false;onerror?.(e instanceof Error?e.message:'页面暂时未能显示');}}
  }
  export function turn(delta:number){lastInput=performance.now();void showPage(index+delta*columns);}
- function pose(r:Rect):Rect{return{x:r.x*zoom+dx,y:r.y*zoom+dy,w:r.w*zoom,h:r.h*zoom};}
- function limit(){
-  if(!pages.length)return;const all=pages.map(p=>pose(p.rect)),left=Math.min(...all.map(r=>r.x)),right=Math.max(...all.map(r=>r.x+r.w)),top=Math.min(...all.map(r=>r.y)),bottom=Math.max(...all.map(r=>r.y+r.h));
-  if(right-left<=width)dx+=(width-left-right)/2;else dx+=Math.max(width-right,Math.min(-left,0));
-  if(bottom-top<=height)dy+=(height-top-bottom)/2;else dy+=Math.max(height-bottom,Math.min(-top,0));
- }
- function zoomView(f:number,cx:number,cy:number,x:number,y:number){lastInput=performance.now();const next=Math.max(1,Math.min(4,zoom*f));f=next/zoom;dx=(dx-cx)*f+cx+x;dy=(dy-cy)*f+cy+y;zoom=next;if(zoom===1)dx=dy=0;else limit();}
- function tap(e:PointerEvent){
-  const target=pages.find(p=>{const r=pose(p.rect);return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;});
-  if(target){const r=pose(target.rect);focusPage=target.page;engine.selectPageAt(target.page,(e.clientX-r.x)/r.w,(e.clientY-r.y)/r.h);}
-  else if(pages.length&&e.clientX<pose(pages[0].rect).x)turn(-1);
-  else if(pages.length&&e.clientX>pose(pages.at(-1)!.rect).x+pose(pages.at(-1)!.rect).w)turn(1);
-  else engine.selectPageAt(index,0,0);
- }
- $effect(()=>{const mark=()=>lastInput=performance.now();surface.addEventListener('pointerdown',mark,true);return()=>surface.removeEventListener('pointerdown',mark,true);});
- $effect(()=>readerGestures(surface,{enabled:e=>e.target===surface,gallery:()=>true,zoomed:()=>zoom>1.01,tap,turn,pan:(x,y)=>{lastInput=performance.now();dx+=x;dy+=y;limit();},zoom:zoomView,cancel:()=>ongesture?.()}));
+ function pose(r:Rect):Rect{return{x:r.x,y:r.y,w:r.w,h:r.h};}
+ // 全屏页图只作显示层（pointer-events:none）。左右滑与点选交给引擎 iframe 的 pageLocked 手势。
  $effect(()=>{documentKey;if(engine.status!=='ready'||engine.opening)return;untrack(()=>{try{metrics=engine.pageMetrics();count=metrics.length;const state=engine.pageView(-1,innerWidth,innerHeight);focusPage=state.index;}catch(e){onerror?.(String(e));}});});
  $effect(()=>{width;height;columns;if(!metrics.length)return;untrack(()=>void showPage(focusPage));});
  $effect(()=>{documentKey;theme.paper;const change=engine.changeSeq;untrack(()=>{cacheVersion++;generation++;for(const v of decoded.values())if(v.src.startsWith('blob:'))URL.revokeObjectURL(v.src);images.clear();decoded.clear();if(!engine.opening&&metrics.length&&width&&height)void showPage(focusPage);});});
@@ -79,5 +67,6 @@
  {#if busy}<span class="preparing" role="status"><Spinner size={24}/><span>正在准备乐谱页面…</span></span>{/if}
 </div>
 <style>
- .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:auto;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}:global([data-theme=dark]) .gallery-page{filter:invert(1);}.playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}.preparing{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 18px;background:var(--parchment);color:var(--ink-soft);font-size:14px;pointer-events:none;white-space:nowrap;}
+ /* 不接手势，避免盖住引擎 iframe 的 pageLocked 左右滑 */
+ .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:none;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}:global([data-theme=dark]) .gallery-page{filter:invert(1);}.playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}.preparing{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;border-radius:var(--island-radius);padding:12px 18px;background:var(--material);color:var(--ink-soft);font-size:14px;pointer-events:none;white-space:nowrap;box-shadow:var(--island-ring),var(--island-shadow);}
 </style>

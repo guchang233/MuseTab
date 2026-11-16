@@ -146,7 +146,8 @@
   --aria-fill: var(--veil);
   --aria-surface: var(--paper);
   --aria-sunken: var(--parchment-deep);
-  --aria-material: color-mix(in srgb, var(--paper) 78%, transparent);
+  /* 提高不透明度，避免编谱浮岛透出深色画布后看起来像黑夜模式 */
+  --aria-material: color-mix(in srgb, var(--paper) 94%, transparent);
   --aria-selection: var(--rubric-wash);
   --aria-ivory: #fffdf8;
   --aria-ebony: #1a1714;

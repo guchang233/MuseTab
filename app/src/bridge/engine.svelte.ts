@@ -324,8 +324,11 @@ export const engine = {
     if (!host) return;
     if(playing){host.dispatch('play');return;}
     try{
+      // 先在手势栈里恢复 AudioContext，再进 activity 队列等播放态。
+      // 若先 await tick/rAF，手势会失效，表现为“在播但没声音”。
+      await host.startAudio();
+      host.dispatch('play');
       await activity.run('正在准备播放…',async()=>{
-        await host!.startAudio();host!.dispatch('play');
         const until=Date.now()+10000;
         while(!playing){
           if(host!.audioError)throw Error(host!.audioError);

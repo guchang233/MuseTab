@@ -29,7 +29,7 @@
 <div class="player score-workspace zf-app">
   <header class="workspace-header" bind:clientHeight={top}>
     <IconButton label="返回谱匣" icon="back" onclick={()=>changeMode('library')}/>
-    <div class="workspace-title"><h1>{title}</h1><p>播放、声部与混音</p></div>
+    <div class="workspace-title"><h1>{title}</h1><p>播放</p></div>
     <ModeSwitch value="player"/>
   </header>
   <main class="workspace-stage" class:docked>

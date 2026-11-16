@@ -81,7 +81,8 @@
     background: color-mix(in srgb, var(--rubric) 88%, var(--ink));
     color: var(--on-rubric);
   }
+  /* play 路径自带 fill；pause 等描边图标必须保留 stroke */
   .seal :global(.icon) {
-    fill: currentColor;
+    color: inherit;
   }
 </style>

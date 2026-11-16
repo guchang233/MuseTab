@@ -209,11 +209,18 @@
 <svelte:window onkeydown={onkey} />
 
 <div class="reader" bind:this={root}>
-  {#if reading.fullscreen}<ScoreGallery bind:this={gallery} mode={pageLayout} {autoTurn} bind:index={pageIndex} bind:count={pageCount} bind:last={lastIndex} bind:selectionRect onerror={message=>pageError=message} ongesture={()=>{compassOpen=false;showBar(false);}}/>{/if}
+  {#if reading.fullscreen}<ScoreGallery bind:this={gallery} mode={pageLayout} {autoTurn} bind:index={pageIndex} bind:count={pageCount} bind:last={lastIndex} bind:selectionRect onerror={message=>pageError=message}/>{/if}
   <ReaderHeader {title} />
   {#if reading.fullscreen}
     <div class="page-number" class:raised={barOpen} role="status" aria-live="polite">{pageIndex + 1}{lastIndex>pageIndex?'–'+(lastIndex+1):''} / {pageCount || '…'}</div>
     {#if pageError}<p class="page-error" role="alert">{pageError}</p>{/if}
+    <!-- 全屏始终可点的翻页键；左右滑由引擎 pageLocked 处理 -->
+    <button class="edge prev always" aria-label="上一页" disabled={pageIndex === 0} onclick={() => turn(-1)}>
+      <Icon name="back" size={20} />
+    </button>
+    <button class="edge next always" aria-label="下一页" disabled={lastIndex >= pageCount - 1} onclick={() => turn(1)}>
+      <Icon name="forward" size={20} />
+    </button>
   {/if}
   <!-- 小罗盘：点中音符时出现 -->
   {#if compassOpen && compass}
@@ -238,14 +245,16 @@
     </div>
   {/if}
 
-  <!-- 纸带工具条：点到空白处时出现 -->
+  <!-- 纸带工具条：点到空白处时出现；非全屏时附带左右翻屏 -->
   {#if barOpen}
-    <button class="edge prev" aria-label={reading.fullscreen ? '上一页' : '上一屏'} disabled={reading.fullscreen && pageIndex === 0} onclick={() => turn(-1)} transition:fade={{ duration: ms(300) }}>
-      <Icon name="back" size={20} />
-    </button>
-    <button class="edge next" aria-label={reading.fullscreen ? '下一页' : '下一屏'} disabled={reading.fullscreen && lastIndex >= pageCount - 1} onclick={() => turn(1)} transition:fade={{ duration: ms(300) }}>
-      <Icon name="forward" size={20} />
-    </button>
+    {#if !reading.fullscreen}
+      <button class="edge prev" aria-label="上一屏" onclick={() => turn(-1)} transition:fade={{ duration: ms(300) }}>
+        <Icon name="back" size={20} />
+      </button>
+      <button class="edge next" aria-label="下一屏" onclick={() => turn(1)} transition:fade={{ duration: ms(300) }}>
+        <Icon name="forward" size={20} />
+      </button>
+    {/if}
 
     <div class="ribbon-wrap" transition:fly={{ y: 10, duration: ms(380), easing: easeOut }}>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -386,6 +395,12 @@
   .edge:active {
     transform: scale(0.96);
   }
+  .edge.always {
+    opacity: 0.72;
+  }
+  .edge.always:disabled {
+    opacity: 0.28;
+  }
 
   /* —— 纸带工具条 —— */
   .ribbon-wrap {
@@ -420,7 +435,6 @@
   .ribbon-col :global(.ib:not(.seal)){background:transparent;box-shadow:none;color:var(--ink);}
   .ribbon-col :global(.ib:not(.seal):hover),.ribbon-col :global(.ib.active:not(.seal)){background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
   .ribbon-col :global(.ib.seal){background:var(--rubric);color:var(--on-rubric);box-shadow:var(--island-shadow);}
-  .ribbon-col :global(.ib.seal .icon){fill:currentColor;stroke:none;}
   .tempo {
     display: inline-flex;
     align-items: center;
