@@ -19,11 +19,15 @@
     justify-content: center;
     gap: 8px;
     min-height: var(--tap);
-    padding: 0 24px;
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: var(--chip-radius);
+    background: var(--material);
+    box-shadow: var(--island-ring), var(--island-shadow);
+    backdrop-filter: blur(18px);
     font-size: var(--text-md);
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    letter-spacing: 0;
     white-space: nowrap;
     transition:
       background-color var(--dur) var(--ease),
@@ -40,7 +44,7 @@
   }
   .primary {
     background: var(--rubric);
-    border-color: var(--rubric);
+    box-shadow: var(--island-shadow);
     color: var(--on-rubric);
   }
   .primary:hover,
@@ -48,7 +52,8 @@
     background: color-mix(in srgb, var(--rubric) 90%, var(--ink));
   }
   .quiet {
-    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
     padding: 0 12px;
   }
 </style>

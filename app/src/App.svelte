@@ -120,9 +120,9 @@
 
 <style>
   .underlay{visibility:hidden;}.composer-layer{position:absolute;inset:0;z-index:10;pointer-events:none;}
-  .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:999px;box-shadow:var(--lift);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);font-size:13px;pointer-events:none;white-space:nowrap;}
-  .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:var(--z-toast);max-width:90%;padding:12px 18px;background:var(--paper);color:var(--danger);border:1px solid currentColor;border-radius:var(--radius-sm);box-shadow:var(--shadow-md);}
-  .save-error button{min-height:44px;margin-left:12px;text-decoration:underline;}
+  .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--material);color:var(--ink);border:0;border-radius:var(--island-radius);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.3 var(--font-ui);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);pointer-events:none;white-space:nowrap;}
+  .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:var(--z-toast);max-width:90%;padding:12px 16px;background:var(--material);color:var(--danger);border:0;border-radius:var(--island-radius);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.4 var(--font-ui);}
+  .save-error button{min-height:44px;margin-left:12px;padding:0 12px;border-radius:var(--chip-radius);background:var(--veil);color:var(--ink);}
   .screen {
     position: fixed;
     inset: 0;

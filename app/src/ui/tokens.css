@@ -152,6 +152,16 @@
   --aria-ebony: #1a1714;
   --aria-key-active: color-mix(in srgb, var(--rubric) 34%, var(--aria-ivory));
   --aria-ebony-active: color-mix(in srgb, var(--rubric) 46%, var(--aria-ebony));
+
+  /* 编谱浮岛。曲库、看谱、播放的按钮和面板都用这一套，不再各画一种胶囊。 */
+  --material: var(--aria-material);
+  --island-radius: 18px;
+  --chip-radius: 10px;
+  --toolbar-radius: 12px;
+  --sheet-radius: 22px;
+  --island-shadow: 0 8px 18px color-mix(in srgb, var(--ink) 10%, transparent);
+  --island-ring: inset 0 0 0 0.7px var(--hairline);
+  --chip-ring: inset 0 0 0 0.8px color-mix(in srgb, var(--rubric) 32%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -183,7 +193,7 @@ html[data-theme='dark'] .zf-app {
 /* Round actual controls, never blanket-style every button (scrims are buttons too). */
 .score-settings footer button,.score-settings .orientation button,.score-panel button:not(.ib),
 .unlock-dialog button,.manage-sheet .actions button,.cloud-detail .back,.detail-actions button {
-  border-radius: var(--radius-pill);
+  border-radius: var(--chip-radius);
 }
 [data-score-paper=off] .pdf-surface {background:transparent!important;box-shadow:none!important;}
 [data-score-paper=off] .pdf-surface canvas {mix-blend-mode:multiply;}

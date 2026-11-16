@@ -14,13 +14,22 @@ html .zf-app .browse-heading h1 {
 }
 
 html .zf-app .app-tabbar {
-  background: color-mix(in srgb, var(--parchment) 92%, transparent);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 -1px 0 var(--hairline);
+  background: var(--material);
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 0.7px 0 var(--hairline);
+}
+
+html .zf-app .app-tabbar button {
+  height: 44px;
+  margin: 6px 4px;
+  border-radius: var(--chip-radius);
+  font-family: var(--font-ui);
 }
 
 html .zf-app .app-tabbar button[aria-current='page'] {
   color: var(--rubric);
+  background: var(--rubric-wash);
+  box-shadow: var(--chip-ring);
 }
 
 html .zf-app .media-card > :is(.poster, .poster-fallback) {
@@ -33,32 +42,72 @@ html .zf-app .media-card :is(h2, h3) {
   font-weight: 500;
 }
 
+html .zf-app .search-field,
+html .zf-app .search-submit,
 html .zf-app .icon-btn,
-html .zf-app .search-filter,
-html .zf-app .search-clear {
-  border-radius: var(--radius-pill);
+html .zf-app .btn-ghost {
+  border: 0;
+  border-radius: var(--island-radius);
+  background: var(--material);
+  box-shadow: var(--island-ring);
 }
 
-html .zf-app .search-field:focus-within,
-html .zf-app .search-submit:hover {
-  border-color: color-mix(in srgb, var(--rubric) 55%, var(--hairline));
+html .zf-app .search-submit,
+html .zf-app .btn-ghost {
+  box-shadow: var(--island-ring), var(--island-shadow);
+  font-family: var(--font-ui);
+  font-weight: 500;
+}
+
+html .zf-app .search-field:focus-within {
+  box-shadow: var(--chip-ring);
+}
+
+html .zf-app .search-filters {
+  border: 0;
+  border-radius: var(--sheet-radius);
+  background: var(--material);
+  box-shadow: var(--island-ring), var(--shadow-lg);
+  backdrop-filter: blur(20px);
 }
 
 html .zf-app .settings-menu-row {
-  border-radius: var(--radius-sm);
+  border-radius: var(--chip-radius);
 }
 
 html .zf-app .settings-menu-row:hover,
 html .zf-app .icon-btn:hover,
-html .zf-app .search-submit:hover {
+html .zf-app .search-submit:hover,
+html .zf-app .btn-ghost:hover {
+  background: color-mix(in srgb, var(--paper) 88%, var(--ink));
+}
+
+html .zf-app .seg {
+  border-radius: var(--toolbar-radius);
   background: var(--veil);
+  box-shadow: var(--island-ring);
+}
+
+html .zf-app .seg-item {
+  border-radius: var(--chip-radius);
+  font-family: var(--font-ui);
+  font-weight: 500;
 }
 
 html .zf-app .seg-item[aria-selected='true'],
-html .zf-app .seg-item[aria-pressed='true'] {
-  background: var(--paper);
-  color: var(--ink);
-  box-shadow: var(--shadow-sm);
+html .zf-app .seg-item[aria-pressed='true'],
+html .zf-app .seg-item[aria-checked='true'],
+html .zf-app .seg-item.active {
+  background: var(--rubric-wash);
+  color: var(--rubric);
+  box-shadow: var(--chip-ring);
+}
+
+html .zf-app .btn-ghost.primary,
+html .zf-app .primary {
+  background: var(--rubric);
+  color: var(--on-rubric);
+  box-shadow: var(--island-shadow);
 }
 
 html .zf-app :is(button, a, input, select):focus-visible {

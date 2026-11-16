@@ -33,29 +33,37 @@
     position:absolute;
     inset:0 0 auto;
     min-height:56px;
-    padding:4px max(8px,env(safe-area-inset-right)) 4px max(8px,env(safe-area-inset-left));
-    padding-top:max(4px,env(safe-area-inset-top));
+    padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));
+    padding-top:max(8px,env(safe-area-inset-top));
     display:flex;
     gap:8px;
     align-items:center;
-    pointer-events:auto;
-    background:var(--parchment);
-    border-bottom:1px solid var(--hairline);
+    pointer-events:none;
+    background:transparent;
+    border:0;
     box-sizing:border-box;
     z-index:5;
   }
+  .reading-header>*{pointer-events:auto;}
     .title {
     flex:1;
     min-width:0;
     display:flex;
-    align-items:baseline;
-    gap:14px;
+    align-items:center;
+    gap:10px;
+    min-height:44px;
+    padding:0 16px;
+    border-radius:var(--island-radius);
+    background:var(--material);
+    box-shadow:var(--island-ring),var(--island-shadow);
+    backdrop-filter:blur(18px);
   }
     .title>span {
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
-    font-size:1.15rem;
+    font:600 16px/1.25 var(--font-ui);
+    font-style:normal;
   }
     small {
     flex:none;
@@ -67,16 +75,20 @@
     align-items:center;
     justify-content:center;
     gap:6px;
-    min-height:48px;
+    min-height:44px;
     padding:0 14px;
-    border:1px solid var(--hairline);
-    border-radius:var(--radius-pill);
-    background:var(--paper);
+    border:0;
+    border-radius:var(--island-radius);
+    background:var(--material);
+    box-shadow:var(--island-ring),var(--island-shadow);
+    backdrop-filter:blur(18px);
+    font:500 14px/1.2 var(--font-ui);
     flex:none;
   }
     .edit.on {
     background:var(--rubric-wash);
     color:var(--rubric);
+    box-shadow:var(--chip-ring),var(--island-shadow);
   }
     .exit {
     position:absolute;
@@ -84,10 +96,10 @@
     top:max(12px,env(safe-area-inset-top));
     z-index:8;
     pointer-events:auto;
-    border-radius:999px;
-    background:var(--slip);
-    border:1px solid var(--hairline);
-    opacity:.8;
+    border-radius:var(--island-radius);
+    background:transparent;
+    border:0;
+    opacity:1;
   }
     @media(max-width:600px) {
     .reading-header {

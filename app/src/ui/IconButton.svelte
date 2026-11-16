@@ -30,7 +30,7 @@
 </button>
 
 <style>
-  .ib.flat{border-radius:3px;}.ib.flat.active::after{display:none;}
+  .ib.flat{border-radius:3px;box-shadow:none;background:transparent;}
   .ib {
     position: relative;
     display: inline-grid;
@@ -38,21 +38,25 @@
     width: var(--tap);
     height: var(--tap);
     flex: none;
-    border-radius: 50%;
+    border-radius: var(--island-radius);
     color: var(--ink);
+    background: var(--material);
+    box-shadow: var(--island-ring), var(--island-shadow);
+    backdrop-filter: blur(18px);
     transition:
       background-color var(--dur) var(--ease),
-      color var(--dur) var(--ease);
+      color var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
   }
   .ib:hover {
-    background: var(--veil);
+    background: color-mix(in srgb, var(--paper) 92%, var(--ink));
   }
-  .ib:active {
-    background: var(--hairline-soft);
+  .ib:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .ib:disabled {
     color: var(--ink-mute);
-    opacity: 0.55;
+    opacity: 0.4;
     pointer-events: none;
   }
   .face {
@@ -65,33 +69,16 @@
   .active {
     color: var(--rubric);
     background: var(--rubric-wash);
-  }
-  .active::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 5px;
-    width: 12px;
-    height: 2px;
-    border-radius: 2px;
-    margin-left: -6px;
-    background: var(--rubric);
+    box-shadow: var(--chip-ring), var(--island-shadow);
   }
 
-  .seal:hover,
-  .seal:active {
-    background: none;
-  }
-  .seal .face {
-    width: 42px;
-    height: 42px;
-    box-shadow: 0 2px 10px color-mix(in srgb, var(--rubric) 28%, transparent);
-    border-radius: 50%;
+  .seal {
     background: var(--rubric);
     color: var(--on-rubric);
-    transition: transform var(--dur) var(--ease);
+    box-shadow: var(--island-shadow);
   }
-  .seal:active .face {
-    transform: scale(0.94);
+  .seal:hover,
+  .seal:active {
+    background: color-mix(in srgb, var(--rubric) 88%, var(--ink));
   }
 </style>
