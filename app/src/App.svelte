@@ -119,15 +119,16 @@
 {/if}
 
 <style>
-  .underlay{visibility:hidden;}.composer-layer{position:absolute;inset:0;z-index:10;pointer-events:none;}
-  .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--material);color:var(--ink);border:0;border-radius:var(--island-radius);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.3 var(--font-ui);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);pointer-events:none;white-space:nowrap;}
+  .underlay{visibility:hidden;pointer-events:none;}
+  .composer-layer{position:fixed;inset:0;z-index:6;pointer-events:none;}
+  .busy-layer{position:fixed;inset:0;z-index:20;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--material);color:var(--ink);border:0;border-radius:var(--island-radius);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.3 var(--font-ui);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);pointer-events:none;white-space:nowrap;}
   .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:var(--z-toast);max-width:90%;padding:12px 16px;background:var(--material);color:var(--danger);border:0;border-radius:var(--island-radius);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.4 var(--font-ui);}
   .save-error button{min-height:44px;margin-left:12px;padding:0 12px;border-radius:var(--chip-radius);background:var(--veil);color:var(--ink);}
   .screen {
     position: fixed;
     inset: 0;
-    /* 不建立层叠上下文，弹层的 z-index 才能盖过同级的启动提示。 */
-    z-index: auto;
+    /* 必须高于引擎画布。画布是原生图层，盖住它的区域收不到界面点击。 */
+    z-index: 2;
   }
   /* 看谱 / 编辑两屏盖在引擎画布上：自身不拦手势，只有其中的控件可点 */
   .over {

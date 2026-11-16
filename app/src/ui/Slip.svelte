@@ -15,6 +15,5 @@
     border: 0;
     border-radius: var(--sheet-radius);
     box-shadow: var(--island-ring), var(--island-shadow);
-    backdrop-filter: blur(20px);
   }
 </style>

@@ -8,8 +8,8 @@
   <button class="compose" aria-label="编谱" onclick={()=>changeMode('editor')}>编谱 ↗</button>
 </div>
 <style>
-  .mode-switch{display:flex;flex:none;gap:8px;align-items:center;}.view-modes{display:flex;gap:2px;padding:4px;border-radius:var(--toolbar-radius);background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);}.compose{border:0;color:var(--ink);background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);}
-  button{min-width:58px;min-height:44px;padding:0 14px;border-radius:var(--chip-radius);color:var(--ink-soft);font:500 14px/1.2 var(--font-ui);transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),transform var(--dur) var(--ease);}
+  .mode-switch{display:flex;flex:none;gap:8px;align-items:center;min-width:0;}.view-modes{display:flex;gap:4px;padding:4px;border-radius:var(--toolbar-radius);background:var(--paper);box-shadow:var(--island-ring);}.compose{border:0;color:var(--ink);background:var(--paper);box-shadow:var(--island-ring);}
+  button{min-width:72px;min-height:48px;padding:0 16px;border-radius:var(--chip-radius);color:var(--ink);font:600 15px/1.2 var(--font-ui);transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease);}
   button:active:not(:disabled){transform:scale(0.98);}
   button[aria-checked=true]{background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
 </style>

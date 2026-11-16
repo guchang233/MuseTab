@@ -42,7 +42,6 @@
     color: var(--ink);
     background: var(--material);
     box-shadow: var(--island-ring), var(--island-shadow);
-    backdrop-filter: blur(18px);
     transition:
       background-color var(--dur) var(--ease),
       color var(--dur) var(--ease),
@@ -84,6 +83,5 @@
   }
   .seal :global(.icon) {
     fill: currentColor;
-    stroke: none;
   }
 </style>

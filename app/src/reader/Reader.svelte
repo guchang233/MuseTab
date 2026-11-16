@@ -408,9 +408,12 @@
   .ribbon-col :global(.ribbon) {
     display: flex;
     align-items: center;
-    gap: 2px;
-    height: 64px;
-    padding: 0 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    height: auto;
+    min-height: 68px;
+    padding: 10px 14px;
     border-radius: var(--island-radius);
   }
   .ribbon-col :global(.ribbon){max-width:100%;}
@@ -465,7 +468,7 @@
 
   @media (max-width: 600px) {
     .ribbon-wrap{left:8px;right:8px;bottom:max(12px,env(safe-area-inset-bottom));}
-    .ribbon-col :global(.ribbon){padding:4px 6px;height:auto;min-height:60px;gap:0;border-radius:var(--sheet-radius);}
+    .ribbon-col :global(.ribbon){padding:10px 12px;min-height:68px;gap:10px;border-radius:var(--sheet-radius);}
     .ribbon-col{max-width:100%;}
     .tempo{padding:0 8px;gap:4px;}
     .tempo-body{gap:8px;padding-left:8px;}

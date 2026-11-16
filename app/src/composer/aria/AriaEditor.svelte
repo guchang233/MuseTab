@@ -19,8 +19,8 @@
  $effect(()=>{const id=docId;if(!id||engine.status!=='ready')return;untrack(()=>{const value=Number(localStorage.getItem('Aria.PracticeSpeed.'+id)||1);engine.setTempoMultiplier(Math.min(1.5,Math.max(.25,Number.isFinite(value)?value:1)));});});
  $effect(()=>{if(engine.status!=='ready')return;untrack(()=>{engine.readerLayout(0);engine.composerState({enabled:true,locked:false,panel:'',keyboard:false});engine.setEditLocked(false);});return()=>untrack(()=>{practice.cancel();if(engine.noteInput)engine.dispatch('note-input');engine.composerState({enabled:false,locked:true});engine.setEditLocked(true);});});
  $effect(()=>{engine.changeSeq;if(!docId||engine.status!=='ready')return;untrack(()=>{parts=Math.max(engine.scorePanels().parts.length,(engine.composerState({editorInfo:true})?.editorInfo?.parts?.length||1)-1);duration=engine.playbackInfo().duration;});});
- $effect(()=>editorInset.set({top:0,bottom:deckHeight,left:0,right:0}));
- $effect(()=>registerBack(()=>{if(menu){menu=null;return true;}if(showText){showText='';return true;}if(sheet){sheet='';return true;}if(['chord','lyrics','fingering'].includes(controller.category)){void controller.choose('text');return true;}return false;},60));
+ $effect(()=>editorInset.set({top:62,bottom:deckHeight,left:0,right:0}));
+ $effect(()=>registerBack(()=>{if(menu){menu=null;return true;}if(showText){showText='';return true;}if(sheet){sheet='';return true;}if(['chord','lyrics','fingering'].includes(controller.category)){void controller.choose('text');return true;}void done();return true;},60));
  function resizeView(){clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{const view=engine.viewRect();if(!view||view.w<100)return;if(lastWidth&&Math.abs(lastWidth-view.w)>2)engine.gestureView(view.w/lastWidth,0,0,view.x,view.y);lastWidth=view.w;},100);}
  $effect(()=>{engine.composerViewportSeq;resizeView();});
  $effect(()=>{const frame=engine.frame;if(!frame)return;const observer=new ResizeObserver(resizeView);observer.observe(frame);return()=>{observer.disconnect();clearTimeout(resizeTimer);};});
