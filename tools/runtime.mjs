@@ -20,7 +20,9 @@ if(process.argv.includes('--pack')){
   const lock=JSON.parse(await fs.readFile(path.join(root,'engine/runtime.lock.json'),'utf8'));
   const r=await fetch(lock.url);if(!r.ok)throw Error('Runtime download HTTP '+r.status);
   const bytes=Buffer.from(await r.arrayBuffer());if(createHash('sha256').update(bytes).digest('hex')!==lock.sha256)throw Error('Native runtime SHA-256 mismatch');
-  const zip=path.join(root,'release/runtime-download.zip');await fs.mkdir(path.dirname(zip),{recursive:true});await fs.writeFile(zip,bytes);await fs.mkdir(dest,{recursive:true});execFileSync('tar',['-xf',zip,'-C',dest],{stdio:'inherit'});
+  const zip=path.join(root,'release/runtime-download.zip');await fs.mkdir(path.dirname(zip),{recursive:true});await fs.writeFile(zip,bytes);await fs.mkdir(dest,{recursive:true});
+  const python=process.env.MUSETAB_PYTHON||(process.platform==='win32'?'python':'python3');
+  execFileSync(python,['-c','import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])',zip,dest],{stdio:'inherit'});
 }
 // Current application glue always comes from the checked-out tag.
 await fs.cp(path.join(root,'engine/overrides/src/web/appjs/distr'),path.join(dest,'distr'),{recursive:true});
