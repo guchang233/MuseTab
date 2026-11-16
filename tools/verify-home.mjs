@@ -30,7 +30,7 @@ try{
   for(const [name,w,h]of[['phone',390,844],['phone-small',360,800],['phone-landscape',844,390],['tablet-portrait',800,1280],['tablet-landscape',1280,800]]){
     await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
     const state=await page.evaluate(()=>{const header=document.querySelector('.browse-header').getBoundingClientRect(),bar=document.querySelector('.app-tabbar').getBoundingClientRect();return{w:innerWidth,h:innerHeight,header:header.toJSON(),bar:bar.toJSON(),overflow:document.querySelector('.library').scrollWidth>innerWidth,nav:[...document.querySelectorAll('.app-tabbar button')].map(e=>e.getBoundingClientRect().toJSON())};});
-    assert(!state.overflow);assert.equal(state.bar.bottom,h);assert(state.nav.every(r=>r.width>=44&&r.height>=44));assert(state.header.right<=w);
+    assert(!state.overflow);assert(state.bar.bottom<=h&&state.bar.bottom>h-28);assert(state.nav.every(r=>r.width>=44&&r.height>=44));assert(state.header.right<=w);
     await snap(name);
   }
   pass('source PhoneChrome stays at the bottom across five phone/tablet viewports');

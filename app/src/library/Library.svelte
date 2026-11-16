@@ -85,7 +85,7 @@
   function closeDetail(){libraryView.detailPath='';persistLibraryView();}
   async function openScore(rec: ScoreRecord) {
     captureCurrent();notice = '';
-    try { await openLocal(rec); } catch (e) { notice = e instanceof Error ? e.message : '打开失败，请重试'; }
+    try { await openLocal(rec); } catch (e) { const message=e instanceof Error?e.message:(e&&typeof e==='object'&&'message' in e?String((e as {message:unknown}).message):''); notice = message || '打开失败，请重试'; }
   }
   async function importFiles(files: FileList | File[] | null) {
     if (!files?.length) return;
@@ -186,9 +186,11 @@
     position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain;
     background:var(--parchment); color:var(--ink); font:14px/1.5 var(--font-ui);
     font-variant-numeric:lining-nums proportional-nums;
+    scrollbar-width:none;
   }
+  .library::-webkit-scrollbar{display:none;}
   .dragging{outline:3px dashed var(--ink-mute);outline-offset:-6px;}
-  .page{display:flex;flex-direction:column;gap:20px;max-width:1328px;margin:auto;padding:16px 16px 88px;}
+  .page{display:flex;flex-direction:column;gap:20px;max-width:1328px;margin:auto;padding:16px 16px 112px;}
   .page :global(.browse-actions .ib){--tap:44px;color:var(--ink-soft);}
   .format-option{min-height:44px;padding:0 14px;border-radius:var(--chip-radius);font:500 13px/1.2 var(--font-ui);color:var(--ink-soft);background:transparent;}
   .format-option.on{background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}

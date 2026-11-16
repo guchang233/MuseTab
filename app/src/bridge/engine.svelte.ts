@@ -258,6 +258,9 @@ export const engine = {
     try{
       await host.open(bytes, ext.toLowerCase());
       changeSeq=0;storedSeq=0;
+    }catch(e){
+      const message=e instanceof Error?e.message:(e&&typeof e==='object'&&'message' in e?String((e as {message:unknown}).message):'');
+      throw new Error(message||'没能打开这份乐谱');
     }finally{opening=false;}
   },
 
