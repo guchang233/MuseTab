@@ -1,7 +1,7 @@
 <!--
   看谱模式：屏幕上只有谱面（引擎画布铺在本层之下）。
-  · 点到音符或其他记号 → 旁边浮出一枚小罗盘：上下左右走到相邻的音符 / 记号，中间从这里播放
-  · 点到空白处或谱面之外 → 底部浮出纸带工具条，几秒后自行淡出
+  · 点到音符或其他记号 → 旁边浮出罗盘：上下左右走到相邻记号，中间从这里播放
+  · 点到空白处 → 底部只出现播放、速度和排版，看谱 / 播放 / 编谱只放在顶栏
   · 普通视图可拖动和缩放；全屏固定整页，左右滑动翻页
 -->
 <script lang="ts">
@@ -11,7 +11,6 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { nav } from '../ui/nav.svelte';
   import {registerBack} from '../ui/back';
-  import {activity} from '../ui/activity.svelte';
   import { ms, easeOut } from '../ui/motion';
   import IconButton from '../ui/IconButton.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -20,12 +19,9 @@
   import Slider from '../ui/Slider.svelte';
   import { engine } from '../bridge/engine.svelte';
   import { library } from '../library/store.svelte';
-  import { workspace } from '../library/workspace.svelte';
   import ReaderHeader from './ReaderHeader.svelte';
   import { reading } from './layout.svelte';
   import {pageArrival} from './page-motion';
-  import {changeMode} from '../workspace/modes';
-
   let {active=true}:{active?:boolean}=$props();
   const LINGER = 4800; // 工具条停留时长
 
@@ -193,15 +189,6 @@
     compassOpen = false;
     if (barOpen) linger();
   }
-  async function leave(to: 'library' | 'editor' | 'player') {
-    await activity.run('正在切换…',async()=>{
-      try{await workspace.persist();}catch{return;}
-      if (engine.playing) engine.stop();
-      nav.go(to);
-      void reading.setFullscreen(false);
-    });
-  }
-
   function onkey(e: KeyboardEvent) {
     if(!active)return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') turn(1);
@@ -265,8 +252,6 @@
       <div class="ribbon-col" onpointerdown={linger}>
         <Slip class="ribbon" role="toolbar" aria-label="看谱工具条">
           {#if reading.fullscreen}<IconButton label="页面排版" icon="view-spread" active={layoutOpen} onclick={()=>{layoutOpen=!layoutOpen;tempoOpen=false;linger();}}/>{/if}
-          <IconButton label="返回谱匣" icon="back" onclick={() => leave('library')} />
-          <span class="sep"></span>
           <IconButton
             label={engine.playing ? '暂停' : '播放'}
             icon={engine.playing ? 'pause' : 'play'}
@@ -288,11 +273,6 @@
             icon={view === 'horizontal' ? 'view-spread' : 'view-scroll'}
             onclick={cycleView}
           />{/if}
-          <span class="sep"></span>
-          <button class="to-edit" onclick={() => leave('player')}>
-            <Icon name="sliders" size={20} /><span>播放设置</span>
-          </button>
-          <IconButton label="编谱" icon="pen" onclick={()=>changeMode('editor')}/>
         </Slip>
 
         {#if layoutOpen}<div class="layout-slip"><Slip><div class="layout-body"><span class="label">页面排版</span><div class="layout-options">{#each [{value:'auto',label:'自动'},{value:'single',label:'单页'},{value:'double',label:'双页'}] as option}<button aria-pressed={pageLayout===option.value} onclick={()=>setLayout(option.value as 'auto'|'single'|'double')}>{option.label}</button>{/each}</div><p>自动：竖屏单页，横屏平板并排双页。</p><button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={()=>{toggleAutoTurn();linger();}}>播放时自动翻页 · {autoTurn?'开':'关'}</button></div></Slip></div>{/if}
@@ -434,17 +414,11 @@
     border-radius: var(--island-radius);
   }
   .ribbon-col :global(.ribbon){max-width:100%;}
-  .ribbon-col :global(.ib){background:transparent;box-shadow:none;}
-  .ribbon-col :global(.ib:hover),.ribbon-col :global(.ib.active){background:var(--rubric-wash);box-shadow:var(--chip-ring);}
-  .sep {
-    width: 1px;
-    height: 22px;
-    margin: 0 8px;
-    background: var(--hairline);
-    flex: none;
-  }
-  .tempo,
-  .to-edit {
+  .ribbon-col :global(.ib:not(.seal)){background:transparent;box-shadow:none;color:var(--ink);}
+  .ribbon-col :global(.ib:not(.seal):hover),.ribbon-col :global(.ib.active:not(.seal)){background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
+  .ribbon-col :global(.ib.seal){background:var(--rubric);color:var(--on-rubric);box-shadow:var(--island-shadow);}
+  .ribbon-col :global(.ib.seal .icon){fill:currentColor;stroke:none;}
+  .tempo {
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -453,15 +427,12 @@
     border-radius: var(--chip-radius);
     white-space: nowrap;
     flex: none;
+    color: var(--ink);
     transition: background-color var(--dur) var(--ease);
   }
   .tempo:hover,
-  .to-edit:hover,
   .tempo.on {
     background: var(--veil);
-  }
-  .to-edit {
-    letter-spacing: 0.14em;
   }
 
   .tempo-slip {
@@ -492,18 +463,11 @@
     color: var(--ink-soft);
   }
 
-  @media (max-width: 860px) {
-    .sep {
-      margin: 0 4px;
-    }
-  }
   @media (max-width: 600px) {
     .ribbon-wrap{left:8px;right:8px;bottom:max(12px,env(safe-area-inset-bottom));}
     .ribbon-col :global(.ribbon){padding:4px 6px;height:auto;min-height:60px;gap:0;border-radius:var(--sheet-radius);}
     .ribbon-col{max-width:100%;}
-    .tempo,.to-edit{padding:0 8px;gap:4px;}
-    .sep{margin:0 2px;}
-    .ribbon-col :global(.ribbon > .sep:first-of-type){display:none;}
+    .tempo{padding:0 8px;gap:4px;}
     .tempo-body{gap:8px;padding-left:8px;}
   }
 </style>

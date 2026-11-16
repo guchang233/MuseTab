@@ -65,16 +65,16 @@
     }
   }
 
-  // 谱纸与画布底色跟随设计 token。编谱谱纸保持象牙色，避免深色界面把音符涂没。
+  // 谱纸是第一色，四周是第二色；dark 为真时反相，音符变浅。
+  // 编谱的音符按深色四周绘制，四周必须保持深灰，否则浅色模式下谱线和音符会消失。
   $effect(() => {
     if (engine.status !== 'ready') return;
     const dark = theme.resolved === 'dark';
     const composer=nav.screen==='editor';
     const css=getComputedStyle(document.documentElement);
-    const sheet=css.getPropertyValue('--sheet').trim();
-    const deep=css.getPropertyValue('--parchment-deep').trim();
-    const ivory=css.getPropertyValue('--aria-ivory').trim()||'#fffdf8';
-    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?ivory:sheet):'none', composer?(dark?'#2a2420':deep):deep);
+    const sheet=css.getPropertyValue('--sheet').trim()||'#fbf8ef';
+    const deep=css.getPropertyValue('--parchment-deep').trim()||(dark?'#18130e':'#e9e0cc');
+    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?'#ffffff':sheet):'none', composer?'#3b3b40':deep);
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };

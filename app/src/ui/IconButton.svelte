@@ -80,5 +80,10 @@
   .seal:hover,
   .seal:active {
     background: color-mix(in srgb, var(--rubric) 88%, var(--ink));
+    color: var(--on-rubric);
+  }
+  .seal :global(.icon) {
+    fill: currentColor;
+    stroke: none;
   }
 </style>
