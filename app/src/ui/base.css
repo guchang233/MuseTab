@@ -8,13 +8,18 @@ html,
 body,
 #app {
   height: 100%;
+  width: 100%;
   margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html {
   font-size: 17px;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
+  position: fixed;
+  inset: 0;
 }
 
 body {
@@ -30,6 +35,8 @@ body {
   text-rendering: optimizeLegibility;
   overflow: hidden;
   overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
   user-select: none;
   transition:
     background-color var(--dur-slow) var(--ease),

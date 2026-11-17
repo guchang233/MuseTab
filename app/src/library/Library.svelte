@@ -32,6 +32,7 @@
   function clickScore(e:MouseEvent,rec:ScoreRecord){if(heldId===rec.id){heldId=null;e.preventDefault();return;}void openScore(rec);}
   $effect(()=>()=>clearTimeout(pressTimer));
   let scroller: HTMLDivElement;
+  let topHeight=$state(120);
   let pending={tab:libraryView.tab,...$state.snapshot(libraryView.lists[libraryView.tab])} as ({tab:Tab}&typeof libraryView.lists.local)|null,restoreFrame=0;
   let criteria=untrack(()=>query+'\0'+filter);
   function captureCurrent(){
@@ -118,21 +119,29 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="library zf-app" class:dragging ondragover={e => { e.preventDefault(); dragging = true; }} ondragleave={() => dragging = false} {ondrop}>
   {#if tab !== 'settings'}
-    <div class="library-top">
-      <CatalogueHeader title={titles[tab]} actions={pageActions} search={pageSearch} />
-    </div>
-  {/if}
-  <div class="library-scroll" bind:this={scroller} onscroll={rememberScroll} onwheel={cancelRestore} onpointerdown={cancelRestore}>
-    <div class="page" class:settings-page={tab === 'settings'}>
-      {#if tab === 'settings'}
-        <Personal bind:section={libraryView.personal.section} bind:item={libraryView.personal.item} oncloud={() => switchTab('cloud',true)} />
-      {:else}
+    <div class="library-top" bind:clientHeight={topHeight}>
+      <div class="library-top-inner">
+        <CatalogueHeader title={titles[tab]} actions={pageActions} search={pageSearch} />
         <div class="collection-meta">
           {#if tab === 'cloud'}
             <span class="source">{REPOSITORY}</span><span>{cloud.refreshing ? '同步中…' : cloud.catalog ? '更新于 ' + date(cloud.catalog.updatedAt) : '只读曲库'}</span>
           {:else}<span>{tab === 'recent' ? '按最近打开排序' : '本地乐谱'}</span><span>{localScores.length} 份</span>{/if}
         </div>
-
+      </div>
+    </div>
+  {/if}
+  <div
+    class="library-scroll"
+    style:top={tab === 'settings' ? '0px' : topHeight + 'px'}
+    bind:this={scroller}
+    onscroll={rememberScroll}
+    onwheel={cancelRestore}
+    onpointerdown={cancelRestore}
+  >
+    <div class="page" class:settings-page={tab === 'settings'}>
+      {#if tab === 'settings'}
+        <Personal bind:section={libraryView.personal.section} bind:item={libraryView.personal.item} oncloud={() => switchTab('cloud',true)} />
+      {:else}
         {#if tab === 'local' && latest && !query && filter === 'all'}
           <div class="resume-row"><span>继续看谱</span><button class="continue" disabled={documents.opening} onclick={() => openScore(latest)}>{#if latest.cover}<img src={latest.cover} alt="" />{:else}<Icon name="book" size={20} />{/if}<span>{label(latest)}</span><small>{latest.ext.toUpperCase()}</small></button><button class="all-recent" onclick={() => switchTab('recent')}>全部</button></div>
         {/if}
@@ -186,22 +195,36 @@
 {#if creating}<NewScore onclose={()=>creating=false}/>{/if}
 <style>
   .cloud-score-main{display:block;width:100%;text-align:left;color:inherit;background:transparent;}
-  /* 顶栏固定在滚动区外，不再依赖 sticky（Android WebView 上会跟着列表跑）。 */
+  /*
+    顶栏必须 position:absolute 钉在 .library 内，列表单独滚动。
+    滑到底再拖时禁止 overscroll 把整层（含顶栏）橡皮筋带走。
+  */
   .library {
-    position:absolute; inset:0; display:flex; flex-direction:column; overflow:hidden;
+    position:absolute; inset:0; overflow:hidden; overscroll-behavior:none;
+    touch-action:manipulation;
     background:var(--parchment); color:var(--ink); font:14px/1.5 var(--font-ui);
     font-variant-numeric:lining-nums proportional-nums;
   }
   .library-top{
-    flex:none; z-index:30; width:100%; max-width:1328px; margin:0 auto;
-    padding:max(12px,env(safe-area-inset-top)) 16px 12px; box-sizing:border-box;
-    background:color-mix(in srgb, var(--parchment) 94%, transparent);
-    backdrop-filter:blur(16px);
+    position:absolute; top:0; left:0; right:0; z-index:40;
+    background:var(--parchment);
+    overscroll-behavior:none;
+    touch-action:manipulation;
+  }
+  .library-top-inner{
+    width:100%; max-width:1328px; margin:0 auto; box-sizing:border-box;
+    padding:max(12px,env(safe-area-inset-top)) 16px 10px;
+    display:flex; flex-direction:column; gap:12px;
   }
   .library-top :global(.browse-header){position:static; top:auto; margin:0; padding:0;}
   .library-top :global(.browse-header::before){display:none;}
   .library-scroll{
-    flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+    position:absolute; left:0; right:0; bottom:0;
+    overflow-x:hidden; overflow-y:auto;
+    overscroll-behavior:none;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    scrollbar-width:none;
   }
   .library-scroll::-webkit-scrollbar{display:none;}
   .dragging{outline:3px dashed var(--ink-mute);outline-offset:-6px;}
