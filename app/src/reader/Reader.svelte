@@ -431,7 +431,7 @@
     padding: 10px 14px;
     border-radius: var(--island-radius);
   }
-  .ribbon-col :global(.ribbon){max-width:100%;}
+  .ribbon-col :global(.ribbon){max-width:min(520px,100%);}
   .ribbon-col :global(.ib:not(.seal)){background:transparent;box-shadow:none;color:var(--ink);}
   .ribbon-col :global(.ib:not(.seal):hover),.ribbon-col :global(.ib.active:not(.seal)){background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
   .ribbon-col :global(.ib.seal){background:var(--rubric);color:var(--on-rubric);box-shadow:var(--island-shadow);}
@@ -483,7 +483,7 @@
   @media (max-width: 600px) {
     .ribbon-wrap{left:8px;right:8px;bottom:max(12px,env(safe-area-inset-bottom));}
     .ribbon-col :global(.ribbon){padding:10px 12px;min-height:68px;gap:10px;border-radius:var(--sheet-radius);}
-    .ribbon-col{max-width:100%;}
+    .ribbon-col{max-width:min(520px,100%);}
     .tempo{padding:0 8px;gap:4px;}
     .tempo-body{gap:8px;padding-left:8px;}
   }

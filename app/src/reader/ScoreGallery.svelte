@@ -68,5 +68,9 @@
 </div>
 <style>
  /* 不接手势，避免盖住引擎 iframe 的 pageLocked 左右滑 */
- .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:none;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}:global([data-theme=dark]) .gallery-page{filter:invert(1);}.playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}.preparing{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;border-radius:var(--island-radius);padding:12px 18px;background:var(--material);color:var(--ink-soft);font-size:14px;pointer-events:none;white-space:nowrap;box-shadow:var(--island-ring),var(--island-shadow);}
+ .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:none;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}
+ /* 有谱纸时页图是浅色渲染，暗色界面只在这里反相一次。关谱纸时引擎已经反相，不能再滤一次。 */
+ :global([data-theme=dark][data-score-paper=on]) .gallery-page{filter:invert(1);}
+ .playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}
+ .preparing{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;border-radius:18px;padding:12px 18px;background:var(--aria-material);color:var(--aria-ink);outline:.7px solid var(--aria-line);outline-offset:-.7px;font-size:14px;pointer-events:none;white-space:nowrap;box-shadow:var(--island-shadow);}
 </style>
