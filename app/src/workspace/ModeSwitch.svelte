@@ -14,11 +14,12 @@
     background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);
   }
   .compose{
+    flex:none;min-width:0;padding:0 12px;white-space:nowrap;
     border:0;color:var(--ink);border-radius:var(--island-radius);
     background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);
   }
   button{
-    min-width:58px;min-height:44px;padding:0 14px;border-radius:var(--chip-radius);
+    flex:none;min-width:52px;min-height:44px;padding:0 12px;border-radius:var(--chip-radius);
     color:var(--ink-soft);font:500 14px/1.2 var(--font-ui);
     transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),transform var(--dur) var(--ease);
   }

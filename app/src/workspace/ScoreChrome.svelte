@@ -53,7 +53,7 @@
     inset: 0 0 auto;
     z-index: 30;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 8px;
     min-height: 56px;
@@ -117,19 +117,25 @@
     z-index: 8;
     pointer-events: auto;
   }
+  /* 窄屏也保持单行悬浮岛，禁止把 ModeSwitch 整行拉满造成看谱/播放高度跳变 */
   @media (max-width: 700px) {
+    .score-chrome {
+      gap: 6px;
+    }
     .score-chrome :global(.mode-switch) {
-      flex-basis: 100%;
-      justify-content: stretch;
+      flex: none;
+      gap: 6px;
     }
     .score-chrome :global(.mode-switch button) {
-      flex: 1;
+      flex: none;
+      min-width: 48px;
+      padding: 0 10px;
     }
     .title-island {
-      padding: 0 12px;
+      padding: 0 10px;
     }
     .name {
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
     small {
       display: none;
