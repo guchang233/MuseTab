@@ -23,6 +23,7 @@ export type PaletteData = { name: string; id: string; w: number; h: number; cell
 export type ActionState = { known: boolean; enabled: boolean; checked: boolean };
 
 type HostEngine = {
+  supports(name:string):boolean;
   composerState(patch?:Record<string,unknown>):{enabled:boolean;locked:boolean;panel:string;keyboard:boolean;modalOpen:boolean;textOk?:boolean;textError?:string;pitchOk?:boolean;pitchError?:string;editOk?:boolean;editError?:string;editorInfo?:AriaEditorInfo;actions?:{code:string;title:string;enabled:boolean;checked:boolean}[];controls:{name:string;label:string;type:string;x:number;y:number;w:number;h:number;enabled:boolean}[]};
   viewRect():{x:number;y:number;w:number;h:number};
   playbackInfo():{duration:number;bpm?:number;numerator?:number;denominator?:number};
@@ -178,6 +179,7 @@ function poll(win: Window, tries = 0) {
 
 export const engine = {
   pageMetrics(){return untrack(()=>host?.pageMetrics()||[]);},
+  supports(name:string){return untrack(()=>typeof host?.supports==='function'&&host.supports(name));},
   composerState(patch:Record<string,unknown>={}){return untrack(()=>host?.composerState(patch));},
   viewRect(){return untrack(()=>host?.viewRect());},
   selectPageAt(page:number,x:number,y:number){untrack(()=>host?.selectPageAt(page,x,y));},

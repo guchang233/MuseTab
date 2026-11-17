@@ -76,7 +76,7 @@
         previewFrame=requestAnimationFrame(()=>{pose.canvas.style.transform='';pose.canvas.style.willChange='';previewFrame=0;});
       }
       const unlockRequest=()=>{emit('edit-unlock-request',{});return false;};
-      const safeAction=code=>/^(play|play-from-selection|stop|rewind|metronome|loop|loop-in|loop-out|repeat|cancel|copy|select-all|notation-select-all|page-settings|edit-style|transpose|toggle-mixer|toggle-instruments|up-chord|down-chord|show-.*|zoom.*|scr-.*|page-.*|first-.*|last-.*|next-.*|prev-.*|previous-.*|select-.*)$/.test(code.split('/').pop());
+      const safeAction=code=>/^(play|play-from-selection|stop|rewind|metronome|loop|loop-in|loop-out|repeat|cancel|copy|select-all|notation-select-all|page-settings|edit-style|transpose|toggle-mixer|toggle-instruments|up-chord|down-chord|pitch-up|pitch-down|pitch-up-octave|pitch-down-octave|show-.*|zoom.*|scr-.*|page-.*|first-.*|last-.*|next-.*|prev-.*|previous-.*|select-.*)$/.test(code.split('/').pop());
 
       function updateReaderFlags(reading){
         const flags=['show-invisible','show-unprintable','show-frames','show-pageborders'];
@@ -166,9 +166,12 @@
           else{tapQt({clientX:x,clientY:y,pointerId:1});setTimeout(()=>emit('reader-tap',{}),100);}
         },
         pageMetrics(){if(!engine.Module._mtPageMetrics)throw Error('原生核心需要更新');return JSON.parse(engine.Module.ccall('mtPageMetrics','string',[],[]));},
-        viewRect(){return JSON.parse(engine.Module.ccall('mtViewRect','string',[],[]));},
+        viewRect(){if(typeof engine.Module?._mtViewRect!=='function')return null;return JSON.parse(engine.Module.ccall('mtViewRect','string',[],[]));},
+        supports(name){return typeof engine.Module?.['_'+name]==='function';},
         composerState(patch={}){
           if('enabled' in patch)nativeComposer=!!patch.enabled;
+          // 当前锁定的记谱核心没有 mtComposerState。直接 ccall 会在 emscripten 里对 undefined 取 apply。
+          if(!engine.supports('mtComposerState'))return {enabled:!!nativeComposer,locked:!!editLocked,panel:'',keyboard:false,modalOpen:false,controls:[],pitchOk:false,pitchError:'当前记谱核心不能直接改音'};
           const state=JSON.parse(engine.Module.ccall('mtComposerState','string',['string'],[JSON.stringify(patch)]));
           if(nativeComposer&&'enabled' in patch)setTimeout(()=>{
             if(!nativeComposer)return;const v=engine.viewRect(),pages=engine.pageMetrics();
@@ -337,7 +340,7 @@
         finally{bypassPointer=false;if(area){area.setPointerCapture=capture;area.releasePointerCapture=release;}}
       };
       readerGestures(document,{
-        enabled:e=>{if(!(viewOnly||editLocked)||bypassPointer)return false;if(!nativeComposer)return true;if(engine.composerState().modalOpen)return false;const r=engine.viewRect();return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;},gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
+        enabled:e=>{if(!(viewOnly||editLocked)||bypassPointer)return false;if(!nativeComposer)return true;if(engine.composerState().modalOpen)return false;const r=engine.viewRect();if(!r)return true;return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;},gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
         tap:e=>{
           commitPreview();
           if(pageLocked&&pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}

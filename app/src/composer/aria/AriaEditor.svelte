@@ -17,7 +17,7 @@
  const selectionID=$derived([engine.selection.type,engine.selection.tick,engine.selection.pitch,engine.selection.voice].join(':'));
  $effect(()=>controller.attach());
  $effect(()=>{const id=docId;if(!id||engine.status!=='ready')return;untrack(()=>{const value=Number(localStorage.getItem('Aria.PracticeSpeed.'+id)||1);engine.setTempoMultiplier(Math.min(1.5,Math.max(.25,Number.isFinite(value)?value:1)));});});
- $effect(()=>{if(engine.status!=='ready')return;untrack(()=>{engine.readerLayout(0);engine.composerState({enabled:true,locked:false,panel:'',keyboard:false});engine.setEditLocked(false);});return()=>untrack(()=>{practice.cancel();if(engine.noteInput)engine.dispatch('note-input');engine.composerState({enabled:false,locked:true});engine.setEditLocked(true);});});
+ $effect(()=>{if(engine.status!=='ready')return;untrack(()=>{engine.setEditLocked(false);engine.readerLayout(0);engine.composerState({enabled:true,locked:false,panel:'',keyboard:false});});return()=>untrack(()=>{practice.cancel();if(engine.noteInput)engine.dispatch('note-input');engine.composerState({enabled:false,locked:true});engine.setEditLocked(true);});});
  $effect(()=>{engine.changeSeq;if(!docId||engine.status!=='ready')return;untrack(()=>{parts=Math.max(engine.scorePanels().parts.length,(engine.composerState({editorInfo:true})?.editorInfo?.parts?.length||1)-1);duration=engine.playbackInfo().duration;});});
  $effect(()=>editorInset.set({top:62,bottom:deckHeight,left:0,right:0}));
  $effect(()=>registerBack(()=>{if(menu){menu=null;return true;}if(showText){showText='';return true;}if(sheet){sheet='';return true;}if(['chord','lyrics','fingering'].includes(controller.category)){void controller.choose('text');return true;}void done();return true;},60));

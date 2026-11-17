@@ -26,10 +26,15 @@
   const LINGER = 4800; // 工具条停留时长
 
   type View = 'horizontal' | 'vertical' | 'continuous';
-  const VIEW_LABEL: Record<View, string> = { horizontal: '横向排版', vertical:'竖向排版', continuous: '竖向连续' };
+  const VIEW_LABEL: Record<View, string> = { vertical: '单页', horizontal: '双页', continuous: '连续' };
   const VIEW_MODE: Record<View, number> = { horizontal:0,vertical:1,continuous:2 };
+  function nextView(current: View): View {
+    if (current === 'vertical') return 'horizontal';
+    if (current === 'horizontal') return 'continuous';
+    return 'vertical';
+  }
 
-  let view = $state<View>('horizontal');
+  let view = $state<View>('vertical');
   let barOpen = $state(false);
   let tempoOpen = $state(false);
   let compassOpen = $state(false);
@@ -40,7 +45,8 @@
   let gallery=$state<{showPage:(page:number)=>Promise<void>;turn:(delta:number)=>void}>();
   let pageLayout=$state<'auto'|'single'|'double'>((localStorage.getItem('musetab.pageLayout') as 'auto'|'single'|'double')||'auto'),layoutOpen=$state(false);
   $effect(()=>active?registerBack(()=>{if(layoutOpen||tempoOpen){layoutOpen=tempoOpen=false;return true;}if(compassOpen){compassOpen=false;return true;}return false;},40):undefined);
-  function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);linger();}
+  function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);if(value==='single')view='vertical';else if(value==='double')view='horizontal';linger();}
+  const layoutName = $derived(reading.fullscreen ? (pageLayout === 'double' ? '双页' : pageLayout === 'single' ? '单页' : '自动') : VIEW_LABEL[view]);
   function fitPage(index:number){void gallery?.showPage(index);}
   $effect(()=>{if(!active)return;
     if(!reading.fullscreen||engine.status!=='ready')return;
@@ -80,13 +86,21 @@
   function toggleAutoTurn(){autoTurn=!autoTurn;localStorage.setItem('musetab.autoTurn',String(autoTurn));}
 
 
-  // 进入看谱即只读；离开时交还
+  // 进入看谱即只读。不要把排版模式写进这个 effect：view 一变就会先关掉只读再打开，画布会被拉回原来的排版。
   $effect(() => {
     if(!active)return;
     if (engine.status !== 'ready') return;
     engine.setViewOnly(true);
-    engine.readerLayout(VIEW_MODE[view]);
     return () => engine.setViewOnly(false);
+  });
+  $effect(() => {
+    if(!active || engine.status !== 'ready' || reading.fullscreen) return;
+    const mode = VIEW_MODE[view];
+    untrack(() => {
+      engine.readerLayout(mode);
+      engine.dispatch('zoom-page-width');
+      engine.readerLayout(mode);
+    });
   });
 
   // 新翻开的谱子：按页宽铺满
@@ -173,10 +187,11 @@
   }
 
   function cycleView() {
-    if (reading.fullscreen) return;
-    view = view === 'horizontal' ? 'vertical' : view==='vertical'?'continuous':'horizontal';
-    engine.readerLayout(VIEW_MODE[view]);
-    engine.dispatch('zoom-page-width');
+    const current: View = !reading.fullscreen ? view : pageLayout === 'double' ? 'horizontal' : pageLayout === 'single' ? 'vertical' : 'horizontal';
+    const next = reading.fullscreen && pageLayout === 'auto' ? 'vertical' : nextView(current);
+    if (reading.fullscreen && next !== 'continuous') { setLayout(next === 'horizontal' ? 'double' : 'single'); return; }
+    view = next;
+    if (reading.fullscreen) void reading.setFullscreen(false);
     linger();
   }
   function setTempo(v: number) {
@@ -214,7 +229,7 @@
   {#if reading.fullscreen}
     <div class="page-number" class:raised={barOpen} role="status" aria-live="polite">{pageIndex + 1}{lastIndex>pageIndex?'–'+(lastIndex+1):''} / {pageCount || '…'}</div>
     {#if pageError}<p class="page-error" role="alert">{pageError}</p>{/if}
-    <!-- 全屏始终可点的翻页键；左右滑由引擎 pageLocked 处理 -->
+    <!-- 全屏始终可点的翻页键；左右滑由页图自己翻页 -->
     <button class="edge prev always" aria-label="上一页" disabled={pageIndex === 0} onclick={() => turn(-1)}>
       <Icon name="back" size={20} />
     </button>
@@ -277,11 +292,10 @@
             <Glyph name="metNoteQuarterUp" size={22} maxH={22} />
             <span>{tempo}%</span>
           </button>
-          {#if !reading.fullscreen}<IconButton
-            label="视图：{VIEW_LABEL[view]}（轻点切换）"
-            icon={view === 'horizontal' ? 'view-spread' : 'view-scroll'}
-            onclick={cycleView}
-          />{/if}
+          <button class="layout-cycle" type="button" aria-label="排版：{layoutName}（轻点切换）" onclick={cycleView}>
+            <Icon name={layoutName === '连续' ? 'view-scroll' : 'view-spread'} size={20} />
+            <span>{layoutName}</span>
+          </button>
         </Slip>
 
         {#if layoutOpen}<div class="layout-slip"><Slip><div class="layout-body"><span class="label">页面排版</span><div class="layout-options">{#each [{value:'auto',label:'自动'},{value:'single',label:'单页'},{value:'double',label:'双页'}] as option}<button aria-pressed={pageLayout===option.value} onclick={()=>setLayout(option.value as 'auto'|'single'|'double')}>{option.label}</button>{/each}</div><p>自动：竖屏单页，横屏平板并排双页。</p><button class="auto-turn" aria-label="自动翻页" aria-pressed={autoTurn} onclick={()=>{toggleAutoTurn();linger();}}>播放时自动翻页 · {autoTurn?'开':'关'}</button></div></Slip></div>{/if}
@@ -451,6 +465,25 @@
   .tempo.on {
     background: var(--veil);
   }
+  .layout-cycle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--tap);
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--chip-radius);
+    background: transparent;
+    color: var(--ink);
+    font: 500 14px/1 var(--font-ui);
+    white-space: nowrap;
+    flex: none;
+  }
+  .layout-cycle:hover,
+  .layout-cycle:focus-visible {
+    background: var(--rubric-wash);
+    color: var(--rubric);
+  }
 
   .tempo-slip {
     width: min(380px, 100%);
@@ -485,6 +518,7 @@
     .ribbon-col :global(.ribbon){padding:10px 12px;min-height:68px;gap:10px;border-radius:var(--sheet-radius);}
     .ribbon-col{max-width:min(520px,100%);}
     .tempo{padding:0 8px;gap:4px;}
+    .layout-cycle{padding:0 8px;gap:4px;}
     .tempo-body{gap:8px;padding-left:8px;}
   }
 </style>
