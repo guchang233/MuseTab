@@ -116,61 +116,66 @@
 
 <input bind:this={picker} type="file" {accept} multiple hidden onchange={() => importFiles(picker.files)} />
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="library zf-app" bind:this={scroller} class:dragging onscroll={rememberScroll} onwheel={cancelRestore} onpointerdown={cancelRestore} ondragover={e => { e.preventDefault(); dragging = true; }} ondragleave={() => dragging = false} {ondrop}>
-  <div class="page">
-    {#if tab !== 'settings'}<CatalogueHeader title={titles[tab]} actions={pageActions} search={pageSearch} />{/if}
+<div class="library zf-app" class:dragging ondragover={e => { e.preventDefault(); dragging = true; }} ondragleave={() => dragging = false} {ondrop}>
+  {#if tab !== 'settings'}
+    <div class="library-top">
+      <CatalogueHeader title={titles[tab]} actions={pageActions} search={pageSearch} />
+    </div>
+  {/if}
+  <div class="library-scroll" bind:this={scroller} onscroll={rememberScroll} onwheel={cancelRestore} onpointerdown={cancelRestore}>
+    <div class="page" class:settings-page={tab === 'settings'}>
+      {#if tab === 'settings'}
+        <Personal bind:section={libraryView.personal.section} bind:item={libraryView.personal.item} oncloud={() => switchTab('cloud',true)} />
+      {:else}
+        <div class="collection-meta">
+          {#if tab === 'cloud'}
+            <span class="source">{REPOSITORY}</span><span>{cloud.refreshing ? '同步中…' : cloud.catalog ? '更新于 ' + date(cloud.catalog.updatedAt) : '只读曲库'}</span>
+          {:else}<span>{tab === 'recent' ? '按最近打开排序' : '本地乐谱'}</span><span>{localScores.length} 份</span>{/if}
+        </div>
 
-    {#if tab === 'settings'}
-      <Personal bind:section={libraryView.personal.section} bind:item={libraryView.personal.item} oncloud={() => switchTab('cloud',true)} />
-    {:else}
-      <div class="collection-meta">
-        {#if tab === 'cloud'}
-          <span class="source">{REPOSITORY}</span><span>{cloud.refreshing ? '同步中…' : cloud.catalog ? '更新于 ' + date(cloud.catalog.updatedAt) : '只读曲库'}</span>
-        {:else}<span>{tab === 'recent' ? '按最近打开排序' : '本地乐谱'}</span><span>{localScores.length} 份</span>{/if}
-      </div>
+        {#if tab === 'local' && latest && !query && filter === 'all'}
+          <div class="resume-row"><span>继续看谱</span><button class="continue" disabled={documents.opening} onclick={() => openScore(latest)}>{#if latest.cover}<img src={latest.cover} alt="" />{:else}<Icon name="book" size={20} />{/if}<span>{label(latest)}</span><small>{latest.ext.toUpperCase()}</small></button><button class="all-recent" onclick={() => switchTab('recent')}>全部</button></div>
+        {/if}
+        {#if notice}<p class="message" role="status">{notice}</p>{/if}
+        {#if tab === 'cloud' && cloud.error}<p class="message" role="alert">{cloud.error}</p>{/if}
 
-      {#if tab === 'local' && latest && !query && filter === 'all'}
-        <div class="resume-row"><span>继续看谱</span><button class="continue" disabled={documents.opening} onclick={() => openScore(latest)}>{#if latest.cover}<img src={latest.cover} alt="" />{:else}<Icon name="book" size={20} />{/if}<span>{label(latest)}</span><small>{latest.ext.toUpperCase()}</small></button><button class="all-recent" onclick={() => switchTab('recent')}>全部</button></div>
-      {/if}
-      {#if notice}<p class="message" role="status">{notice}</p>{/if}
-      {#if tab === 'cloud' && cloud.error}<p class="message" role="alert">{cloud.error}</p>{/if}
-
-      <main class="collection" aria-label={tab === 'cloud' ? '云端乐谱' : '本地乐谱'}>
-        {#if tab === 'cloud'}
-          {#if cloudScores.length}
-            <div class="scores cloud-list media-grid">
-              {#each cloudScores as rec (rec.path)}
-                {@const saved = cloud.saved(rec)}
-                <article class="score cloud-score media-card" data-view-key={rec.path}>
-                  <button class="cloud-score-main" onclick={()=>openDetail(rec)} aria-label={'查看详情 '+rec.name}>
-                    <div class="cover poster poster-fallback placeholder"><Icon name={rec.ext==='pdf'?'view-single':'book'} size={30}/><span class="format">{rec.ext.toUpperCase()} · {size(rec.size)}</span></div>
-                    <h2 title={rec.name}>{rec.name}</h2><p>{saved?'已下载到本地':'查看详情'}</p>
-                  </button>
-                </article>
+        <main class="collection" aria-label={tab === 'cloud' ? '云端乐谱' : '本地乐谱'}>
+          {#if tab === 'cloud'}
+            {#if cloudScores.length}
+              <div class="scores cloud-list media-grid">
+                {#each cloudScores as rec (rec.path)}
+                  {@const saved = cloud.saved(rec)}
+                  <article class="score cloud-score media-card" data-view-key={rec.path}>
+                    <button class="cloud-score-main" onclick={()=>openDetail(rec)} aria-label={'查看详情 '+rec.name}>
+                      <div class="cover poster poster-fallback placeholder"><Icon name={rec.ext==='pdf'?'view-single':'book'} size={30}/><span class="format">{rec.ext.toUpperCase()} · {size(rec.size)}</span></div>
+                      <h2 title={rec.name}>{rec.name}</h2><p>{saved?'已下载到本地':'查看详情'}</p>
+                    </button>
+                  </article>
+                {/each}
+              </div>
+            {:else if cloud.refreshing && !cloud.catalog}
+              <div class="empty" role="status"><span class="spinner"></span><p>正在读取曲库…</p></div>
+            {:else}
+              <div class="empty"><Icon name="cloud" size={32} /><h2>{query || filter !== 'all' ? '没有匹配的乐谱' : cloud.catalog ? '曲库还没有乐谱' : '暂时连接不到曲库'}</h2><p>{query || filter !== 'all' ? '试试其他曲名或格式' : '上传到对应目录后，点击右上角刷新。'}</p>{#if !query && filter === 'all'}<div class="folders"><code>mid/</code><code>mscz/</code><code>pdf/</code></div>{/if}</div>
+            {/if}
+          {:else if localScores.length}
+            <div class="scores local-grid media-grid">
+              {#each localScores as rec (rec.id)}
+                <button class="score local-score media-card" data-view-key={rec.id} disabled={documents.opening} onpointerdown={e=>press(e,rec)} onpointermove={movePress} onpointerup={endPress} onpointercancel={endPress} oncontextmenu={e=>{e.preventDefault();endPress();heldId=rec.id;managed=rec;}} onclick={e=>clickScore(e,rec)} aria-label={'打开 ' + label(rec)}>
+                  <div class="cover poster poster-fallback" class:placeholder={!rec.cover}>{#if rec.cover}<img src={rec.cover} alt="" loading="lazy" />{:else}<Icon name={rec.ext === 'pdf' ? 'view-single' : 'book'} size={30} />{/if}<span class="format">{rec.ext.toUpperCase()}{rec.editedAt ? ' · 已编辑' : ''}</span></div>
+                  <h2 title={label(rec)}>{label(rec)}</h2>
+                  <p>{tab === 'recent' ? date(rec.openedAt) : rec.source ? '已下载到本地' : '本地导入'} · {size(rec.size)}</p>
+                </button>
               {/each}
             </div>
-          {:else if cloud.refreshing && !cloud.catalog}
-            <div class="empty" role="status"><span class="spinner"></span><p>正在读取曲库…</p></div>
           {:else}
-            <div class="empty"><Icon name="cloud" size={32} /><h2>{query || filter !== 'all' ? '没有匹配的乐谱' : cloud.catalog ? '曲库还没有乐谱' : '暂时连接不到曲库'}</h2><p>{query || filter !== 'all' ? '试试其他曲名或格式' : '上传到对应目录后，点击右上角刷新。'}</p>{#if !query && filter === 'all'}<div class="folders"><code>mid/</code><code>mscz/</code><code>pdf/</code></div>{/if}</div>
+            <div class="empty"><Icon name="book" size={32} /><h2>{query || filter !== 'all' ? '没有匹配的乐谱' : tab === 'recent' ? '还没有打开过乐谱' : '谱匣还是空的'}</h2><p>{query || filter !== 'all' ? '试试其他曲名或格式' : '导入一份乐谱，或从云端保存到本地。'}</p><div class="empty-actions"><button onclick={() => picker.click()}>从设备导入</button><button onclick={() => switchTab('cloud')}>浏览云端</button></div></div>
           {/if}
-        {:else if localScores.length}
-          <div class="scores local-grid media-grid">
-            {#each localScores as rec (rec.id)}
-              <button class="score local-score media-card" data-view-key={rec.id} disabled={documents.opening} onpointerdown={e=>press(e,rec)} onpointermove={movePress} onpointerup={endPress} onpointercancel={endPress} oncontextmenu={e=>{e.preventDefault();endPress();heldId=rec.id;managed=rec;}} onclick={e=>clickScore(e,rec)} aria-label={'打开 ' + label(rec)}>
-                <div class="cover poster poster-fallback" class:placeholder={!rec.cover}>{#if rec.cover}<img src={rec.cover} alt="" loading="lazy" />{:else}<Icon name={rec.ext === 'pdf' ? 'view-single' : 'book'} size={30} />{/if}<span class="format">{rec.ext.toUpperCase()}{rec.editedAt ? ' · 已编辑' : ''}</span></div>
-                <h2 title={label(rec)}>{label(rec)}</h2>
-                <p>{tab === 'recent' ? date(rec.openedAt) : rec.source ? '已下载到本地' : '本地导入'} · {size(rec.size)}</p>
-              </button>
-            {/each}
-          </div>
-        {:else}
-          <div class="empty"><Icon name="book" size={32} /><h2>{query || filter !== 'all' ? '没有匹配的乐谱' : tab === 'recent' ? '还没有打开过乐谱' : '谱匣还是空的'}</h2><p>{query || filter !== 'all' ? '试试其他曲名或格式' : '导入一份乐谱，或从云端保存到本地。'}</p><div class="empty-actions"><button onclick={() => picker.click()}>从设备导入</button><button onclick={() => switchTab('cloud')}>浏览云端</button></div></div>
-        {/if}
-      </main>
-      {#if documents.opening}<p class="opening" role="status">正在打开乐谱…</p>{/if}
-      {#if engine.status === 'error' && tab !== 'cloud'}<p class="engine-error" role="status">谱面核心启动失败，PDF 仍可打开</p>{/if}
-    {/if}
+        </main>
+        {#if documents.opening}<p class="opening" role="status">正在打开乐谱…</p>{/if}
+        {#if engine.status === 'error' && tab !== 'cloud'}<p class="engine-error" role="status">谱面核心启动失败，PDF 仍可打开</p>{/if}
+      {/if}
+    </div>
   </div>
 
   <PhoneNavigation items={destinations} value={tab} onchange={switchTab} />
@@ -181,16 +186,27 @@
 {#if creating}<NewScore onclose={()=>creating=false}/>{/if}
 <style>
   .cloud-score-main{display:block;width:100%;text-align:left;color:inherit;background:transparent;}
-  /* Music-specific layout only. Catalogue/search/phone chrome use source.css. */
+  /* 顶栏固定在滚动区外，不再依赖 sticky（Android WebView 上会跟着列表跑）。 */
   .library {
-    position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain;
+    position:absolute; inset:0; display:flex; flex-direction:column; overflow:hidden;
     background:var(--parchment); color:var(--ink); font:14px/1.5 var(--font-ui);
     font-variant-numeric:lining-nums proportional-nums;
-    scrollbar-width:none;
   }
-  .library::-webkit-scrollbar{display:none;}
+  .library-top{
+    flex:none; z-index:30; width:100%; max-width:1328px; margin:0 auto;
+    padding:max(12px,env(safe-area-inset-top)) 16px 12px; box-sizing:border-box;
+    background:color-mix(in srgb, var(--parchment) 94%, transparent);
+    backdrop-filter:blur(16px);
+  }
+  .library-top :global(.browse-header){position:static; top:auto; margin:0; padding:0;}
+  .library-top :global(.browse-header::before){display:none;}
+  .library-scroll{
+    flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+  }
+  .library-scroll::-webkit-scrollbar{display:none;}
   .dragging{outline:3px dashed var(--ink-mute);outline-offset:-6px;}
-  .page{display:flex;flex-direction:column;gap:20px;max-width:1328px;margin:auto;padding:16px 16px 112px;}
+  .page{display:flex;flex-direction:column;gap:20px;max-width:1328px;margin:auto;padding:8px 16px 112px;width:100%;box-sizing:border-box;}
+  .page.settings-page{padding-top:max(16px,env(safe-area-inset-top));}
   .page :global(.browse-actions .ib){--tap:44px;color:var(--ink-soft);}
   .format-option{min-height:44px;padding:0 14px;border-radius:var(--chip-radius);font:500 13px/1.2 var(--font-ui);color:var(--ink-soft);background:transparent;}
   .format-option.on{background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
