@@ -94,6 +94,7 @@ let storedSeq = $state(0);
 let saveRequestSeq=$state(0);
 let readerControl=$state({seq:0,key:''});
 let readerViewport=$state<{seq:number;zoom:number;rect?:PageState['rect']}>({seq:0,zoom:1});
+let readerPreview=$state<{scale:number;x:number;y:number;seq:number}>({scale:1,x:0,y:0,seq:0});
 let dialogRequest=$state({seq:0,kind:''});
 
 const pendingActions=new Set<string>();let actionFrame=0;
@@ -116,6 +117,7 @@ function onEvent(name: string, data: any) {
     case 'reader-tap':readerTapSeq++;break;
     case 'reader-control': readerControl={seq:readerControl.seq+1,key:data.key};break;
     case 'reader-viewport': readerViewport={...data,seq:readerViewport.seq+1};break;
+    case 'reader-preview': readerPreview={scale:data.scale||1,x:data.x||0,y:data.y||0,seq:readerPreview.seq+1};break;
     case 'mobile-dialog': dialogRequest={seq:dialogRequest.seq+1,kind:data.kind};break;
     case 'ready':
       status = 'ready';
@@ -193,6 +195,7 @@ export const engine = {
   leaveEditor(){editLocked=true;untrack(()=>host?.setEditLocked(false));},
   get readerControl(){return readerControl;},
   get readerViewport(){return readerViewport;},
+  get readerPreview(){return readerPreview;},
   gestureView(factor:number,dx:number,dy:number,cx:number,cy:number){return untrack(()=>host?.gestureView(factor,dx,dy,cx,cy));},
   renderPage(index:number,pixels:number){return untrack(()=>host?.renderPage(index,pixels)||'');},
   readerLayout(mode:number){untrack(()=>host?.readerLayout(mode));},

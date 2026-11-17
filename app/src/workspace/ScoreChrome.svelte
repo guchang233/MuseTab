@@ -161,7 +161,7 @@
     position: absolute;
     right: max(12px, env(safe-area-inset-right));
     top: max(12px, env(safe-area-inset-top));
-    z-index: 8;
+    z-index: 40;
     pointer-events: none;
   }
   .exit .island {

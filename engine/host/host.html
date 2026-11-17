@@ -68,11 +68,13 @@
         preview.x=(preview.x-cx)*factor+cx+dx;preview.y=(preview.y-cy)*factor+cy+dy;preview.scale*=factor;
         canvas.style.transformOrigin='0 0';canvas.style.willChange='transform';
         canvas.style.transform=`matrix(${preview.scale},0,0,${preview.scale},${preview.x},${preview.y})`;
+        emit('reader-preview',{scale:preview.scale,x:preview.x,y:preview.y});
         clearTimeout(wheelTimer);wheelTimer=setTimeout(commitPreview,140);
       }
       function commitPreview(){
         clearTimeout(wheelTimer);if(!preview)return;const pose=preview;preview=null;
         engine.gestureView(pose.scale,pose.x,pose.y,0,0);
+        emit('reader-preview',{scale:1,x:0,y:0});
         previewFrame=requestAnimationFrame(()=>{pose.canvas.style.transform='';pose.canvas.style.willChange='';previewFrame=0;});
       }
       const unlockRequest=()=>{emit('edit-unlock-request',{});return false;};
@@ -135,6 +137,7 @@
           if(nativeComposer&&editLocked&&kind==='transpose')return unlockRequest();
           if(['toggle-mixer','toggle-instruments'].includes(kind)||(!nativeComposer&&['page-settings','edit-style','transpose'].includes(kind))){emit('mobile-dialog',{kind});return;}
           engine.Module.ccall('mtDispatch', null, ['string'], [code]);
+          if(/^(zoom|scr-|page-)/.test(kind))emit('reader-viewport',{zoom:galleryZoom||1});
         },
         setPageLock(v) {
           if(typeof engine.Module._mtSetPageLock!=='function')throw Error('排谱核心需要更新，请重新启动应用');
@@ -158,7 +161,7 @@
           try{return 'data:image/png;base64,'+engine.Module.ccall('mtRenderPage','string',['number','number'],[index,pixels]);}
           finally{if(t.dark)engine.Module.ccall('mtSetCanvasTheme',null,['number','string','string'],[1,t.paper,t.canvas]);}
         },
-        readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;},
+        readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;emit('reader-viewport',{zoom:galleryZoom||1});},
         tapAt(x,y){
           commitPreview();
           if(editLocked){const now=performance.now();if(lastLockedTap&&now-lastLockedTap.time<350&&Math.hypot(x-lastLockedTap.x,y-lastLockedTap.y)<14)unlockRequest();lastLockedTap={time:now,x,y};}
@@ -344,7 +347,7 @@
         tap:e=>{
           commitPreview();
           if(pageLocked&&pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
-          if(viewOnly&&!pageLocked){
+          if(viewOnly&&!pageLocked&&localStorage.getItem('musetab.edgeTurn')==='true'){
             // pageRect belongs to the last fitted page. In free view it can be
             // far off-screen after panning, so it must never classify a tap on
             // another page as a gutter/page-turn gesture.

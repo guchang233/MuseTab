@@ -7,9 +7,10 @@
   import {updates} from '../../update.svelte';
   import {registerBack} from '../../ui/back';
   import VersionSettings from './VersionSettings.svelte';
+  import {readerPrefs} from '../../reader/preferences.svelte';
   let {oncloud,section=$bindable(''),item=$bindable('')}:{oncloud:()=>void;section?:string;item?:string}=$props();
   const sections=[{id:'app',title:'应用设置',detail:'外观、版本与更新'},{id:'library',title:'曲库与文件',detail:'本地乐谱、只读云端曲库'},{id:'about',title:'关于 MuseTab',detail:'离线看谱、播放与编辑'}];
-  const entries:Record<string,{id:string;title:string;detail?:string}[]>={app:[{id:'appearance',title:'外观'},{id:'version',title:'版本与更新'},{id:'update',title:'自动检查更新'}],library:[{id:'local',title:'本地文件'},{id:'cloud',title:'云端曲库'}],about:[{id:'info',title:'应用信息'},{id:'source',title:'开源与许可'}]};
+  const entries:Record<string,{id:string;title:string;detail?:string}[]>={app:[{id:'appearance',title:'外观'},{id:'reader',title:'看谱',detail:'空白翻页与画面外乐谱'},{id:'version',title:'版本与更新'},{id:'update',title:'自动检查更新'}],library:[{id:'local',title:'本地文件'},{id:'cloud',title:'云端曲库'}],about:[{id:'info',title:'应用信息'},{id:'source',title:'开源与许可'}]};
   const selected=$derived(entries[section]?.find(x=>x.id===item));
   const group=$derived(sections.find(x=>x.id===section));
   function back(){if(item)item='';else section='';}
@@ -33,6 +34,7 @@
       {#if item==='version'}<VersionSettings/>{:else}
       <div class="setting-row"><span><span class="setting-title">{selected.title}</span><span class="setting-description">
         {#if item==='appearance'}选择界面主题
+        {:else if item==='reader'}非全屏看谱的点按和拖动
         {:else if item==='update'}每天检查一次正式版本，下载和安装由你决定
         {:else if item==='local'}{library.records.length} 份乐谱 · 单文件上限 32 MB。编辑后可导出 MSCZ 备份；PDF 批注保存在此设备。
         {:else if item==='cloud'}{REPOSITORY} · 保存到本地后打开，本地编辑不会上传。
@@ -47,6 +49,10 @@
       </span></div>
       {/if}
       {#if item==='appearance'}<div class="setting-row"><span><span class="setting-title">曲谱背景</span><span class="setting-description">关闭纸张背景，让音符和五线谱融入界面背景。</span></span><span class="setting-controls"><button class="btn-ghost btn-sm" role="switch" aria-label="曲谱背景" aria-checked={theme.paper} onclick={()=>theme.setPaper(!theme.paper)}>{theme.paper?'已开启':'已关闭'}</button></span></div>{/if}
+      {#if item==='reader'}
+        <div class="setting-row"><span><span class="setting-title">两侧空白翻页</span><span class="setting-description">非全屏时，点页面左右两侧的空白会翻到上一页或下一页。关闭后，点空白只弹出工具条。</span></span><span class="setting-controls"><button class="btn-ghost btn-sm" role="switch" aria-label="两侧空白翻页" aria-checked={readerPrefs.edgeTurn} onclick={()=>readerPrefs.setEdgeTurn(!readerPrefs.edgeTurn)}>{readerPrefs.edgeTurn?'已开启':'已关闭'}</button></span></div>
+        <div class="setting-row"><span><span class="setting-title">预先绘制画面外乐谱</span><span class="setting-description">把整页画出来，拖动时能看到屏幕外的谱面。关闭后只移动当前画面，占用更少。</span></span><span class="setting-controls"><button class="btn-ghost btn-sm" role="switch" aria-label="预先绘制画面外乐谱" aria-checked={readerPrefs.richScore} onclick={()=>readerPrefs.setRichScore(!readerPrefs.richScore)}>{readerPrefs.richScore?'已开启':'已关闭'}</button></span></div>
+      {/if}
     </div>
   {/if}
 </div>
