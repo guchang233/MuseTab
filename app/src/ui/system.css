@@ -30,9 +30,11 @@ html .zf-app .app-tabbar {
   padding: 4px;
   border: 0;
   border-radius: 26px;
-  background: var(--material);
+  background: var(--aria-material);
   backdrop-filter: blur(18px);
-  box-shadow: var(--island-ring), var(--island-shadow);
+  outline: 0.7px solid var(--aria-line);
+  outline-offset: -0.7px;
+  box-shadow: var(--island-shadow);
   gap: 0;
 }
 
@@ -72,19 +74,21 @@ html .zf-app .icon-btn,
 html .zf-app .btn-ghost {
   border: 0;
   border-radius: var(--island-radius);
-  background: var(--material);
-  box-shadow: var(--island-ring);
+  background: var(--aria-material);
+  outline: 0.7px solid var(--aria-line);
+  outline-offset: -0.7px;
+  box-shadow: none;
 }
 
 html .zf-app .search-submit,
 html .zf-app .btn-ghost {
-  box-shadow: var(--island-ring), var(--island-shadow);
+  box-shadow: var(--island-shadow);
   font-family: var(--font-ui);
   font-weight: 500;
 }
 
 html .zf-app .search-field:focus-within {
-  box-shadow: var(--chip-ring);
+  outline-color: color-mix(in srgb, var(--aria-active) 40%, transparent);
 }
 
 html .zf-app .search-filters {

@@ -39,9 +39,11 @@
     height: var(--tap);
     flex: none;
     border-radius: var(--island-radius);
-    color: var(--ink);
-    background: var(--material);
-    box-shadow: var(--island-ring), var(--island-shadow);
+    color: var(--aria-ink);
+    background: var(--aria-material);
+    outline: 0.7px solid var(--aria-line);
+    outline-offset: -0.7px;
+    box-shadow: var(--island-shadow);
     transition:
       background-color var(--dur) var(--ease),
       color var(--dur) var(--ease),
@@ -66,14 +68,16 @@
   }
 
   .active {
-    color: var(--rubric);
-    background: var(--rubric-wash);
-    box-shadow: var(--chip-ring), var(--island-shadow);
+    color: var(--aria-active);
+    background: var(--aria-selection);
+    outline-color: color-mix(in srgb, var(--aria-active) 32%, transparent);
+    box-shadow: var(--island-shadow);
   }
 
   .seal {
-    background: var(--rubric);
-    color: var(--on-rubric);
+    background: var(--aria-active);
+    color: var(--aria-on-active);
+    outline: 0;
     box-shadow: var(--island-shadow);
   }
   .seal:hover,

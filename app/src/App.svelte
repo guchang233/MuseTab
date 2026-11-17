@@ -66,18 +66,21 @@
   }
 
   // 谱纸是第一色，四周是第二色；dark 为真时反相，音符变浅。
-  // 白天编谱也用浅色四周，避免整屏像黑夜；暗色主题再用深灰衬白谱纸。
-  // reading.fullscreen 一并追踪：全屏页渲染不得永久改写主题，退出后要能回到本设定。
+  // 有谱纸时不反相；无谱纸时仅暗色主题反相——白天绝不能因「关谱纸」被当成黑夜。
+  // 编谱：白天浅色四周；夜晚深灰四周衬白谱纸。fullscreen 变更后要回到本设定。
   $effect(() => {
     if (engine.status !== 'ready') return;
     reading.fullscreen;
     const dark = theme.resolved === 'dark';
-    const composer=nav.screen==='editor';
-    const css=getComputedStyle(document.documentElement);
-    const sheet=css.getPropertyValue('--sheet').trim()||'#fbf8ef';
-    const deep=css.getPropertyValue('--parchment-deep').trim()||(dark?'#18130e':'#e9e0cc');
-    const surround=composer&&dark?'#3b3b40':deep;
-    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?'#ffffff':sheet):'none', surround);
+    const composer = nav.screen === 'editor';
+    const paperOn = theme.paper;
+    const css = getComputedStyle(document.documentElement);
+    const sheet = css.getPropertyValue('--sheet').trim() || '#fbf8ef';
+    const deep = css.getPropertyValue('--parchment-deep').trim() || (dark ? '#18130e' : '#e9e0cc');
+    const invert = paperOn ? false : dark;
+    const paperColor = paperOn ? (composer ? '#ffffff' : sheet) : 'none';
+    const surround = composer && dark ? '#3b3b40' : deep;
+    engine.setCanvasTheme(invert, paperColor, surround);
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };

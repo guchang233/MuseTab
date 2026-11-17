@@ -181,7 +181,6 @@
             <div class="empty"><Icon name="book" size={32} /><h2>{query || filter !== 'all' ? '没有匹配的乐谱' : tab === 'recent' ? '还没有打开过乐谱' : '谱匣还是空的'}</h2><p>{query || filter !== 'all' ? '试试其他曲名或格式' : '导入一份乐谱，或从云端保存到本地。'}</p><div class="empty-actions"><button onclick={() => picker.click()}>从设备导入</button><button onclick={() => switchTab('cloud')}>浏览云端</button></div></div>
           {/if}
         </main>
-        {#if documents.opening}<p class="opening" role="status">正在打开乐谱…</p>{/if}
         {#if engine.status === 'error' && tab !== 'cloud'}<p class="engine-error" role="status">谱面核心启动失败，PDF 仍可打开</p>{/if}
       {/if}
     </div>
@@ -260,7 +259,6 @@
   .empty-actions button{min-height:44px;padding:0 16px;border:0;border-radius:var(--island-radius);background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);font:500 14px/1.2 var(--font-ui);}
   .empty-actions button:last-child{background:var(--rubric);color:var(--on-rubric);}
   .message{font-size:12px;line-height:1.6;padding:12px 14px;border:0;border-radius:var(--chip-radius);margin:0;color:var(--ink-soft);overflow-wrap:anywhere;background:var(--material);box-shadow:var(--island-ring);}
-  .opening{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);padding:10px 16px;border:0;border-radius:var(--island-radius);background:var(--material);font:500 13px/1.2 var(--font-ui);z-index:50;box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);}
   .engine-error{font-size:12px;color:var(--ink-soft);}
   .spinner{width:22px;height:22px;border:2px solid var(--hairline);border-top-color:var(--rubric);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}

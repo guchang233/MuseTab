@@ -1,7 +1,10 @@
 @font-face{font-family:'Aria Bravura Text';src:url('/fonts/aria/BravuraText.otf') format('opentype');font-display:block;}
 .aria-editor{position:absolute;inset:0;pointer-events:none;color:var(--aria-ink);font:14px var(--font-ui);background:transparent;}
-/* 白天编谱：浮岛用实色纸，避免透出画布四周后整屏发黑 */
-html[data-theme='light'] .aria-editor{--aria-material:var(--paper);--aria-sunken:var(--parchment);--aria-surface:var(--paper);}
+/* 白天编谱：继承 :root[data-theme=light] 的实色纸变量；此处再钉一次防局部覆盖 */
+html[data-theme='light'] .aria-editor{--aria-material:var(--paper);--aria-sunken:var(--parchment);--aria-surface:var(--paper);--aria-fill:color-mix(in srgb, var(--ink) 5%, var(--paper));color:var(--aria-ink);}
+html[data-theme='light'] .aria-editor .aria-entry-surface,
+html[data-theme='light'] .aria-editor .aria-floating-palette,
+html[data-theme='light'] .aria-editor .island{background:var(--paper);color:var(--ink);}
 .aria-editor button,.aria-editor input,.aria-editor textarea,.aria-editor select{font-family:inherit;}
 .aria-editor-deck{position:absolute;bottom:0;left:0;right:0;pointer-events:auto;z-index:12;}
 .aria-editor .aria-entry-surface{padding-bottom:env(safe-area-inset-bottom);}

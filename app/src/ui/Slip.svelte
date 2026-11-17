@@ -11,9 +11,11 @@
 
 <style>
   .slip {
-    background: var(--material);
+    background: var(--aria-material);
     border: 0;
     border-radius: var(--sheet-radius);
-    box-shadow: var(--island-ring), var(--island-shadow);
+    outline: 0.7px solid var(--aria-line);
+    outline-offset: -0.7px;
+    box-shadow: var(--island-shadow);
   }
 </style>

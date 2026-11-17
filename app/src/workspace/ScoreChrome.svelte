@@ -1,9 +1,8 @@
-<!-- 看谱 / 播放共用的悬浮顶栏：透明底，只有浮岛可点，无整宽底座。 -->
+<!-- 看谱 / 播放顶栏：与编谱 AriaChrome 同一套浮岛样式（描边岛、返回+标题合并）。 -->
 <script lang="ts">
-  import IconButton from '../ui/IconButton.svelte';
   import Icon from '../ui/Icon.svelte';
   import ModeSwitch from './ModeSwitch.svelte';
-  import type {ScoreMode} from './modes';
+  import type { ScoreMode } from './modes';
   let {
     title,
     mode,
@@ -30,20 +29,36 @@
 </script>
 
 {#if fullscreen}
-  <div class="exit"><IconButton label="退出全屏" icon="exit-fullscreen" onclick={onfullscreen} /></div>
+  <div class="exit">
+    <div class="island">
+      <button type="button" aria-label="退出全屏" onclick={onfullscreen}><Icon name="exit-fullscreen" size={20} /></button>
+    </div>
+  </div>
 {:else}
   <header class="score-chrome" bind:clientHeight={height}>
-    <IconButton label="返回谱匣" icon="back" onclick={onback} />
-    <div class="title-island">
-      <span class="name">{title}</span>
-      {#if subtitle}<small>{subtitle}</small>{/if}
+    <div class="leading">
+      <div class="island back-island">
+        <button type="button" aria-label="返回谱匣" onclick={onback}>
+          <Icon name="back" size={20} />
+          <span class="title">{title}</span>
+          {#if subtitle}<small>{subtitle}</small>{/if}
+        </button>
+      </div>
     </div>
-    {#if onfullscreen}<IconButton label="全屏看谱" icon="fullscreen" onclick={onfullscreen} />{/if}
-    {#if onedit}
-      <button class="edit-island" class:on={editActive} onclick={onedit}><Icon name="pen" size={20} /><span>{editLabel}</span></button>
-    {:else}
-      <ModeSwitch value={mode} />
-    {/if}
+    <div class="trailing">
+      {#if onfullscreen}
+        <div class="island icon-island">
+          <button type="button" aria-label="全屏看谱" onclick={onfullscreen}><Icon name="fullscreen" size={20} /></button>
+        </div>
+      {/if}
+      {#if onedit}
+        <div class="island edit-island" class:on={editActive}>
+          <button type="button" aria-label={editLabel} onclick={onedit}><Icon name="pen" size={18} /><span>{editLabel}</span></button>
+        </div>
+      {:else}
+        <ModeSwitch value={mode} />
+      {/if}
+    </div>
   </header>
 {/if}
 
@@ -53,89 +68,120 @@
     inset: 0 0 auto;
     z-index: 30;
     display: flex;
-    flex-wrap: nowrap;
     align-items: center;
-    gap: 8px;
-    min-height: 56px;
-    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+    gap: 10px;
+    height: 62px;
+    padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
     box-sizing: border-box;
     pointer-events: none;
     background: transparent;
     border: 0;
+    color: var(--aria-ink);
+    font: 500 14px var(--font-ui);
   }
-  .score-chrome > :global(*) {
-    pointer-events: auto;
-  }
-  .title-island {
+  .leading {
+    display: flex;
     flex: 1;
     min-width: 0;
+  }
+  .trailing {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 44px;
-    padding: 0 16px;
-    border-radius: var(--island-radius);
-    background: var(--material);
-    box-shadow: var(--island-ring), var(--island-shadow);
-    backdrop-filter: blur(18px);
+    flex: none;
+    margin-left: auto;
   }
-  .name {
+  .island {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding-inline: 8px;
+    background: var(--aria-material);
+    border: 0;
+    outline: 0.7px solid var(--aria-line);
+    outline-offset: -0.7px;
+    border-radius: 18px;
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--aria-ink) 9%, transparent);
+    backdrop-filter: blur(18px);
+    pointer-events: auto;
+  }
+  .back-island {
+    padding-inline: 10px;
+    max-width: min(340px, 58vw);
+  }
+  .back-island button {
+    gap: 10px;
+    min-width: 44px;
+    max-width: 100%;
+  }
+  .title {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font: 600 16px / 1.25 var(--font-ui);
+    font-size: 16px;
+    font-weight: 600;
   }
   small {
     flex: none;
-    color: var(--ink-soft);
-    font-size: var(--text-xs);
+    color: var(--aria-muted);
+    font-size: 12px;
+    white-space: nowrap;
   }
-  .edit-island {
+  .icon-island {
+    padding-inline: 5px;
+  }
+  .icon-island button {
+    min-width: 44px;
+  }
+  .edit-island button {
+    gap: 7px;
+    min-width: 72px;
+    padding-inline: 6px;
+  }
+  .edit-island.on {
+    color: var(--aria-active);
+  }
+  button {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     min-height: 44px;
-    padding: 0 14px;
+    min-width: 44px;
+    background: none;
+    padding: 0;
     border: 0;
-    border-radius: var(--island-radius);
-    background: var(--material);
-    box-shadow: var(--island-ring), var(--island-shadow);
-    backdrop-filter: blur(18px);
-    font: 500 14px / 1.2 var(--font-ui);
-    flex: none;
-  }
-  .edit-island.on {
-    background: var(--rubric-wash);
-    color: var(--rubric);
-    box-shadow: var(--chip-ring), var(--island-shadow);
+    color: inherit;
+    border-radius: 0;
+    cursor: pointer;
+    font: inherit;
   }
   .exit {
     position: absolute;
     right: max(12px, env(safe-area-inset-right));
     top: max(12px, env(safe-area-inset-top));
     z-index: 8;
+    pointer-events: none;
+  }
+  .exit .island {
     pointer-events: auto;
   }
-  /* 窄屏也保持单行悬浮岛，禁止把 ModeSwitch 整行拉满造成看谱/播放高度跳变 */
+
   @media (max-width: 700px) {
     .score-chrome {
-      gap: 6px;
+      gap: 8px;
+      padding-block: 8px;
     }
-    .score-chrome :global(.mode-switch) {
-      flex: none;
-      gap: 6px;
+    .trailing {
+      gap: 8px;
     }
-    .score-chrome :global(.mode-switch button) {
-      flex: none;
-      min-width: 48px;
-      padding: 0 10px;
+    .back-island {
+      padding-inline: 5px;
+      max-width: min(220px, 42vw);
     }
-    .title-island {
-      padding: 0 10px;
-    }
-    .name {
-      font-size: 0.95rem;
+    .title {
+      font-size: 15px;
     }
     small {
       display: none;

@@ -146,7 +146,7 @@
   --aria-fill: var(--veil);
   --aria-surface: var(--paper);
   --aria-sunken: var(--parchment-deep);
-  /* 提高不透明度，避免编谱浮岛透出深色画布后看起来像黑夜模式 */
+  /* 浮岛默认略透；白天实色纸，避免透出画布四周后整屏发黑 */
   --aria-material: color-mix(in srgb, var(--paper) 94%, transparent);
   --aria-selection: var(--rubric-wash);
   --aria-ivory: #fffdf8;
@@ -160,9 +160,16 @@
   --chip-radius: 10px;
   --toolbar-radius: 12px;
   --sheet-radius: 22px;
-  --island-shadow: 0 8px 18px color-mix(in srgb, var(--ink) 10%, transparent);
-  --island-ring: inset 0 0 0 0.7px var(--hairline);
+  --island-shadow: 0 8px 18px color-mix(in srgb, var(--ink) 9%, transparent);
+  --island-ring: 0 0 0 0.7px var(--hairline);
   --chip-ring: inset 0 0 0 0.8px color-mix(in srgb, var(--rubric) 32%, transparent);
+}
+
+:root[data-theme='light'] {
+  --aria-material: var(--paper);
+  --aria-sunken: var(--parchment);
+  --aria-surface: var(--paper);
+  --material: var(--paper);
 }
 
 @media (prefers-reduced-motion: reduce) {

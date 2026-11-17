@@ -6,22 +6,22 @@
 .workspace-header,.workspace-footer{pointer-events:none;background:transparent;border:0;padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));flex:none;z-index:4;}
 .workspace-header{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding-top:max(8px,env(safe-area-inset-top));}
 .workspace-header>*,.workspace-footer>*{pointer-events:auto;}
-.workspace-title{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:4px 16px;border-radius:var(--island-radius);background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);}
+.workspace-title{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:4px 16px;border-radius:var(--island-radius);background:var(--aria-material);outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);}
 .workspace-title h1{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 16px/1.25 var(--font-ui);}
-.workspace-title p{margin:0;color:var(--ink-soft);font-size:12px;}
+.workspace-title p{margin:0;color:var(--aria-muted);font-size:12px;}
 .workspace-stage{position:relative;flex:1;min-height:0;}
 .workspace-footer{padding-bottom:max(10px,env(safe-area-inset-bottom));}
-.workspace-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:var(--island-radius);white-space:nowrap;background:var(--material);box-shadow:var(--island-ring),var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.2 var(--font-ui);transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),transform var(--dur) var(--ease);}
+.workspace-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:var(--island-radius);white-space:nowrap;background:var(--aria-material);outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.2 var(--font-ui);color:var(--aria-ink);transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),transform var(--dur) var(--ease);}
 .workspace-button:hover{background:color-mix(in srgb, var(--paper) 92%, var(--ink));}
 .workspace-button:active:not(:disabled){transform:scale(0.98);}
 .workspace-button:disabled{opacity:.4;}
-.workspace-button[aria-pressed=true]{color:var(--rubric);background:var(--rubric-wash);box-shadow:var(--chip-ring),var(--island-shadow);}
-.workspace-button.primary{color:var(--on-rubric);background:var(--rubric);box-shadow:var(--island-shadow);}
+.workspace-button[aria-pressed=true]{color:var(--aria-active);background:var(--aria-selection);outline-color:color-mix(in srgb, var(--aria-active) 32%, transparent);}
+.workspace-button.primary{color:var(--aria-on-active);background:var(--aria-active);outline:0;box-shadow:var(--island-shadow);}
 .workspace-button.primary:hover{background:color-mix(in srgb, var(--rubric) 88%, var(--ink));}
-.score-workspace .score-panel{border-radius:var(--sheet-radius);background:var(--material);backdrop-filter:blur(20px);box-shadow:var(--island-ring),var(--island-shadow);}
-.score-workspace .score-panel button:not(.ib){border-radius:var(--chip-radius);border:0;background:var(--veil);box-shadow:none;}
-.score-workspace .score-panel button:not(.ib)[aria-pressed=true]{background:var(--rubric-wash);color:var(--rubric);box-shadow:var(--chip-ring);}
-.score-workspace .score-panel .channel{border-radius:var(--chip-radius);background:var(--paper);}
+.score-workspace .score-panel{border-radius:var(--sheet-radius);background:var(--aria-material);backdrop-filter:blur(20px);outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);}
+.score-workspace .score-panel button:not(.ib){border-radius:var(--chip-radius);border:0;background:var(--aria-fill);box-shadow:none;}
+.score-workspace .score-panel button:not(.ib)[aria-pressed=true]{background:var(--aria-selection);color:var(--aria-active);box-shadow:var(--chip-ring);}
+.score-workspace .score-panel .channel{border-radius:var(--chip-radius);background:var(--aria-surface);}
 @media(max-width:700px){
   .workspace-header{gap:6px;}
   .workspace-title{padding:4px 10px;}
