@@ -36,6 +36,15 @@
     if (current === 'horizontal') return 'continuous';
     return 'vertical';
   }
+  /** 双页要真正并排放下两页；单页和连续仍按页宽铺满。 */
+  function fitZoom(mode: View) {
+    engine.dispatch(mode === 'horizontal' ? 'zoom-two-pages' : 'zoom-page-width');
+  }
+  function applyLayout(mode: View) {
+    engine.readerLayout(VIEW_MODE[mode]);
+    fitZoom(mode);
+    engine.readerLayout(VIEW_MODE[mode]);
+  }
 
   let view = $state<View>('vertical');
   let barOpen = $state(false);
@@ -49,13 +58,13 @@
   let gallery=$state<{showPage:(page:number)=>Promise<void>;turn:(delta:number)=>void}>();
   let pageLayout=$state<'auto'|'single'|'double'>((localStorage.getItem('musetab.pageLayout') as 'auto'|'single'|'double')||'auto'),layoutOpen=$state(false);
   $effect(()=>active?registerBack(()=>{if(compassMenu){compassMenu=false;return true;}if(layoutOpen||tempoOpen){layoutOpen=tempoOpen=false;return true;}if(compassOpen){compassOpen=false;return true;}return false;},40):undefined);
-  function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);if(value==='single')view='vertical';else if(value==='double')view='horizontal';linger();}
+  function setLayout(value:'auto'|'single'|'double'){pageLayout=value;localStorage.setItem('musetab.pageLayout',value);if(value==='single')view='vertical';else if(value==='double')view='horizontal';if(!reading.fullscreen)applyLayout(view);linger();}
   const layoutName = $derived(reading.fullscreen ? (pageLayout === 'double' ? '双页' : pageLayout === 'single' ? '单页' : '自动') : VIEW_LABEL[view]);
   function fitPage(index:number){void gallery?.showPage(index);}
   $effect(()=>{if(!active)return;
     if(!reading.fullscreen||engine.status!=='ready')return;
     untrack(()=>engine.setPageLock(true));
-    return()=>untrack(()=>{engine.setPageLock(false);if(nav.screen==='reader'){engine.readerLayout(VIEW_MODE[view]);engine.dispatch('zoom-page-width');}});
+    return()=>untrack(()=>{engine.setPageLock(false);if(nav.screen==='reader'){engine.readerLayout(VIEW_MODE[view]);fitZoom(view);}});
   });
   let seenControl=engine.readerControl.seq;
   $effect(()=>{const command=engine.readerControl;if(!active){seenControl=command.seq;return;}if(command.seq===seenControl)return;seenControl=command.seq;untrack(()=>{
@@ -99,12 +108,8 @@
   });
   $effect(() => {
     if(!active || engine.status !== 'ready' || reading.fullscreen) return;
-    const mode = VIEW_MODE[view];
-    untrack(() => {
-      engine.readerLayout(mode);
-      engine.dispatch('zoom-page-width');
-      engine.readerLayout(mode);
-    });
+    const layout = view;
+    untrack(() => applyLayout(layout));
   });
 
   // 新翻开的谱子：按页宽铺满
@@ -114,8 +119,7 @@
     const key = engine.project.open ? `${library.current?.id ?? ''}:${engine.project.title ?? ''}` : '';
     if (!key || key === fittedFor || engine.status !== 'ready') return;
     fittedFor = key;
-    engine.readerLayout(VIEW_MODE[view]);
-    engine.dispatch('zoom-page-width');
+    applyLayout(view);
   });
 
   // 记下曲名，谱匣里显示用
@@ -192,6 +196,7 @@
     if (reading.fullscreen && next !== 'continuous') { setLayout(next === 'horizontal' ? 'double' : 'single'); return; }
     view = next;
     if (reading.fullscreen) void reading.setFullscreen(false);
+    else applyLayout(next);
     linger();
   }
   function setTempo(v: number) {
@@ -225,7 +230,7 @@
 <svelte:window onkeydown={onkey} />
 
 <div class="reader" bind:this={root}>
-  {#if reading.fullscreen}<ScoreGallery bind:this={gallery} mode={pageLayout} {autoTurn} bind:index={pageIndex} bind:count={pageCount} bind:last={lastIndex} bind:selectionRect onerror={message=>pageError=message}/>{:else if readerPrefs.richScore}<ScoreSheet/>{/if}
+  {#if reading.fullscreen}<ScoreGallery bind:this={gallery} mode={pageLayout} {autoTurn} bind:index={pageIndex} bind:count={pageCount} bind:last={lastIndex} bind:selectionRect onerror={message=>pageError=message}/>{:else if readerPrefs.richScore && view !== 'continuous'}<ScoreSheet/>{/if}
   <ReaderHeader {title} />
   {#if reading.fullscreen}
     <div class="page-number" class:raised={barOpen} role="status" aria-live="polite">{pageIndex + 1}{lastIndex>pageIndex?'–'+(lastIndex+1):''} / {pageCount || '…'}</div>

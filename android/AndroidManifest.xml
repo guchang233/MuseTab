@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.musetab.app" android:versionCode="30" android:versionName="0.7.3">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.musetab.app" android:versionCode="31" android:versionName="0.7.4-pre.1">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
   <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35"/>

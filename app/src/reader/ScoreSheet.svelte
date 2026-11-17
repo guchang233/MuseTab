@@ -20,8 +20,12 @@
   function pixelsFor(rect: Rect) {
     return Math.ceil(Math.max(900, Math.min(1600, rect.w * (devicePixelRatio || 1))) / 200) * 200;
   }
+  /** 连续排版是一张很高的“页”，按整页位图铺开会把谱面纵向拉坏。 */
+  function isPage(rect?: Rect): rect is Rect {
+    return !!rect && rect.w > 2 && rect.h > 2 && rect.h <= rect.w * 2.5;
+  }
   function choose(metrics: { rect?: Rect }[], width: number, height: number) {
-    const indexed = metrics.flatMap((metric, index) => (metric.rect && metric.rect.w > 2 && metric.rect.h > 2 ? [{ index, rect: metric.rect }] : []));
+    const indexed = metrics.flatMap((metric, index) => (isPage(metric.rect) ? [{ index, rect: metric.rect }] : []));
     if (indexed.length <= 16) return indexed;
     const near = new Set<number>();
     for (const item of indexed) {
@@ -61,12 +65,14 @@
     const version = ++generation;
     untrack(() => {
       const metrics = engine.pageMetrics();
-      pages = pages.map((item) => {
+      const frame = engine.frame?.getBoundingClientRect();
+      const wanted = choose(metrics, frame?.width || innerWidth, frame?.height || innerHeight);
+      const keep = new Set(wanted.map((item) => item.index));
+      pages = pages.filter((item) => keep.has(item.page)).map((item) => {
         const rect = metrics[item.page]?.rect;
         return rect ? { ...item, rect } : item;
       });
-      const frame = engine.frame?.getBoundingClientRect();
-      const wanted = choose(metrics, frame?.width || innerWidth, frame?.height || innerHeight);
+      if (!wanted.length) return;
       void (async () => {
         const next: SheetPage[] = [];
         for (const item of wanted) {
