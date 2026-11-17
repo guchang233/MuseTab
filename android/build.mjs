@@ -117,7 +117,18 @@ await run(PY, [path.join(ROOT, 'android/normalize-apk.py'), path.join(BUILD, 'un
 await run(path.join(TOOLS, 'zipalign' + exe), ['-f', '-p', '4', path.join(BUILD, 'with-dex.apk'), path.join(BUILD, 'aligned.apk')]);
 await fs.mkdir(path.dirname(OUT), { recursive: true });
 const signer = path.join(TOOLS, 'lib/apksigner.jar');
-await run(path.join(JDK, 'bin/java' + exe), ['-jar', signer, 'sign', '--ks', KEY, '--ks-pass', 'pass:android', '--key-pass', 'pass:android', '--out', OUT, path.join(BUILD, 'aligned.apk')]);
-await run(path.join(JDK, 'bin/java' + exe), ['-jar', signer, 'verify', OUT]);
+// build-tools 36 在 minSdk≥28 时若同时开 v3，会写出「X-Android-APK-Signed: 2, 3」
+// 却只有 v3 块可校验；部分机型的包安装器按声明去验 v2，失败就报「无法安装」。
+// 对 minSdk 28 只用干净的 v2（Android 7+ 通用，声明与内容一致）。
+await run(path.join(JDK, 'bin/java' + exe), [
+  '-jar', signer, 'sign',
+  '--ks', KEY, '--ks-pass', 'pass:android', '--key-pass', 'pass:android',
+  '--v1-signing-enabled', 'false',
+  '--v2-signing-enabled', 'true',
+  '--v3-signing-enabled', 'false',
+  '--v4-signing-enabled', 'false',
+  '--out', OUT, path.join(BUILD, 'aligned.apk'),
+]);
+await run(path.join(JDK, 'bin/java' + exe), ['-jar', signer, 'verify', '--verbose', OUT]);
 const { size } = await fs.stat(OUT);
 console.log(`APK: ${OUT}  (${(size / 1048576).toFixed(1)} MB)`);

@@ -52,6 +52,10 @@ jobs:
           node android/build.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tools/release-metadata.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:ANDROID_SDK_ROOT=$env:ANDROID_HOME
+          node tools/verify-apk-installable.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish release
         shell: pwsh
         env:
