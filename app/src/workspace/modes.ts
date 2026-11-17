@@ -15,10 +15,10 @@ function captureView(){
 export async function changeMode(mode:Screen){
   if(mode===nav.screen)return;
   await activity.run('正在切换…',async()=>{
-    if(nav.screen==='editor')await flushComposer();
+    if(nav.screen==='editor'){try{await flushComposer();}catch{/* 离开不能被未完成的命令卡住 */}}
     if(mode==='editor')returnView=captureView();
-    if(engine.noteInput)engine.dispatch('note-input');
-    await workspace.persist();
+    try{if(engine.noteInput)engine.dispatch('note-input');}catch{/* 只读或未就绪时忽略 */}
+    try{await workspace.persist();}catch{/* 保存失败仍要能切换，错误由工作区提示 */}
     if(mode==='library')engine.pause();
     await reading.setFullscreen(false);
     if(mode==='editor'&&returnView?.fullscreen)engine.pageView(returnView.page,engine.frame?.clientWidth||innerWidth,engine.frame?.clientHeight||innerHeight);
@@ -27,10 +27,11 @@ export async function changeMode(mode:Screen){
 }
 export async function closeComposer(){
   await activity.run('正在返回…',async()=>{
-    await flushComposer();
-    engine.composerState({closePopup:true});await tick();
-    if(engine.noteInput)engine.dispatch('note-input');
-    await workspace.persist();
+    try{await flushComposer();}catch{/* 退出优先于未完成的编辑 */}
+    try{engine.composerState({closePopup:true});}catch{/* 核心未就绪时仍离开界面 */}
+    await tick();
+    try{if(engine.noteInput)engine.dispatch('note-input');}catch{/* 忽略 */}
+    try{await workspace.persist();}catch{/* 保存失败不把人留在编谱里 */}
     const view=returnView;returnView=null;
     nav.go(nav.composerParent);
     await tick();await new Promise(resolve=>setTimeout(resolve,230));

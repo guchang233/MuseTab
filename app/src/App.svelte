@@ -29,9 +29,9 @@
   });
   $effect(()=>{if(activity.message)return registerBack(()=>true,200);});
   $effect(() => {
-    const dark = theme.resolved === 'dark';
-    const home = nav.screen === 'library';
-    window.Android?.setSystemBars?.(home ? dark ? '#2a2622' : '#f7f6f2' : dark ? '#201a14' : '#f3ecdd', !dark);
+    theme.resolved;
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--parchment').trim();
+    window.Android?.setSystemBars?.(bg, theme.resolved !== 'dark');
   });
   let importError=$state('');
   $effect(()=>{
@@ -65,12 +65,22 @@
     }
   }
 
-  // 谱纸与画布底色跟随界面主题（值与 tokens.css 中的 --sheet / --parchment-deep 一致）
+  // 谱纸是第一色，四周是第二色；dark 为真时反相，音符变浅。
+  // 有谱纸时不反相；无谱纸时仅暗色主题反相——白天绝不能因「关谱纸」被当成黑夜。
+  // 编谱：白天浅色四周；夜晚深灰四周衬白谱纸。fullscreen 变更后要回到本设定。
   $effect(() => {
     if (engine.status !== 'ready') return;
+    reading.fullscreen;
     const dark = theme.resolved === 'dark';
-    const composer=nav.screen==='editor';
-    engine.setCanvasTheme(composer?!theme.paper:dark, theme.paper?(composer?'#ffffff':'#fbf8ef'):'none', composer?'#3b3b40':dark ? '#18130e' : '#e9e0cc');
+    const composer = nav.screen === 'editor';
+    const paperOn = theme.paper;
+    const css = getComputedStyle(document.documentElement);
+    const sheet = css.getPropertyValue('--sheet').trim() || '#fbf8ef';
+    const deep = css.getPropertyValue('--parchment-deep').trim() || (dark ? '#18130e' : '#e9e0cc');
+    const invert = paperOn ? false : dark;
+    const paperColor = paperOn ? (composer ? '#ffffff' : sheet) : 'none';
+    const surround = composer && dark ? '#3b3b40' : deep;
+    engine.setCanvasTheme(invert, paperColor, surround);
   });
 
   const NONE = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -115,14 +125,16 @@
 {/if}
 
 <style>
-  .underlay{visibility:hidden;}.composer-layer{position:absolute;inset:0;z-index:10;pointer-events:none;}
-  .busy-layer{position:fixed;inset:0;z-index:150;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--parchment);color:var(--ink);border:1px solid var(--hairline);border-radius:999px;box-shadow:var(--lift);}.engine-starting{position:fixed;z-index:30;left:50%;bottom:90px;transform:translateX(-50%);font-size:13px;pointer-events:none;white-space:nowrap;}
-  .save-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100;max-width:90%;padding:12px 18px;background:var(--sheet);color:var(--rubric);border:1px solid currentColor;border-radius:8px;}
-  .save-error button{min-height:44px;margin-left:12px;text-decoration:underline;}
+  .underlay{visibility:hidden;pointer-events:none;}
+  .composer-layer{position:fixed;inset:0;z-index:6;pointer-events:none;}
+  .busy-layer{position:fixed;inset:0;z-index:20;display:grid;place-items:center;pointer-events:auto;border-radius:0;cursor:progress;}.busy-message,.engine-starting{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--aria-material);color:var(--aria-ink);border:0;border-radius:18px;outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.3 var(--font-ui);}.engine-starting{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;}
+  .save-error{position:fixed;left:50%;top:max(16px,env(safe-area-inset-top));transform:translateX(-50%);z-index:var(--z-toast);max-width:min(520px,calc(100% - 24px));padding:12px 16px;background:var(--aria-material);color:var(--danger);border:0;border-radius:18px;outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);font:500 14px/1.4 var(--font-ui);}
+  .save-error button{min-height:44px;margin-left:12px;padding:0 12px;border-radius:var(--chip-radius);background:var(--veil);color:var(--ink);}
   .screen {
     position: fixed;
     inset: 0;
-    z-index: 1;
+    /* 必须高于引擎画布。画布是原生图层，盖住它的区域收不到界面点击。 */
+    z-index: 2;
   }
   /* 看谱 / 编辑两屏盖在引擎画布上：自身不拦手势，只有其中的控件可点 */
   .over {

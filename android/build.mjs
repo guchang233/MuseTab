@@ -10,9 +10,11 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const WIN = process.platform === 'win32';
+const exe = WIN ? '.exe' : '';
 const SDK = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME || 'D:/MuseTabSDK/Android/Sdk';
 const JDK = process.env.JAVA_HOME || 'C:/Program Files/Microsoft/jdk-17.0.11.9-hotspot';
-const PY = process.env.MUSETAB_PYTHON || 'D:/MuseTabSDK/python/Scripts/python.exe';
+const PY = process.env.MUSETAB_PYTHON || (WIN ? 'D:/MuseTabSDK/python/Scripts/python.exe' : 'python3');
 const buildRoot = process.env.MUSETAB_BUILD_ROOT || 'D:/MuseTabBuild';
 const BUILD = path.join(buildRoot,'android');
 const TOOLS = path.join(SDK, 'build-tools/36.0.0');
@@ -75,19 +77,19 @@ for (const need of ['index.html', 'engine/host.html', 'engine/ComposerWorkspace.
 
 // 2. resources (launcher icon)
 const resZip = path.join(BUILD, 'res.zip');
-await run(path.join(TOOLS, 'aapt2.exe'), ['compile', '--dir', path.join(ROOT, 'android/res'), '-o', resZip]);
+await run(path.join(TOOLS, 'aapt2' + exe), ['compile', '--dir', path.join(ROOT, 'android/res'), '-o', resZip]);
 
 // 3. keystore (debug)
 await fs.access(KEY).catch(() => {
   if(process.env.CI)throw new Error('Release signing keystore is required in CI');
-  return run(path.join(JDK, 'bin/keytool.exe'), [
+  return run(path.join(JDK, 'bin/keytool' + exe), [
     '-genkeypair', '-keystore', KEY, '-storepass', 'android', '-keypass', 'android', '-alias', 'androiddebugkey',
     '-dname', 'CN=Android Debug,O=Android,C=US', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000',
   ]);
 });
 
 // 4. link: manifest + resources + uncompressed assets (WASM/SF3 are served by range)
-await run(path.join(TOOLS, 'aapt2.exe'), [
+await run(path.join(TOOLS, 'aapt2' + exe), [
   'link', '-I', ANDROID_JAR,
   '--manifest', path.join(ROOT, 'android/AndroidManifest.xml'),
   '--java', path.join(BUILD, 'gen'),
@@ -100,22 +102,33 @@ await run(path.join(TOOLS, 'aapt2.exe'), [
 
 // 5. code
 const javaSources = [(await walk(path.join(ROOT,'android'))).filter(f=>f.endsWith('.java')).map(f=>path.join(ROOT,'android',f)),(await walk(path.join(BUILD, 'gen'))).filter(f=>f.endsWith('.java')).map(f=>path.join(BUILD, 'gen', f))].flat();
-await run(path.join(JDK, 'bin/javac.exe'), [
+await run(path.join(JDK, 'bin/javac' + exe), [
   '-encoding', 'UTF-8', '-source', '17', '-target', '17', '-nowarn',
   '-classpath', ANDROID_JAR, '-d', path.join(BUILD, 'classes'), ...javaSources,
 ]);
 const classes = (await walk(path.join(BUILD, 'classes'))).filter((f) => f.endsWith('.class')).map((f) => path.join(BUILD, 'classes', f));
-await run(path.join(JDK, 'bin/java.exe'), [
+await run(path.join(JDK, 'bin/java' + exe), [
   '-cp', path.join(TOOLS, 'lib/d8.jar'), 'com.android.tools.r8.D8',
   '--lib', ANDROID_JAR, '--min-api', '28', '--output', path.join(BUILD, 'dex'), ...classes,
 ]);
 
 // 6. add dex (+ fix Windows path separators), align, sign
 await run(PY, [path.join(ROOT, 'android/normalize-apk.py'), path.join(BUILD, 'unsigned.apk'), path.join(BUILD, 'dex/classes.dex'), path.join(BUILD, 'with-dex.apk')]);
-await run(path.join(TOOLS, 'zipalign.exe'), ['-f', '-p', '4', path.join(BUILD, 'with-dex.apk'), path.join(BUILD, 'aligned.apk')]);
+await run(path.join(TOOLS, 'zipalign' + exe), ['-f', '-p', '4', path.join(BUILD, 'with-dex.apk'), path.join(BUILD, 'aligned.apk')]);
 await fs.mkdir(path.dirname(OUT), { recursive: true });
 const signer = path.join(TOOLS, 'lib/apksigner.jar');
-await run(path.join(JDK, 'bin/java.exe'), ['-jar', signer, 'sign', '--ks', KEY, '--ks-pass', 'pass:android', '--key-pass', 'pass:android', '--out', OUT, path.join(BUILD, 'aligned.apk')]);
-await run(path.join(JDK, 'bin/java.exe'), ['-jar', signer, 'verify', OUT]);
+// build-tools 36 在 minSdk≥28 时若同时开 v3，会写出「X-Android-APK-Signed: 2, 3」
+// 却只有 v3 块可校验；部分机型的包安装器按声明去验 v2，失败就报「无法安装」。
+// 对 minSdk 28 只用干净的 v2（Android 7+ 通用，声明与内容一致）。
+await run(path.join(JDK, 'bin/java' + exe), [
+  '-jar', signer, 'sign',
+  '--ks', KEY, '--ks-pass', 'pass:android', '--key-pass', 'pass:android',
+  '--v1-signing-enabled', 'false',
+  '--v2-signing-enabled', 'true',
+  '--v3-signing-enabled', 'false',
+  '--v4-signing-enabled', 'false',
+  '--out', OUT, path.join(BUILD, 'aligned.apk'),
+]);
+await run(path.join(JDK, 'bin/java' + exe), ['-jar', signer, 'verify', '--verbose', OUT]);
 const { size } = await fs.stat(OUT);
 console.log(`APK: ${OUT}  (${(size / 1048576).toFixed(1)} MB)`);

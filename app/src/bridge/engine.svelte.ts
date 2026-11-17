@@ -23,6 +23,7 @@ export type PaletteData = { name: string; id: string; w: number; h: number; cell
 export type ActionState = { known: boolean; enabled: boolean; checked: boolean };
 
 type HostEngine = {
+  supports(name:string):boolean;
   composerState(patch?:Record<string,unknown>):{enabled:boolean;locked:boolean;panel:string;keyboard:boolean;modalOpen:boolean;textOk?:boolean;textError?:string;pitchOk?:boolean;pitchError?:string;editOk?:boolean;editError?:string;editorInfo?:AriaEditorInfo;actions?:{code:string;title:string;enabled:boolean;checked:boolean}[];controls:{name:string;label:string;type:string;x:number;y:number;w:number;h:number;enabled:boolean}[]};
   viewRect():{x:number;y:number;w:number;h:number};
   playbackInfo():{duration:number;bpm?:number;numerator?:number;denominator?:number};
@@ -93,6 +94,7 @@ let storedSeq = $state(0);
 let saveRequestSeq=$state(0);
 let readerControl=$state({seq:0,key:''});
 let readerViewport=$state<{seq:number;zoom:number;rect?:PageState['rect']}>({seq:0,zoom:1});
+let readerPreview=$state<{scale:number;x:number;y:number;seq:number}>({scale:1,x:0,y:0,seq:0});
 let dialogRequest=$state({seq:0,kind:''});
 
 const pendingActions=new Set<string>();let actionFrame=0;
@@ -115,6 +117,7 @@ function onEvent(name: string, data: any) {
     case 'reader-tap':readerTapSeq++;break;
     case 'reader-control': readerControl={seq:readerControl.seq+1,key:data.key};break;
     case 'reader-viewport': readerViewport={...data,seq:readerViewport.seq+1};break;
+    case 'reader-preview': readerPreview={scale:data.scale||1,x:data.x||0,y:data.y||0,seq:readerPreview.seq+1};break;
     case 'mobile-dialog': dialogRequest={seq:dialogRequest.seq+1,kind:data.kind};break;
     case 'ready':
       status = 'ready';
@@ -178,6 +181,7 @@ function poll(win: Window, tries = 0) {
 
 export const engine = {
   pageMetrics(){return untrack(()=>host?.pageMetrics()||[]);},
+  supports(name:string){return untrack(()=>typeof host?.supports==='function'&&host.supports(name));},
   composerState(patch:Record<string,unknown>={}){return untrack(()=>host?.composerState(patch));},
   viewRect(){return untrack(()=>host?.viewRect());},
   selectPageAt(page:number,x:number,y:number){untrack(()=>host?.selectPageAt(page,x,y));},
@@ -191,6 +195,7 @@ export const engine = {
   leaveEditor(){editLocked=true;untrack(()=>host?.setEditLocked(false));},
   get readerControl(){return readerControl;},
   get readerViewport(){return readerViewport;},
+  get readerPreview(){return readerPreview;},
   gestureView(factor:number,dx:number,dy:number,cx:number,cy:number){return untrack(()=>host?.gestureView(factor,dx,dy,cx,cy));},
   renderPage(index:number,pixels:number){return untrack(()=>host?.renderPage(index,pixels)||'');},
   readerLayout(mode:number){untrack(()=>host?.readerLayout(mode));},
@@ -258,6 +263,9 @@ export const engine = {
     try{
       await host.open(bytes, ext.toLowerCase());
       changeSeq=0;storedSeq=0;
+    }catch(e){
+      const message=e instanceof Error?e.message:(e&&typeof e==='object'&&'message' in e?String((e as {message:unknown}).message):'');
+      throw new Error(message||'没能打开这份乐谱');
     }finally{opening=false;}
   },
 
@@ -321,8 +329,11 @@ export const engine = {
     if (!host) return;
     if(playing){host.dispatch('play');return;}
     try{
+      // 先在手势栈里恢复 AudioContext，再进 activity 队列等播放态。
+      // 若先 await tick/rAF，手势会失效，表现为“在播但没声音”。
+      await host.startAudio();
+      host.dispatch('play');
       await activity.run('正在准备播放…',async()=>{
-        await host!.startAudio();host!.dispatch('play');
         const until=Date.now()+10000;
         while(!playing){
           if(host!.audioError)throw Error(host!.audioError);

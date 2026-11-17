@@ -117,7 +117,7 @@
 
 <style>
   .settings-layer{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;pointer-events:auto;padding:16px;}
-  .backdrop{position:absolute;inset:0;background:#0006;cursor:default;border-radius:0;}
+  .backdrop{position:absolute;inset:0;background:var(--shade);cursor:default;border-radius:0;}
   .score-settings{position:relative;width:min(600px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:var(--parchment);border:1px solid var(--hairline);border-radius:16px;box-shadow:var(--lift);outline:none;overflow:hidden;}
   header{display:flex;align-items:center;justify-content:space-between;flex:none;padding:8px 12px 8px 20px;border-bottom:1px solid var(--hairline);}
   h2{font-size:20px;font-weight:500;}

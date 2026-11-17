@@ -18,7 +18,18 @@ export class AriaEditorController {
   this.session=new ComposerSession({documentId:()=>library.current?.id,ready:()=>engine.status==='ready'&&engine.project.open,locked:()=>false,requestUnlock:()=>{},action:code=>engine.currentAction(code),dispatch:code=>{engine.focus();engine.dispatch(code);},
    palette:(p,c)=>engine.applyPaletteCell(p,c),
    pitch:command=>{
-    if(command.replace){const natural=[0,2,4,5,7,9,11];const reply=engine.composerState({pitchCommand:{pitch:(command.octave+1)*12+natural[command.step]+command.accidental}});if(!reply?.pitchOk)throw Error(reply?.pitchError||'The selected note could not be changed.');return;}
+    const natural=[0,2,4,5,7,9,11],midi=(command.octave+1)*12+natural[command.step]+command.accidental;
+    if(command.replace){
+     if(engine.supports('mtComposerState')){const reply=engine.composerState({pitchCommand:{pitch:midi}});if(!reply?.pitchOk)throw Error(reply?.pitchError||'The selected note could not be changed.');return;}
+     if(engine.selection.pitch==null)throw Error('Select a note or rest before using the keyboard.');
+     for(let guard=0;guard<128&&engine.selection.pitch!==midi;guard++){
+      const current:number|undefined=engine.selection.pitch;if(current==null)throw Error('Select a note or rest before using the keyboard.');
+      const delta=midi-current;engine.dispatch(Math.abs(delta)>=12?(delta>0?'pitch-up-octave':'pitch-down-octave'):(delta>0?'pitch-up':'pitch-down'));
+      if(engine.selection.pitch===current)throw Error('The selected note could not be changed.');
+     }
+     if(engine.selection.pitch!==midi)throw Error('The selected note could not be changed.');
+     return;
+    }
     if(!engine.currentAction('note-input').checked)engine.dispatch('note-input-by-note-name');
     for(const code of ['voice-'+command.intent.voice,command.intent.duration])if(!engine.currentAction(code).checked)engine.dispatch(code);
     if(engine.currentAction('pad-dot').checked!==command.intent.dotted)engine.dispatch('pad-dot');

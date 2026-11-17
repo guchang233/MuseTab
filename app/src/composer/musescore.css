@@ -2,11 +2,12 @@
  * Shell around original MuseScore QML panels. FlatButton radius is 3;
  * dock panels have square edges. ZeraFun styles are not imported here. */
 .muse-workbench{
-  --c-paper:#f0f0f0;--c-card:#fff;--c-soft:#0000000d;--c-ink:#2c2c2c;--c-muted:#666;--c-line:#bdbdbd;--c-raised:#e1e9fa;--c-accent:#3b80ed;--c-danger:#b83232;
-  --parchment:var(--c-paper);--sheet:var(--c-card);--ink:var(--c-ink);--ink-soft:var(--c-muted);--ink-mute:#888;--hairline:var(--c-line);--rubric:var(--c-accent);--rubric-wash:var(--c-raised);--on-rubric:#fff;--radius:3px;--radius-lg:3px;
+  --c-paper:var(--parchment);--c-card:var(--paper);--c-soft:var(--veil);--c-ink:var(--ink);--c-muted:var(--ink-soft);--c-line:var(--hairline);--c-raised:var(--rubric-wash);--c-accent:var(--rubric);--c-danger:var(--danger);
+  --radius:3px;--radius-lg:3px;
   position:absolute;inset:0;pointer-events:none;color:var(--c-ink);font:14px/1.5 var(--font-sans);
 }
-.muse-workbench.muse-dark{--c-paper:#2c2c2c;--c-card:#333;--c-soft:#ffffff0d;--c-ink:#eee;--c-muted:#bbb;--c-line:#181818;--c-raised:#30517b;--c-accent:#6ca3f7;}
+/* 深色跟着 html[data-theme]，不再另铺一套冷灰。保留类名，旧工作台的开关不用改。 */
+.muse-workbench.muse-dark{color:var(--ink);}
 .composer-header{pointer-events:auto;background:var(--c-paper);border-bottom:1px solid var(--c-line);display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:4px max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));padding-top:max(4px,env(safe-area-inset-top));}
 .composer-title{flex:1;min-width:0;}.composer-title h1{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.composer-title p{font-size:11px;color:var(--c-muted);}.main-actions{display:flex;gap:2px;flex:none;}
 .muse-workbench .ib,.muse-workbench button,.muse-workbench input:not([type=checkbox]):not([type=radio]),.muse-workbench select{border-radius:3px;}
@@ -16,5 +17,5 @@
 .muse-workbench .backdrop,.muse-workbench .menu-backdrop,.muse-workbench .settings-layer,.muse-workbench .create-layer{border-radius:0;}
 .muse-workbench .dialog button,.muse-workbench .dialog input,.muse-workbench .dialog select,.muse-workbench .score-settings button,.muse-workbench .score-settings input,.muse-workbench .score-settings select{border-radius:3px;}
 .composer-notice{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:40;max-width:90%;padding:10px 18px;background:var(--c-card);border:1px solid var(--c-line);border-radius:3px;pointer-events:auto;}
-.unlock-layer{position:fixed;inset:0;z-index:120;background:#0006;padding:20px;display:grid;place-items:center;pointer-events:auto;border-radius:0;}.unlock-dialog{width:min(420px,100%);background:var(--c-paper);border:1px solid var(--c-line);padding:24px;border-radius:3px;box-shadow:0 4px 16px #0006;}.unlock-dialog h2{font-size:18px;}.unlock-dialog p{font-size:14px;line-height:1.8;color:var(--c-muted);margin:16px 0 24px;}.unlock-dialog>div{display:flex;justify-content:flex-end;gap:10px;}.unlock-dialog button{min-height:44px;padding:0 20px;border:1px solid var(--c-line);border-radius:3px;}.unlock-dialog .confirm{background:var(--c-accent);color:#fff;}
+.unlock-layer{position:fixed;inset:0;z-index:120;background:#0006;padding:20px;display:grid;place-items:center;pointer-events:auto;border-radius:0;}.unlock-dialog{width:min(420px,100%);background:var(--c-paper);border:1px solid var(--c-line);padding:24px;border-radius:3px;box-shadow:0 4px 16px #0006;}.unlock-dialog h2{font-size:18px;}.unlock-dialog p{font-size:14px;line-height:1.8;color:var(--c-muted);margin:16px 0 24px;}.unlock-dialog>div{display:flex;justify-content:flex-end;gap:10px;}.unlock-dialog button{min-height:44px;padding:0 20px;border:1px solid var(--c-line);border-radius:3px;}.unlock-dialog .confirm{background:var(--c-accent);color:var(--on-rubric);}
 @media(max-width:600px){.composer-title p{display:none;}.composer-header{gap:2px;padding-inline:4px;}.composer-title h1{font-size:14px;}}

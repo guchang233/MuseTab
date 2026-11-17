@@ -36,13 +36,15 @@
       function loadTextFont(){
         if(!textFontReady)textFontReady=(async()=>{
           const M=engine.Module;
-          if(!M._mtLoadTextFont)throw Error('编谱核心需要更新，请重新打开应用');
+          // The pinned runtime may not export this hook. Opening a score must
+          // not depend on it; notation then keeps the engine's built-in fonts.
+          if(typeof M._mtLoadTextFont!=='function')return;
           const response=await fetch('../fonts/NotoSansCJKsc-Regular.otf');
-          if(!response.ok)throw Error('本地中文字体未能加载');
+          if(!response.ok)return;
           const bytes=new Uint8Array(await response.arrayBuffer()),ptr=M._malloc(bytes.length);
-          try{M.HEAPU8.set(bytes,ptr);if(!M.ccall('mtLoadTextFont','number',['number','number'],[ptr,bytes.length]))throw Error('本地中文字体未能注册');}
+          try{M.HEAPU8.set(bytes,ptr);M.ccall('mtLoadTextFont','number',['number','number'],[ptr,bytes.length]);}
           finally{M._free(ptr);}
-        })().catch(error=>{textFontReady=null;throw error;});
+        })().catch(error=>{textFontReady=null;console.warn(error);});
         return textFontReady;
       }
       let viewOnly = false;
@@ -66,15 +68,17 @@
         preview.x=(preview.x-cx)*factor+cx+dx;preview.y=(preview.y-cy)*factor+cy+dy;preview.scale*=factor;
         canvas.style.transformOrigin='0 0';canvas.style.willChange='transform';
         canvas.style.transform=`matrix(${preview.scale},0,0,${preview.scale},${preview.x},${preview.y})`;
+        emit('reader-preview',{scale:preview.scale,x:preview.x,y:preview.y});
         clearTimeout(wheelTimer);wheelTimer=setTimeout(commitPreview,140);
       }
       function commitPreview(){
         clearTimeout(wheelTimer);if(!preview)return;const pose=preview;preview=null;
         engine.gestureView(pose.scale,pose.x,pose.y,0,0);
+        emit('reader-preview',{scale:1,x:0,y:0});
         previewFrame=requestAnimationFrame(()=>{pose.canvas.style.transform='';pose.canvas.style.willChange='';previewFrame=0;});
       }
       const unlockRequest=()=>{emit('edit-unlock-request',{});return false;};
-      const safeAction=code=>/^(play|play-from-selection|stop|rewind|metronome|loop|loop-in|loop-out|repeat|cancel|copy|select-all|notation-select-all|page-settings|edit-style|transpose|toggle-mixer|toggle-instruments|up-chord|down-chord|show-.*|zoom.*|scr-.*|page-.*|first-.*|last-.*|next-.*|prev-.*|previous-.*|select-.*)$/.test(code.split('/').pop());
+      const safeAction=code=>/^(play|play-from-selection|stop|rewind|metronome|loop|loop-in|loop-out|repeat|cancel|copy|select-all|notation-select-all|page-settings|edit-style|transpose|toggle-mixer|toggle-instruments|up-chord|down-chord|pitch-up|pitch-down|pitch-up-octave|pitch-down-octave|show-.*|zoom.*|scr-.*|page-.*|first-.*|last-.*|next-.*|prev-.*|previous-.*|select-.*)$/.test(code.split('/').pop());
 
       function updateReaderFlags(reading){
         const flags=['show-invisible','show-unprintable','show-frames','show-pageborders'];
@@ -133,6 +137,7 @@
           if(nativeComposer&&editLocked&&kind==='transpose')return unlockRequest();
           if(['toggle-mixer','toggle-instruments'].includes(kind)||(!nativeComposer&&['page-settings','edit-style','transpose'].includes(kind))){emit('mobile-dialog',{kind});return;}
           engine.Module.ccall('mtDispatch', null, ['string'], [code]);
+          if(/^(zoom|scr-|page-)/.test(kind))emit('reader-viewport',{zoom:galleryZoom||1});
         },
         setPageLock(v) {
           if(typeof engine.Module._mtSetPageLock!=='function')throw Error('排谱核心需要更新，请重新启动应用');
@@ -156,7 +161,7 @@
           try{return 'data:image/png;base64,'+engine.Module.ccall('mtRenderPage','string',['number','number'],[index,pixels]);}
           finally{if(t.dark)engine.Module.ccall('mtSetCanvasTheme',null,['number','string','string'],[1,t.paper,t.canvas]);}
         },
-        readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;},
+        readerLayout(mode){engine.Module.ccall('mtReaderLayout',null,['number'],[mode]);pageRect=null;emit('reader-viewport',{zoom:galleryZoom||1});},
         tapAt(x,y){
           commitPreview();
           if(editLocked){const now=performance.now();if(lastLockedTap&&now-lastLockedTap.time<350&&Math.hypot(x-lastLockedTap.x,y-lastLockedTap.y)<14)unlockRequest();lastLockedTap={time:now,x,y};}
@@ -164,9 +169,12 @@
           else{tapQt({clientX:x,clientY:y,pointerId:1});setTimeout(()=>emit('reader-tap',{}),100);}
         },
         pageMetrics(){if(!engine.Module._mtPageMetrics)throw Error('原生核心需要更新');return JSON.parse(engine.Module.ccall('mtPageMetrics','string',[],[]));},
-        viewRect(){return JSON.parse(engine.Module.ccall('mtViewRect','string',[],[]));},
+        viewRect(){if(typeof engine.Module?._mtViewRect!=='function')return null;return JSON.parse(engine.Module.ccall('mtViewRect','string',[],[]));},
+        supports(name){return typeof engine.Module?.['_'+name]==='function';},
         composerState(patch={}){
           if('enabled' in patch)nativeComposer=!!patch.enabled;
+          // 当前锁定的记谱核心没有 mtComposerState。直接 ccall 会在 emscripten 里对 undefined 取 apply。
+          if(!engine.supports('mtComposerState'))return {enabled:!!nativeComposer,locked:!!editLocked,panel:'',keyboard:false,modalOpen:false,controls:[],pitchOk:false,pitchError:'当前记谱核心不能直接改音'};
           const state=JSON.parse(engine.Module.ccall('mtComposerState','string',['string'],[JSON.stringify(patch)]));
           if(nativeComposer&&'enabled' in patch)setTimeout(()=>{
             if(!nativeComposer)return;const v=engine.viewRect(),pages=engine.pageMetrics();
@@ -335,11 +343,11 @@
         finally{bypassPointer=false;if(area){area.setPointerCapture=capture;area.releasePointerCapture=release;}}
       };
       readerGestures(document,{
-        enabled:e=>{if(!(viewOnly||editLocked)||bypassPointer)return false;if(!nativeComposer)return true;if(engine.composerState().modalOpen)return false;const r=engine.viewRect();return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;},gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
+        enabled:e=>{if(!(viewOnly||editLocked)||bypassPointer)return false;if(!nativeComposer)return true;if(engine.composerState().modalOpen)return false;const r=engine.viewRect();if(!r)return true;return e.clientX>=r.x&&e.clientX<=r.x+r.w&&e.clientY>=r.y&&e.clientY<=r.y+r.h;},gallery:()=>pageLocked,zoomed:()=>galleryZoom>1.01,
         tap:e=>{
           commitPreview();
           if(pageLocked&&pageRect&&(e.clientX<pageRect.x||e.clientX>pageRect.x+pageRect.w)){emit('reader-control',{key:e.clientX<pageRect.x?'previous':'next'});return;}
-          if(viewOnly&&!pageLocked){
+          if(viewOnly&&!pageLocked&&localStorage.getItem('musetab.edgeTurn')==='true'){
             // pageRect belongs to the last fitted page. In free view it can be
             // far off-screen after panning, so it must never classify a tap on
             // another page as a gutter/page-turn gesture.

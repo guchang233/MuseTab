@@ -1,0 +1,144 @@
+/* 谱笺在曲库壳上的落点。布局仍由 zerafun/source.css 负责，这里只统一
+   字体、选中态、卡片和焦点，并纠正底栏不该随屏宽乱拉长的问题。 */
+
+html .zf-app {
+  font-family: var(--font-ui);
+}
+
+html .zf-app .browse-heading h1,
+html .zf-app .settings-heading,
+html .zf-app .search-filters > header strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+html .zf-app .browse-heading h1 {
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/*
+  底栏四标签：固定为居中悬浮岛，宽度封顶。
+  禁止再按屏宽左右拉满（平板/桌面会把四个入口撑成稀稀拉拉一长条）。
+*/
+html .zf-app .app-tabbar {
+  left: 50%;
+  right: auto;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 24px));
+  padding: 4px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--aria-material);
+  backdrop-filter: blur(18px);
+  outline: 0.7px solid var(--aria-line);
+  outline-offset: -0.7px;
+  box-shadow: var(--island-shadow);
+  gap: 0;
+}
+
+html .zf-app .app-tabbar button {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 52px;
+  margin: 0;
+  padding: 0 4px;
+  border-radius: 22px;
+  gap: 1px;
+  color: var(--ink-mute);
+  background: transparent;
+  box-shadow: none;
+  font: 500 11px / 1.2 var(--font-ui);
+}
+
+html .zf-app .app-tabbar button[aria-current='page'] {
+  color: var(--rubric);
+  background: var(--rubric-wash);
+  box-shadow: none;
+}
+
+html .zf-app .media-card > :is(.poster, .poster-fallback) {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+html .zf-app .media-card :is(h2, h3) {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+html .zf-app .search-field,
+html .zf-app .search-submit,
+html .zf-app .icon-btn,
+html .zf-app .btn-ghost {
+  border: 0;
+  border-radius: var(--island-radius);
+  background: var(--aria-material);
+  outline: 0.7px solid var(--aria-line);
+  outline-offset: -0.7px;
+  box-shadow: none;
+}
+
+html .zf-app .search-submit,
+html .zf-app .btn-ghost {
+  box-shadow: var(--island-shadow);
+  font-family: var(--font-ui);
+  font-weight: 500;
+}
+
+html .zf-app .search-field:focus-within {
+  outline-color: color-mix(in srgb, var(--aria-active) 40%, transparent);
+}
+
+html .zf-app .search-filters {
+  border: 0;
+  border-radius: var(--sheet-radius);
+  background: var(--material);
+  box-shadow: var(--island-ring), var(--shadow-lg);
+  backdrop-filter: blur(20px);
+}
+
+html .zf-app .settings-menu-row {
+  border-radius: var(--chip-radius);
+}
+
+html .zf-app .settings-menu-row:hover,
+html .zf-app .icon-btn:hover,
+html .zf-app .search-submit:hover,
+html .zf-app .btn-ghost:hover {
+  background: color-mix(in srgb, var(--paper) 88%, var(--ink));
+}
+
+html .zf-app .seg {
+  border-radius: var(--toolbar-radius);
+  background: var(--veil);
+  box-shadow: var(--island-ring);
+}
+
+html .zf-app .seg-item {
+  border-radius: var(--chip-radius);
+  font-family: var(--font-ui);
+  font-weight: 500;
+}
+
+html .zf-app .seg-item[aria-selected='true'],
+html .zf-app .seg-item[aria-pressed='true'],
+html .zf-app .seg-item[aria-checked='true'],
+html .zf-app .seg-item.active {
+  background: var(--rubric-wash);
+  color: var(--rubric);
+  box-shadow: var(--chip-ring);
+}
+
+html .zf-app .btn-ghost.primary,
+html .zf-app .primary {
+  background: var(--rubric);
+  color: var(--on-rubric);
+  box-shadow: var(--island-shadow);
+}
+
+html .zf-app :is(button, a, input, select):focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}

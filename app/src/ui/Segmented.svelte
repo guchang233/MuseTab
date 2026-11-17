@@ -21,19 +21,22 @@
 <style>
   .seg {
     display: inline-flex;
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
-    overflow:hidden;
+    padding: 4px;
+    gap: 2px;
+    border-radius: var(--toolbar-radius);
+    background: var(--material);
+    box-shadow: var(--island-ring), var(--island-shadow);
+    backdrop-filter: blur(18px);
   }
   button {
     position: relative;
     min-width: 64px;
-    height: calc(var(--tap) - 2px);
-    padding: 0 16px;
-    font-size: var(--text-sm);
-    letter-spacing: 0.14em;
+    height: calc(var(--tap) - 8px);
+    padding: 0 14px;
+    border-radius: var(--chip-radius);
+    font: 500 var(--text-sm) / 1.2 var(--font-ui);
     color: var(--ink-soft);
-    transition: color var(--dur) var(--ease);
+    transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
   }
   .compact button {
     min-width: 0;
@@ -44,21 +47,9 @@
   .compact {
     display: flex;
   }
-  button + button {
-    border-left: 1px solid var(--hairline);
-  }
   .on {
     color: var(--rubric);
     background: var(--rubric-wash);
-  }
-  .on::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 6px;
-    width: 16px;
-    height: 1px;
-    margin-left: -8px;
-    background: var(--rubric);
+    box-shadow: var(--chip-ring);
   }
 </style>

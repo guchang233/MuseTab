@@ -1,33 +1,97 @@
-/* 「手抄本」设计系统 —— 色板、排版、尺度
+/* MuseTab「谱笺」设计系统
  *
- * 主题由 <html data-theme="light|dark"> 决定；theme.svelte.ts 负责把
- * 用户偏好（随系统 / 明 / 暗）解析成这两个值之一。
+ * 一份乐谱应用的界面：暖纸、墨色、朱砂。明暗两套只换色值，
+ * 间距、圆角、阴影、字级和动效全应用同一套名字。
+ * 主题由 <html data-theme="light|dark"> 决定（见 theme.svelte.ts）。
+ *
+ * 曲库沿用的 ZeraFun 变量（--c-*）和编谱沿用的 Aria 变量（--aria-*）
+ * 都指向这里，避免再各写一套灰、一套蓝。
  */
 
 :root {
-  /* —— 羊皮纸（明） —— */
-  --parchment: #f3ecdd; /* 页面底 */
-  --parchment-deep: #e9e0cc; /* 下沉区：谱面四周 */
-  --paper: #faf6ea; /* 抬起的纸：卡片 */
-  --sheet: #fbf8ef; /* 谱面纸张 */
-  --ink: #3a3127; /* 墨：略淡，不刺眼 */
-  --ink-soft: #6a5f50; /* 次级文字 */
-  --ink-mute: #8d826f; /* 小标签、注记 */
-  --hairline: rgb(58 49 39 / 0.16); /* 发丝线 */
+  /* —— 颜色：羊皮纸 —— */
+  --parchment: #f3ecdd;
+  --parchment-deep: #e9e0cc;
+  --paper: #faf6ea;
+  --sheet: #fbf8ef;
+  --ink: #3a3127;
+  --ink-soft: #6a5f50;
+  --ink-mute: #8d826f;
+  --hairline: rgb(58 49 39 / 0.16);
   --hairline-soft: rgb(58 49 39 / 0.08);
-  --rubric: #b4573c; /* 赭红：偏暖偏柔，唯一强调色 */
-  --rubric-wash: rgb(180 87 60 / 0.1);
+  --rubric: #b4573c;
+  --rubric-wash: rgb(180 87 60 / 0.12);
   --on-rubric: #fbf3e4;
-  --gilt: #a9853a; /* 鎏金：仅用于当前曲目标记、进度细线 */
-  --slip: rgb(251 247 237 / 0.94); /* 纸条浮层 */
-  --lift: 0 1px 2px rgb(58 49 39 / 0.05), 0 8px 28px rgb(58 49 39 / 0.09); /* 浮层的一层柔影 */
-  --veil: rgb(58 49 39 / 0.055); /* 按下 / 悬停 */
-  --shade: rgb(43 36 27 / 0.3);
+  --gilt: #a9853a;
+  --slip: rgb(251 247 237 / 0.94);
+  --veil: rgb(58 49 39 / 0.055);
+  --shade: rgb(43 36 27 / 0.46);
+  --danger: #9c3030;
+  --on-danger: #fff6f2;
+  --ok: #2d6a4f;
+  --on-ok: #f3faf6;
+
+  --shadow-color: 58 49 39;
+  --lift: 0 1px 2px rgb(var(--shadow-color) / 0.05), 0 8px 28px rgb(var(--shadow-color) / 0.09);
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.06);
+  --shadow-md: var(--lift);
+  --shadow-lg: 0 16px 48px rgb(var(--shadow-color) / 0.16);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  /* —— 颜色：胡桃墨 —— */
+  --parchment: #201a14;
+  --parchment-deep: #18130e;
+  --paper: #2a231b;
+  --sheet: #261f18;
+  --ink: #e2d8c3;
+  --ink-soft: #b9ad96;
+  --ink-mute: #8f846f;
+  --hairline: rgb(232 222 200 / 0.18);
+  --hairline-soft: rgb(232 222 200 / 0.09);
+  --rubric: #d98063;
+  --rubric-wash: rgb(217 128 99 / 0.16);
+  --on-rubric: #2a1610;
+  --gilt: #c8a358;
+  --slip: rgb(46 38 30 / 0.94);
+  --veil: rgb(232 222 200 / 0.07);
+  --shade: rgb(0 0 0 / 0.58);
+  --danger: #e08a80;
+  --on-danger: #2a1210;
+  --ok: #8dcaa8;
+  --on-ok: #10261c;
+
+  --shadow-color: 0 0 0;
+  --lift: 0 1px 2px rgb(0 0 0 / 0.24), 0 10px 30px rgb(0 0 0 / 0.32);
+  --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+:root {
+  /* 语义别名。组件优先用左边这组，旧名字继续有效。 */
+  --canvas: var(--parchment);
+  --surface: var(--paper);
+  --surface-sunken: var(--parchment-deep);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --text-faint: var(--ink-mute);
+  --line: var(--hairline);
+  --line-soft: var(--hairline-soft);
+  --accent: var(--rubric);
+  --accent-soft: var(--rubric-wash);
+  --on-accent: var(--on-rubric);
+  --focus: 2px solid color-mix(in srgb, var(--rubric) 72%, transparent);
 
   /* —— 字体 —— */
   --font-text: 'NewCM', 'Songti', 'Source Han Serif SC', 'Noto Serif SC', serif;
-  --font-display: 'Cormorant Garamond', 'Songti', 'Source Han Serif SC', serif;
+  --font-display: 'Cormorant Garamond', 'Songti', 'Source Han Serif SC', 'Noto Serif SC', serif;
+  --font-reading: var(--font-display);
+  --font-ui: system-ui, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
   --font-music: 'Leland', 'Bravura', serif;
+  --font-sans: var(--font-ui);
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -35,41 +99,77 @@
   --text-lg: 1.25rem;
   --text-xl: 1.75rem;
   --text-2xl: 2.5rem;
+  --leading-tight: 1.2;
+  --leading-body: 1.7;
 
-  /* —— 形 —— */
+  /* —— 间距（4 的倍数） —— */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+
+  /* —— 圆角 —— */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
   --radius: 16px;
   --radius-lg: 24px;
-  --tap: 48px; /* 触控目标：比 44 再宽裕一点 */
+  --radius-pill: 999px;
+
+  /* 触控目标：比 44 再宽裕一点 */
+  --control: 44px;
+  --tap: 48px;
+
+  /* —— 层级 —— */
+  --z-stage: 0;
+  --z-chrome: 5;
+  --z-sticky: 30;
+  --z-overlay: 80;
+  --z-modal: 110;
+  --z-toast: 150;
 
   /* —— 动效：慢而轻 —— */
   --ease: cubic-bezier(0.25, 0.8, 0.3, 1);
   --dur: 300ms;
   --dur-slow: 480ms;
 
-  color-scheme: light;
+  /* 编谱只换色，不改 Aria 的尺寸。琴键保持象牙 / 乌木。 */
+  --aria-active: var(--rubric);
+  --aria-on-active: var(--on-rubric);
+  --aria-ink: var(--ink);
+  --aria-muted: var(--ink-soft);
+  --aria-line: var(--hairline);
+  --aria-fill: var(--veil);
+  --aria-surface: var(--paper);
+  --aria-sunken: var(--parchment-deep);
+  /* 浮岛默认略透；白天实色纸，避免透出画布四周后整屏发黑 */
+  --aria-material: color-mix(in srgb, var(--paper) 94%, transparent);
+  --aria-selection: var(--rubric-wash);
+  --aria-ivory: #fffdf8;
+  --aria-ebony: #1a1714;
+  --aria-key-active: color-mix(in srgb, var(--rubric) 34%, var(--aria-ivory));
+  --aria-ebony-active: color-mix(in srgb, var(--rubric) 46%, var(--aria-ebony));
+
+  /* 编谱浮岛。曲库、看谱、播放的按钮和面板都用这一套，不再各画一种胶囊。 */
+  --material: var(--aria-material);
+  --island-radius: 18px;
+  --chip-radius: 10px;
+  --toolbar-radius: 12px;
+  --sheet-radius: 22px;
+  --island-shadow: 0 8px 18px color-mix(in srgb, var(--ink) 9%, transparent);
+  --island-ring: 0 0 0 0.7px var(--hairline);
+  --chip-ring: inset 0 0 0 0.8px color-mix(in srgb, var(--rubric) 32%, transparent);
 }
 
-:root[data-theme='dark'] {
-  /* —— 胡桃墨（暗） —— */
-  --parchment: #201a14;
-  --parchment-deep: #18130e;
-  --paper: #2a231b;
-  --sheet: #261f18;
-  --ink: #e2d8c3; /* 暖象牙 */
-  --ink-soft: #b9ad96;
-  --ink-mute: #8f846f;
-  --hairline: rgb(232 222 200 / 0.18);
-  --hairline-soft: rgb(232 222 200 / 0.09);
-  --rubric: #d98063;
-  --rubric-wash: rgb(217 128 99 / 0.14);
-  --on-rubric: #1f1711;
-  --gilt: #c8a358;
-  --slip: rgb(46 38 30 / 0.94);
-  --lift: 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 30px rgb(0 0 0 / 0.28);
-  --veil: rgb(232 222 200 / 0.07);
-  --shade: rgb(0 0 0 / 0.55);
-
-  color-scheme: dark;
+:root[data-theme='light'] {
+  --aria-material: var(--paper);
+  --aria-sunken: var(--parchment);
+  --aria-surface: var(--paper);
+  --material: var(--paper);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -79,10 +179,29 @@
   }
 }
 
+/* 曲库、看谱工作区和播放条共用的桥。压过 source.css 里写死的灰调。 */
+html .zf-app,
+html[data-theme='dark'] .zf-app {
+  --c-paper: var(--parchment);
+  --c-card: var(--paper);
+  --c-raised: var(--parchment-deep);
+  --c-ink: var(--ink);
+  --c-muted: var(--ink-soft);
+  --c-faint: var(--ink-mute);
+  --c-soft: var(--veil);
+  --c-line: var(--hairline);
+  --c-accent: var(--rubric);
+  --c-danger: var(--danger);
+  --c-ok: var(--ok);
+  --c-header: var(--slip);
+  --font-sans: var(--font-ui);
+  --font-reading: var(--font-display);
+}
+
 /* Round actual controls, never blanket-style every button (scrims are buttons too). */
 .score-settings footer button,.score-settings .orientation button,.score-panel button:not(.ib),
 .unlock-dialog button,.manage-sheet .actions button,.cloud-detail .back,.detail-actions button {
-  border-radius:999px;
+  border-radius: var(--chip-radius);
 }
 [data-score-paper=off] .pdf-surface {background:transparent!important;box-shadow:none!important;}
 [data-score-paper=off] .pdf-surface canvas {mix-blend-mode:multiply;}

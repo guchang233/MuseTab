@@ -30,14 +30,14 @@ try{
   for(const [name,w,h]of[['phone',390,844],['phone-small',360,800],['phone-landscape',844,390],['tablet-portrait',800,1280],['tablet-landscape',1280,800]]){
     await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
     const state=await page.evaluate(()=>{const header=document.querySelector('.browse-header').getBoundingClientRect(),bar=document.querySelector('.app-tabbar').getBoundingClientRect();return{w:innerWidth,h:innerHeight,header:header.toJSON(),bar:bar.toJSON(),overflow:document.querySelector('.library').scrollWidth>innerWidth,nav:[...document.querySelectorAll('.app-tabbar button')].map(e=>e.getBoundingClientRect().toJSON())};});
-    assert(!state.overflow);assert.equal(state.bar.bottom,h);assert(state.nav.every(r=>r.width>=44&&r.height>=44));assert(state.header.right<=w);
+    assert(!state.overflow);assert(state.bar.bottom<=h&&state.bar.bottom>h-28);assert(state.nav.every(r=>r.width>=44&&r.height>=44));assert(state.header.right<=w);
     await snap(name);
   }
   pass('source PhoneChrome stays at the bottom across five phone/tablet viewports');
   await page.setViewportSize({width:390,height:844});
   await page.getByRole('button',{name:'我的',exact:true}).click();await page.getByRole('radio',{name:'深色',exact:true}).click();await snap('phone-settings-dark');
   await page.getByRole('button',{name:'本地谱匣 3',exact:true}).click();
-  assert.equal(await page.locator('.library').evaluate(e=>getComputedStyle(e).getPropertyValue('--c-paper').trim()),'#2a2622');
+  assert.equal(await page.locator('.library').evaluate(e=>getComputedStyle(e).getPropertyValue('--c-paper').trim()),await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--parchment').trim()));
   await snap('phone-dark');
   await page.getByRole('button',{name:'我的',exact:true}).click();await page.getByRole('radio',{name:'浅色',exact:true}).click();
   await page.getByRole('button',{name:'本地谱匣 3',exact:true}).click();

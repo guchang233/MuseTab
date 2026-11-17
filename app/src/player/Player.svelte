@@ -6,7 +6,7 @@
   import {editorInset} from '../editor/layout.svelte';
   import ScorePanels from '../editor/ScorePanels.svelte';
   import ScoreSettings from '../editor/ScoreSettings.svelte';
-  import ModeSwitch from '../workspace/ModeSwitch.svelte';
+  import ScoreChrome from '../workspace/ScoreChrome.svelte';
   import {changeMode} from '../workspace/modes';
   import IconButton from '../ui/IconButton.svelte';
   import Icon from '../ui/Icon.svelte';
@@ -27,17 +27,13 @@
 </script>
 <svelte:window bind:innerWidth={width}/>
 <div class="player score-workspace zf-app">
-  <header class="workspace-header" bind:clientHeight={top}>
-    <IconButton label="返回谱匣" icon="back" onclick={()=>changeMode('library')}/>
-    <div class="workspace-title"><h1>{title}</h1><p>选择音符，从这里开始播放</p></div>
-    <ModeSwitch value="player"/>
-  </header>
+  <ScoreChrome {title} mode="player" subtitle="播放" bind:height={top} onback={()=>changeMode('library')}/>
   <main class="workspace-stage" class:docked>
-    <div class="panel-buttons">
+    <div class="panel-buttons" style:top="{Math.max(8, top + 4)}px">
       <button class="workspace-button" aria-pressed={panel==='parts'} onclick={()=>panel=panel==='parts'?null:'parts'}><Icon name="view-single" size={18}/>声部</button>
       <button class="workspace-button" aria-pressed={panel==='mixer'} onclick={()=>panel=panel==='mixer'?null:'mixer'}><Icon name="sliders" size={18}/>混音器</button>
     </div>
-    {#if active&&panel}<div class="panels" class:docked><ScorePanels kind={panel} structure={false} onclose={()=>panel=null} onsettings={openSettings}/></div>{/if}
+    {#if active&&panel}<div class="panels" class:docked style:top="{Math.max(76, top + 8)}px"><ScorePanels kind={panel} structure={false} onclose={()=>panel=null} onsettings={openSettings}/></div>{/if}
   </main>
   <footer class="workspace-footer" bind:clientHeight={bottom}>
     {#if duration>0}<input class="progress" type="range" aria-label="播放进度" min="0" max={duration} step=".1" value={engine.position.secs} onchange={e=>engine.seekSeconds(Number(e.currentTarget.value))}/>{/if}
@@ -53,8 +49,10 @@
 </div>
 {#if settings}<ScoreSettings kind={settings} onclose={()=>settings=null}/>{/if}
 <style>
-  .panel-buttons{position:absolute;top:12px;right:12px;display:flex;gap:8px;pointer-events:auto;z-index:3;background:var(--c-paper);padding:4px;border-radius:999px;}
-  .panels{pointer-events:auto;}.panels.docked{position:absolute;right:8px;top:76px;bottom:8px;width:376px;}.panels.docked :global(.score-panel){position:static;width:100%;max-height:100%;}
-  .transport{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;}.play{min-width:106px;}.clock{min-width:52px;font:500 16px/1.5 ui-monospace,monospace;font-variant-numeric:tabular-nums;}.speed{display:flex;align-items:center;gap:14px;min-width:180px;max-width:320px;flex:1;font-size:13px;}.speed span{white-space:nowrap;}input{min-width:80px;min-height:48px;width:100%;accent-color:var(--c-ink);}
-  @media(max-width:700px){.transport{gap:6px;}.transport>.workspace-button:not(.play){padding:0 12px;}.speed{flex-basis:100%;max-width:none;justify-content:center;}.speed input{max-width:220px;}.panel-buttons{top:8px;right:8px;}}
+  .panel-buttons{position:absolute;right:12px;display:flex;gap:2px;pointer-events:auto;z-index:3;background:var(--aria-material);padding:4px;border-radius:18px;outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);}
+  .panel-buttons :global(.workspace-button){outline:0;box-shadow:none;background:transparent;min-height:36px;padding:0 12px;}
+  .panel-buttons :global(.workspace-button[aria-pressed=true]){background:var(--aria-selection);color:var(--aria-active);}
+  .panels{pointer-events:auto;}.panels.docked{position:absolute;right:8px;bottom:8px;width:376px;}.panels.docked :global(.score-panel){position:static;width:100%;max-height:100%;}
+  .transport{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;width:min(560px,calc(100% - 16px));margin-inline:auto;padding:6px 10px;border-radius:18px;background:var(--aria-material);outline:.7px solid var(--aria-line);outline-offset:-.7px;box-shadow:var(--island-shadow);backdrop-filter:blur(18px);color:var(--aria-ink);}.transport :global(.ib){background:transparent;box-shadow:none;outline:0;}.transport :global(.ib:hover){background:var(--aria-fill);}.play{min-width:106px;outline:0;}.clock{min-width:52px;font:600 15px/1.2 var(--font-ui);font-variant-numeric:tabular-nums;}.speed{display:flex;align-items:center;gap:10px;min-width:140px;max-width:200px;flex:1 1 140px;font:500 13px/1.2 var(--font-ui);}.speed span{white-space:nowrap;}input{min-width:80px;min-height:44px;width:100%;accent-color:var(--aria-active);} .progress{display:block;width:min(560px,calc(100% - 16px));margin:0 auto 8px;height:28px;}
+  @media(max-width:700px){.transport{gap:6px;}.transport>.workspace-button:not(.play){padding:0 12px;}.speed span{display:none;}.panel-buttons{top:8px;right:8px;}}
 </style>
