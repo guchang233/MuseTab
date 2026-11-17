@@ -65,7 +65,8 @@ if (!hasV2 && !hasV3) {
 const py = process.env.MUSETAB_PYTHON || (win ? 'python' : 'python3');
 const sf = run(py, [
   '-c',
-  'import sys,zipfile,re; z=zipfile.ZipFile(sys.argv[1]); n=next(i for i in z.namelist() if i.startswith("META-INF/") and i.endswith(".SF")); t=z.read(n).decode(); m=re.search(r"X-Android-APK-Signed:\\s*(.+)", t); print(m.group(1).strip() if m else "")',
+  'import sys,zipfile,re; z=zipfile.ZipFile(sys.argv[1]); names=[i for i in z.namelist() if i.startswith("META-INF/") and i.endswith(".SF")];\n'
+    + 'print("" if not names else (re.search(r"X-Android-APK-Signed:\\s*(.+)", z.read(names[0]).decode()).group(1).strip() if re.search(r"X-Android-APK-Signed:\\s*(.+)", z.read(names[0]).decode()) else ""))',
   apk,
 ]);
 if (sf.code !== 0) {
