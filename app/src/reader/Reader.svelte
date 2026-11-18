@@ -40,10 +40,13 @@
   function fitZoom(mode: View) {
     engine.dispatch(mode === 'horizontal' ? 'zoom-two-pages' : 'zoom-page-width');
   }
+  /** 已按哪种排版铺好；切换时会同步调用一次，下面的 effect 见到相同值就不再重排整份乐谱。 */
+  let appliedView: View | null = null;
   function applyLayout(mode: View) {
     engine.readerLayout(VIEW_MODE[mode]);
     fitZoom(mode);
     engine.readerLayout(VIEW_MODE[mode]);
+    appliedView = mode;
   }
 
   let view = $state<View>('vertical');
@@ -85,6 +88,7 @@
     timer = setTimeout(() => {
       barOpen = false;
       tempoOpen = false;
+      layoutOpen = false;
     }, LINGER);
   }
   function showBar(open: boolean) {
@@ -107,9 +111,10 @@
     return () => engine.setViewOnly(false);
   });
   $effect(() => {
-    if(!active || engine.status !== 'ready' || reading.fullscreen) return;
+    // 离开看谱或进全屏后，编谱/页图可能改过排版，回来时必须重铺。
+    if(!active || engine.status !== 'ready' || reading.fullscreen) { appliedView = null; return; }
     const layout = view;
-    untrack(() => applyLayout(layout));
+    untrack(() => { if (appliedView !== layout) applyLayout(layout); });
   });
 
   // 新翻开的谱子：按页宽铺满
@@ -288,7 +293,7 @@
             class:on={tempoOpen}
             aria-label="播放速度 {tempo}%"
             aria-expanded={tempoOpen}
-            onclick={() => (tempoOpen = !tempoOpen)}
+            onclick={() => { tempoOpen = !tempoOpen; layoutOpen = false; linger(); }}
           >
             <Glyph name="metNoteQuarterUp" size={22} maxH={22} />
             <span>{tempo}%</span>

@@ -72,6 +72,7 @@ export type AriaEditorInfo={metadata?:Record<string,string>;nominalNumerator?:nu
 const UNKNOWN: ActionState = { known: false, enabled: false, checked: false };
 
 let host: HostEngine | null = null;
+let startingPlayback = false;
 let frame: HTMLIFrameElement | null = null;
 
 let status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -328,6 +329,9 @@ export const engine = {
   async togglePlay() {
     if (!host) return;
     if(playing){host.dispatch('play');return;}
+    // 启动等待期间 playing 仍为 false；再点一次会把刚开始的播放又切回暂停。
+    if(startingPlayback)return;
+    startingPlayback=true;
     try{
       // 先在手势栈里恢复 AudioContext，再进 activity 队列等播放态。
       // 若先 await tick/rAF，手势会失效，表现为“在播但没声音”。
@@ -342,6 +346,7 @@ export const engine = {
         }
       },'playback-start');
     }catch(e){dispatchEvent(new CustomEvent('musetab-error',{detail:(e as {message?:string})?.message||'播放未能启动'}));}
+    finally{startingPlayback=false;}
   },
   stop() {
     host?.dispatch('stop');

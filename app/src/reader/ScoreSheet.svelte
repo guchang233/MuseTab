@@ -6,6 +6,7 @@
   import { library } from '../library/store.svelte';
   import { reading } from './layout.svelte';
   import { pageCache } from './page-cache';
+  import { readerPage } from './page-tint';
   import pkg from '../../package.json';
 
   type Rect = { x: number; y: number; w: number; h: number };
@@ -15,7 +16,7 @@
   let glyph = $state<{ page: number; src: string; rect: Rect } | null>(null);
   const images = new Map<string, Promise<string>>();
   let generation = 0;
-  const documentKey = $derived(`${pkg.version}:sheet:${library.current?.id}:${library.current?.editedAt || library.current?.addedAt || 0}:${theme.paper ? 1 : 0}:${theme.resolved}`);
+  const documentKey = $derived(`${pkg.version}:sheet3:${library.current?.id}:${library.current?.editedAt || library.current?.addedAt || 0}:${theme.paper ? 1 : 0}:${theme.resolved}`);
 
   function pixelsFor(rect: Rect) {
     return Math.ceil(Math.max(900, Math.min(1600, rect.w * (devicePixelRatio || 1))) / 200) * 200;
@@ -38,15 +39,22 @@
     }
     return indexed.filter((item) => near.has(item.index));
   }
+  /** 换谱、换主题或编辑后旧页图全部作废：释放 blob，免得每次切换都留下整套位图。 */
+  let imagesFor = '';
+  function release() {
+    for (const pending of images.values()) void pending.then((src) => src.startsWith('blob:') && URL.revokeObjectURL(src), () => {});
+    images.clear();
+  }
   function srcFor(page: number, pixels: number) {
+    if (imagesFor !== documentKey) { release(); imagesFor = documentKey; }
     const key = documentKey + ':' + page + ':' + pixels;
     if (!images.has(key)) {
       images.set(key, (async () => {
         const cached = await pageCache.get(key);
         if (cached) return URL.createObjectURL(cached);
-        const src = engine.renderPage(page, pixels);
-        void pageCache.put(key, src);
-        return src;
+        const blob = await readerPage(page, pixels);
+        void pageCache.put(key, blob);
+        return URL.createObjectURL(blob);
       })());
     }
     return images.get(key)!;
@@ -85,7 +93,7 @@
     });
     void key; void change; void viewport;
   });
-  $effect(() => () => { generation++; });
+  $effect(() => () => { generation++; release(); });
   $effect(() => {
     const seq = engine.selectionSeq;
     if (!seq && engine.selection.none) { glyph = null; return; }
@@ -127,6 +135,5 @@
   .score-sheet { position: absolute; inset: 0; transform-origin: 0 0; }
   .sheet-page, .sheet-glyph { position: absolute; max-width: none; user-select: none; }
   .sheet-glyph { z-index: 1; }
-  :global([data-theme='dark'][data-score-paper='on']) .sheet-page { filter: invert(1); }
   .playback-line { position: absolute; background: #2984e5b8; border-left: 1px solid #2685ed; }
 </style>

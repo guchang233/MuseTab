@@ -45,7 +45,7 @@ async function selectFirst(){
   }else{const f=await page.locator('iframe').boundingBox();await page.touchscreen.tap(f.x+s.rect.x+s.rect.w/2,f.y+s.rect.y+s.rect.h/2);}
   await page.waitForTimeout(200);
   assert.equal(await frame.evaluate(()=>events.findLast(e=>e.name==='selection')?.data?.type),'Note');
-  await page.getByRole('button',{name:'从这里播放',exact:true}).waitFor();return s;
+  await page.getByRole('button',{name:'选区操作',exact:true}).waitFor();return s;
 }
 try{
   await page.addInitScript(()=>localStorage.setItem('musetab.pageLayout','single')); await page.goto('http://127.0.0.1:5183');frame=page.frames().find(f=>f.url().includes('/engine/host.html'));
@@ -69,7 +69,7 @@ try{
   await swipe(180,640,650,640);assert.equal(await pageNumber(),first);
   const rect=await page.locator('.gallery-page').first().getAttribute('style');
   await swipe(400,800,400,200);await page.mouse.wheel(0,1000);assert.equal(await pageNumber(),first);assert.equal(await page.locator('.gallery-page').first().getAttribute('style'),rect);
-  const note=await selectFirst();await page.getByRole('button',{name:'从这里播放',exact:true}).click();await page.waitForTimeout(1000);
+  const note=await selectFirst();await page.getByRole('button',{name:'选区操作',exact:true}).click();await page.getByRole('menuitem',{name:'播放',exact:true}).click();await page.waitForTimeout(1000);
   const position=await frame.evaluate(()=>events.findLast(e=>e.name==='position')?.data);assert(position.tick>note.tick);await frame.evaluate(()=>musetabEngine.dispatch('stop'));
   pass('native gallery touch swipe, boundaries, vertical/wheel lock and tap-to-play',{pages:first,position});
   await page.setViewportSize({width:1280,height:800});await page.waitForTimeout(600);await snap('landscape-gallery');

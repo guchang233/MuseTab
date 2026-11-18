@@ -69,14 +69,14 @@ pnpm --dir app check
 pnpm --dir app dev --host 127.0.0.1 --port 5183
 ```
 
-浏览器访问 `http://127.0.0.1:5183`。先运行 `node tools/runtime.mjs` 下载校验过的原生依赖，或自行编译引擎。
+浏览器访问 `http://127.0.0.1:5183`。先运行 `node tools/runtime.mjs` 下载校验过的原生依赖（`release/` 里已有同哈希的运行时包时直接复用，不再下载），或自行编译引擎。
 完整原生编译、Android 打包和验证说明见 [docs/BUILDING.md](docs/BUILDING.md)。
 
 ```powershell
 node android/build.mjs
 ```
 
-Android 输出：`release/MuseTab-0.6.7.apk`，包名 `org.musetab.app`。
+Android 输出：`release/MuseTab-<版本号>.apk`（版本号取自 `app/package.json`），包名 `org.musetab.app`。
 本地开发签名；支持 Android 9 及以上、WebGL 2 的设备。
 
 ## 数据与范围

@@ -64,9 +64,9 @@ try{
   const chooser=page.waitForEvent('filechooser');await page.getByRole('button',{name:'导入乐谱',exact:true}).click();await(await chooser).setFiles(dir+'/'+file);
   await page.locator('.reader').waitFor();await page.waitForTimeout(700);
   await page.screenshot({path:out+'/reader-landscape.png'});pass('real MSCZ import and reader');
-  const note=await selectNote(960);await page.getByRole('button',{name:'从这里播放',exact:true}).waitFor();pass('precise pointer selection',note);
+  const note=await selectNote(960);await page.getByRole('button',{name:'选区操作',exact:true}).waitFor();pass('precise pointer selection',note);
   await page.screenshot({path:out+'/reader-selection.png'});
-  await page.getByRole('button',{name:'从这里播放',exact:true}).click();await page.waitForTimeout(1000);
+  await page.getByRole('button',{name:'选区操作',exact:true}).click();await page.getByRole('menuitem',{name:'播放',exact:true}).click();await page.waitForTimeout(1000);
   const position=await frame.evaluate(()=>events.findLast(e=>e.name==='position')?.data);assert(position.tick>=note.tick);assert(position.tick<note.tick+2500);
   if(process.env.SKIP_AUDIO!=='1'){
     assert(position.tick>note.tick,'playback tick must advance from selection');

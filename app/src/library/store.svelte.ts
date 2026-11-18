@@ -69,6 +69,24 @@ function coverOf(bytes: Uint8Array, ext: string): string | undefined {
   }
 }
 
+/**
+ * 在同一个事务里读出库中的记录再写回。不能用内存里的旧快照覆盖：
+ * 打开时记曲名（touch）可能和自动保存（replace，会把 MIDI 等改成 mscz）交错，
+ * 用旧快照写回会把扩展名改回去，下次就按错误的格式打开。
+ */
+function merge(id: string, change: (rec: ScoreRecord) => ScoreRecord): Promise<boolean> {
+  let found = false;
+  return tx([META], 'readwrite', (t) => {
+    const req = t.objectStore(META).get(id);
+    req.onsuccess = () => {
+      const rec = req.result as ScoreRecord | undefined;
+      if (!rec) return;
+      found = true;
+      t.objectStore(META).put(change(rec));
+    };
+  }).then(() => found);
+}
+
 let records = $state<ScoreRecord[]>([]);
 let loaded = $state(false);
 let currentId = $state<string | null>(null);
@@ -124,21 +142,23 @@ export const library = {
   /** 标记为刚打开，并可顺带记下曲名 */
   async touch(id: string, patch: Partial<ScoreRecord> = {}) {
     currentId = id;
-    const rec = records.find((r) => r.id === id);
-    if (!rec) return;
-    const next = { ...$state.snapshot(rec), ...patch, openedAt: Date.now() };
-    await tx([META], 'readwrite', (t) => t.objectStore(META).put(next));
+    if (!records.some((r) => r.id === id)) return;
+    await merge(id, (rec) => ({ ...rec, ...patch, openedAt: Date.now() }));
     await refresh();
   },
 
   /** 用编辑后的内容覆盖已保存的文件（保存为 mscz） */
   async replace(id: string, bytes: Uint8Array) {
-    const rec = records.find((r) => r.id === id);
-    if (!rec) return;
-    const next = { ...$state.snapshot(rec), ext: 'mscz', editedAt: Date.now(), size: bytes.length, cover: coverOf(bytes, 'mscz') ?? rec.cover };
+    if (!records.some((r) => r.id === id)) return;
+    const cover = coverOf(bytes, 'mscz');
     await tx([META, BLOBS], 'readwrite', (t) => {
-      t.objectStore(META).put(next);
-      t.objectStore(BLOBS).put(bytes, id);
+      const req = t.objectStore(META).get(id);
+      req.onsuccess = () => {
+        const rec = req.result as ScoreRecord | undefined;
+        if (!rec) return;
+        t.objectStore(META).put({ ...rec, ext: 'mscz', editedAt: Date.now(), size: bytes.length, cover: cover ?? rec.cover });
+        t.objectStore(BLOBS).put(bytes, id);
+      };
     });
     await refresh();
   },
@@ -154,10 +174,9 @@ export const library = {
     await refresh();
   },
   async rename(id:string,name:string){
-    const rec=records.find(r=>r.id===id);if(!rec)throw Error('这份乐谱已不存在');
     const displayName=name.trim();if(!displayName||displayName.length>240)throw Error('请输入 1–240 个字的名称');
-    const next={...$state.snapshot(rec),displayName};
-    await tx([META],'readwrite',t=>t.objectStore(META).put(next));await refresh();
+    if(!await merge(id,rec=>({...rec,displayName})))throw Error('这份乐谱已不存在');
+    await refresh();
   },
   async notes(id: string): Promise<PdfNotes> { return (await tx<PdfNotes>(['annotations'], 'readonly', t => t.objectStore('annotations').get(id))) || {}; },
   async saveNotes(id: string, notes: PdfNotes) { await tx(['annotations'], 'readwrite', t => { t.objectStore('annotations').put(notes, id); }); },

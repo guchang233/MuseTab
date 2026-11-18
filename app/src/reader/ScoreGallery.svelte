@@ -1,6 +1,6 @@
 <script lang="ts">
  import {untrack,tick} from 'svelte';import {engine} from '../bridge/engine.svelte';import {theme} from '../ui/theme.svelte';import {readerGestures} from './gestures.js';import {pageArrival} from './page-motion';
- import {library} from '../library/store.svelte';import {pageCache} from './page-cache';import pkg from '../../package.json';
+ import {library} from '../library/store.svelte';import {pageCache} from './page-cache';import {readerPage} from './page-tint';import pkg from '../../package.json';
  import Spinner from '../ui/Spinner.svelte';
  export type PageLayout='auto'|'single'|'double';
  type Rect={x:number;y:number;w:number;h:number};type PageBitmap={src:string;image:HTMLImageElement};type Visible={page:number;bitmap:PageBitmap;rect:Rect};
@@ -8,7 +8,8 @@
  let surface:HTMLDivElement,width=$state(0),height=$state(0),metrics=$state<{w:number;h:number}[]>([]),pages=$state<Visible[]>([]),zoom=$state(1),dx=$state(0),dy=$state(0),focusPage=0,generation=0,cacheVersion=0;
  let selected=$state<{page:number;rect:Rect;src:string}|null>(null),loaded=$state(false),busy=$state(false);
  const columns=$derived(mode==='double'?2:mode==='single'?1:(width>=900&&height>=480&&width>height*1.15?2:1));
- const documentKey=$derived(`${pkg.version}:page3:${library.current?.id}:${library.current?.editedAt||library.current?.addedAt||0}`);
+ // 页图颜色随主题和谱纸变化，键里必须带上；page4 起暗色页图在前端着色，旧缓存作废。
+ const documentKey=$derived(`${pkg.version}:page4:${library.current?.id}:${library.current?.editedAt||library.current?.addedAt||0}:${theme.resolved}`);
  let lastInput=0;
  const images=new Map<string,Promise<PageBitmap>>(),decoded=new Map<string,PageBitmap>();let warming:ReturnType<typeof setTimeout>;
  function rasterWidth(){return Math.ceil(Math.max(1000,Math.min(1600,width/columns*(devicePixelRatio||1)))/200)*200;}
@@ -17,8 +18,9 @@
    const version=cacheVersion,persistentKey=documentKey+':'+key;images.set(key,(async()=>{
     const cached=await pageCache.get(persistentKey);if(version!==cacheVersion)throw Error('Page generation changed');
     // 不在这里改 live canvas 主题：会冲掉 App 的编谱/看谱设定。
-    const src=cached?URL.createObjectURL(cached):engine.renderPage(page,pixels),image=new Image();image.src=src;await image.decode();
-    if(!cached)void pageCache.put(persistentKey,src);const value={src,image};if(version===cacheVersion)decoded.set(key,value);else if(src.startsWith('blob:'))URL.revokeObjectURL(src);return value;
+    const blob=cached??await readerPage(page,pixels);if(version!==cacheVersion)throw Error('Page generation changed');
+    const src=URL.createObjectURL(blob),image=new Image();image.src=src;await image.decode();
+    if(!cached)void pageCache.put(persistentKey,blob);const value={src,image};if(version===cacheVersion)decoded.set(key,value);else if(src.startsWith('blob:'))URL.revokeObjectURL(src);return value;
    })());
   }return images.get(key)!;
  }
@@ -89,8 +91,8 @@
 <style>
  /* 点选按可见页图换算，左右滑在这一层翻页，不再把坐标交给整窗单页的引擎画布。 */
  .score-gallery{position:absolute;inset:0;overflow:hidden;pointer-events:auto;touch-action:none;background:var(--parchment-deep);}.gallery-page,.selected-glyph{position:absolute;max-width:none;pointer-events:none;user-select:none;}.selected-glyph{z-index:2;}
- /* 有谱纸时页图是浅色渲染，暗色界面只在这里反相一次。关谱纸时引擎已经反相，不能再滤一次。 */
- :global([data-theme=dark][data-score-paper=on]) .gallery-page{filter:invert(1);}
+ /* 暗色时页图已在 page-tint.ts 着色（深纸浅字），这里不能再加 CSS 反相。 */
+
  .playback-line{position:absolute;pointer-events:none;z-index:3;background:#2984e5b8;border-left:1px solid #2685ed;}
  .preparing{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;border-radius:18px;padding:12px 18px;background:var(--aria-material);color:var(--aria-ink);outline:.7px solid var(--aria-line);outline-offset:-.7px;font-size:14px;pointer-events:none;white-space:nowrap;box-shadow:var(--island-shadow);}
 </style>

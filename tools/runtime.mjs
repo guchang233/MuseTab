@@ -18,9 +18,17 @@ if(process.argv.includes('--pack')){
   console.log('Runtime packed, SHA-256 '+sha256);
 }else{
   const lock=JSON.parse(await fs.readFile(path.join(root,'engine/runtime.lock.json'),'utf8'));
-  const r=await fetch(lock.url);if(!r.ok)throw Error('Runtime download HTTP '+r.status);
-  const bytes=Buffer.from(await r.arrayBuffer());if(createHash('sha256').update(bytes).digest('hex')!==lock.sha256)throw Error('Native runtime SHA-256 mismatch');
-  const zip=path.join(root,'release/runtime-download.zip');await fs.mkdir(path.dirname(zip),{recursive:true});await fs.writeFile(zip,bytes);await fs.mkdir(dest,{recursive:true});
+  const sha=b=>createHash('sha256').update(b).digest('hex');
+  // 本机已有同一哈希的运行时包（--pack 产物或上次下载）就直接用，不再重复下载上百 MB。
+  const local=[path.join(root,'release',path.basename(new URL(lock.url).pathname)),path.join(root,'release/runtime-download.zip')];
+  let zip='';
+  for(const candidate of local){try{if(sha(await fs.readFile(candidate))===lock.sha256){zip=candidate;console.log('Using local runtime '+path.relative(root,candidate));break;}}catch{}}
+  if(!zip){
+    const r=await fetch(lock.url);if(!r.ok)throw Error('Runtime download HTTP '+r.status);
+    const bytes=Buffer.from(await r.arrayBuffer());if(sha(bytes)!==lock.sha256)throw Error('Native runtime SHA-256 mismatch');
+    zip=local[1];await fs.mkdir(path.dirname(zip),{recursive:true});await fs.writeFile(zip,bytes);
+  }
+  await fs.mkdir(dest,{recursive:true});
   const python=process.env.MUSETAB_PYTHON||(process.platform==='win32'?'python':'python3');
   execFileSync(python,['-c','import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])',zip,dest],{stdio:'inherit'});
 }

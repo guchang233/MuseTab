@@ -13,7 +13,8 @@
   import { theme } from './ui/theme.svelte';
   import { workspace } from './library/workspace.svelte';
   import { library } from './library/store.svelte';
-  import PdfReader from './reader/PdfReader.svelte';
+  // pdf.js 体积大，只在真正打开 PDF 时加载，启动和看五线谱时不解析它。
+  const loadPdfReader = () => import('./reader/PdfReader.svelte');
   import { reading } from './reader/layout.svelte';
   import Spinner from './ui/Spinner.svelte';
   import {activity} from './ui/activity.svelte';
@@ -77,8 +78,11 @@
     const css = getComputedStyle(document.documentElement);
     const sheet = css.getPropertyValue('--sheet').trim() || '#fbf8ef';
     const deep = css.getPropertyValue('--parchment-deep').trim() || (dark ? '#18130e' : '#e9e0cc');
-    const invert = paperOn ? false : dark;
-    const paperColor = paperOn ? (composer ? '#ffffff' : sheet) : 'none';
+    // 看谱/播放的暗色主题一律交给引擎反相：谱纸变深、音符变浅。不反相时只能把
+    // 黑色音符画在深色谱纸上，几乎看不清。编谱有谱纸时保持白纸黑字。
+    const invert = composer ? dark && !paperOn : dark;
+    // 暗色时谱纸交给引擎反相；页图按浅色纸渲染后再着色（见 reader/page-tint.ts）。
+    const paperColor = paperOn ? (composer ? '#ffffff' : dark ? '#fbf8ef' : sheet) : 'none';
     const surround = composer && dark ? '#3b3b40' : deep;
     engine.setCanvasTheme(invert, paperColor, surround);
   });
@@ -100,7 +104,7 @@
 {#key baseScreen}
   <div class="screen" class:over={baseScreen !== 'library'} class:underlay={nav.screen==='editor'} inert={nav.screen==='editor'}>
     {#if baseScreen !== 'library' && isPdf}
-      <PdfReader />
+      {#await loadPdfReader() then pdfReader}<pdfReader.default />{:catch}<p class="save-error" role="alert">PDF 阅读器没能加载，请重新打开应用</p>{/await}
     {:else if baseScreen === 'reader'}
       <Reader active={nav.screen!=='editor'} />
     {:else if baseScreen === 'player'}
